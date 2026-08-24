@@ -1,21 +1,27 @@
-import { formatValue } from '../utils/formatters';
 import React, { useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { WidgetSpec } from '../core/types';
-import { BarChart2, TrendingUp, Layers } from 'lucide-react';
+import { formatValue } from '../utils/formatters';
+import { 
+  BarChart3, 
+  LineChart as LineChartIcon, 
+  PieChart, 
+  TrendingUp, 
+  Info,
+  Maximize2,
+  Table as TableIcon
+} from 'lucide-react';
 
 interface ChartWidgetProps {
   widget: WidgetSpec;
   data: any;
   onChartClick?: (params: any) => void;
-  onGrainChange?: (grain: string) => void;
 }
 
-export const ChartWidget: React.FC<ChartWidgetProps> = ({ 
-  widget, 
-  data, 
-  onChartClick,
-  onGrainChange 
+export const ChartWidget: React.FC<ChartWidgetProps> = ({
+  widget,
+  data,
+  onChartClick
 }) => {
   const [chartTypeOverride, setChartTypeOverride] = useState<string | null>(null);
 
@@ -26,12 +32,21 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
     const gridLineColor = 'rgba(255, 255, 255, 0.06)';
     const cyanPalette = ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#fbbf24', '#a78bfa'];
 
+    // 1. Donut and Pie Charts (Strict Declarative Formatting)
     if (effectiveType === 'donut_chart' || effectiveType === 'pie_chart') {
       const pieData = data?.data || [];
       return {
         tooltip: {
           trigger: 'item',
-          formatter: '{b}: {c} ({d}%)',
+          formatter: (params: any) => {
+            const formattedVal = formatValue(params.value, widget.format || 'RM 0.0a');
+            return `<div style="font-weight: bold; margin-bottom: 2px;">${params.name}</div>
+                    <div style="display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+                      <span>${params.marker} Sales:</span>
+                      <strong>${formattedVal}</strong>
+                      <span style="color: #94a3b8; font-size: 11px;">(${params.percent}%)</span>
+                    </div>`;
+          },
           backgroundColor: '#0f172a',
           borderColor: '#334155',
           textStyle: { color: '#f8fafc' }
@@ -70,7 +85,8 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
                 show: true,
                 fontSize: 12,
                 fontWeight: 'bold',
-                color: '#f8fafc'
+                color: '#f8fafc',
+                formatter: (params: any) => `${params.name}\n${formatValue(params.value, widget.format || 'RM 0.0a')}`
               }
             },
             data: pieData
@@ -79,12 +95,13 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       };
     }
 
+    // 2. Funnel Charts
     if (effectiveType === 'funnel') {
       const funnelData = data?.data || [];
       return {
         tooltip: {
           trigger: 'item',
-          formatter: '{b}: {c}',
+          formatter: (params: any) => `${params.name}: <strong>${formatValue(params.value, widget.format || '0,0')}</strong>`,
           backgroundColor: '#0f172a',
           borderColor: '#334155',
           textStyle: { color: '#f8fafc' }
@@ -108,7 +125,8 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
               show: true,
               position: 'inside',
               color: '#fff',
-              fontSize: 11
+              fontSize: 11,
+              formatter: (params: any) => `${params.name}: ${formatValue(params.value, widget.format || '0,0')}`
             },
             data: funnelData
           }
@@ -116,6 +134,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       };
     }
 
+    // 3. Radar Charts
     if (effectiveType === 'radar') {
       const indicators = data?.indicators || [];
       const series = data?.series || [];
@@ -165,7 +184,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       };
     }
 
-    // Default Cartesian charts (Line, Area, Bar, Stacked Bar)
+    // 4. Default Cartesian charts (Line, Area, Bar, Stacked Bar)
     const categories = data?.categories || [];
     const useDualAxis = !!data?.useDualAxis;
 
@@ -202,49 +221,41 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       };
     });
 
+    const primaryAxisName = Array.isArray(widget.y) ? widget.y[0] : (widget.y || 'Sales (RM)');
+    const secondaryAxisName = Array.isArray(widget.y) && widget.y[1] ? widget.y[1] : 'Footfall / Count';
+
     const yAxisConfig = useDualAxis ? [
       {
         type: 'value',
-        name: 'Sales ($)',
+        name: primaryAxisName,
         nameTextStyle: { color: textColor, fontSize: 10 },
         splitLine: { lineStyle: { color: gridLineColor } },
         axisLabel: {
           color: textColor,
           fontSize: 11,
-          formatter: (val: number) => {
-            if (val >= 1000000) return `$${(val / 1000000).toFixed(0)}M`;
-            if (val >= 1000) return `$${(val / 1000).toFixed(0)}k`;
-            return `$${val}`;
-          }
+          formatter: (val: number) => formatValue(val, widget.format || 'RM 0.0a')
         }
       },
       {
         type: 'value',
-        name: 'Footfall / Count',
+        name: secondaryAxisName,
         nameTextStyle: { color: textColor, fontSize: 10 },
         splitLine: { show: false },
         axisLabel: {
           color: '#818cf8',
           fontSize: 11,
-          formatter: (val: number) => {
-            if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-            if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
-            return val;
-          }
+          formatter: (val: number) => formatValue(val, '0.0a')
         }
       }
     ] : [
       {
         type: 'value',
+        name: primaryAxisName,
         splitLine: { lineStyle: { color: gridLineColor } },
         axisLabel: {
           color: textColor,
           fontSize: 11,
-          formatter: (val: number) => {
-            if (val >= 1000000) return `${(val / 1000000).toFixed(0)}M`;
-            if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
-            return val;
-          }
+          formatter: (val: number) => formatValue(val, widget.format || 'RM 0.0a')
         }
       }
     ];
@@ -258,7 +269,20 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         },
         backgroundColor: '#0f172a',
         borderColor: '#334155',
-        textStyle: { color: '#f8fafc' }
+        textStyle: { color: '#f8fafc' },
+        formatter: (params: any[]) => {
+          let res = `<div style="font-weight: bold; margin-bottom: 4px;">${params[0].axisValueLabel || params[0].name}</div>`;
+          params.forEach(p => {
+            const isCount = p.seriesName.toLowerCase().includes('count') || p.seriesName.toLowerCase().includes('transaction');
+            const fmt = isCount ? '0,0' : (widget.format || 'RM 0,0');
+            const val = formatValue(p.value, fmt);
+            res += `<div style="display: flex; justify-content: space-between; gap: 16px; margin-top: 2px;">
+              <span>${p.marker} ${p.seriesName}</span>
+              <strong>${val}</strong>
+            </div>`;
+          });
+          return res;
+        }
       },
       legend: {
         top: 0,
@@ -278,78 +302,81 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         type: 'category',
         data: categories,
         axisLine: { lineStyle: { color: gridLineColor } },
-        axisLabel: { 
-          color: textColor, 
-          fontSize: 11,
-          rotate: categories.length > 8 ? 20 : 0
-        },
-        axisTick: { show: false }
+        axisLabel: { color: textColor, fontSize: 11 }
       },
       yAxis: yAxisConfig,
       series: seriesList
     };
   }, [widget, data, effectiveType]);
 
-  const onEvents = useMemo(() => ({
-    click: (params: any) => {
-      if (onChartClick) onChartClick(params);
-    }
-  }), [onChartClick]);
-
-  const isCartesian = ['line_chart', 'area_chart', 'bar_chart', 'stacked_bar'].includes(widget.type);
-  const displayTitle = data?.dynamicTitle || widget.title;
-  const displaySubtitle = data?.dynamicSubtitle || widget.subtitle;
+  const onEvents = useMemo(() => {
+    return {
+      click: (params: any) => {
+        if (onChartClick) {
+          onChartClick(params);
+        }
+      }
+    };
+  }, [onChartClick]);
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-sm h-full group">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+    <div className="flex flex-col h-full bg-slate-900/90 rounded-2xl border border-slate-800/80 p-4 relative shadow-xl backdrop-blur-md">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-100 tracking-tight">{displayTitle}</h3>
-            {data?.activeGrain && (
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <h3 className="font-bold text-slate-100 text-sm">
+              {data?.dynamicTitle || widget.title}
+            </h3>
+            {widget.auto_grain && data?.activeGrain && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold uppercase tracking-wider">
                 {data.activeGrain} Grain
               </span>
             )}
           </div>
-          {displaySubtitle && <p className="text-xs text-slate-400 mt-0.5">{displaySubtitle}</p>}
+          {widget.subtitle && (
+            <p className="text-xs text-slate-400 mt-0.5">
+              {data?.dynamicSubtitle || widget.subtitle}
+            </p>
+          )}
         </div>
 
-        {/* Quick Chart Morphing Switcher */}
-        {isCartesian && (
-          <div className="flex items-center gap-1 self-end sm:self-auto bg-slate-950/80 border border-slate-800 rounded-lg p-0.5">
-            <button
-              onClick={() => setChartTypeOverride('line_chart')}
-              title="Line Chart"
-              className={`p-1 rounded text-xs transition ${effectiveType === 'line_chart' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setChartTypeOverride('bar_chart')}
-              title="Bar Chart"
-              className={`p-1 rounded text-xs transition ${effectiveType === 'bar_chart' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <BarChart2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setChartTypeOverride('area_chart')}
-              title="Area Chart"
-              className={`p-1 rounded text-xs transition ${effectiveType === 'area_chart' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+        {/* Chart View Mode Controls */}
+        <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+          {widget.type === 'line_chart' && (
+            <>
+              <button
+                onClick={() => setChartTypeOverride('line_chart')}
+                className={`p-1.5 rounded-lg transition ${effectiveType === 'line_chart' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                title="Line View"
+              >
+                <LineChartIcon className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setChartTypeOverride('bar_chart')}
+                className={`p-1.5 rounded-lg transition ${effectiveType === 'bar_chart' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                title="Bar View"
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setChartTypeOverride('area_chart')}
+                className={`p-1.5 rounded-lg transition ${effectiveType === 'area_chart' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                title="Area View"
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 w-full min-h-[220px]">
+      {/* Chart Canvas */}
+      <div className="flex-1 min-h-[220px]">
         <ReactECharts
           option={option}
           style={{ height: '100%', width: '100%' }}
           onEvents={onEvents}
-          opts={{ renderer: 'canvas' }}
         />
       </div>
     </div>

@@ -6,6 +6,7 @@ describe('Unified Declarative Formatter (YAML/JSON/XML)', () => {
     expect(formatValue(1800000, 'RM 0,0')).toBe('RM 1,800,000');
     expect(formatValue(38400, 'RM 0,0')).toBe('RM 38,400');
     expect(formatValue(85000000, 'RM 0.0a')).toBe('RM 85.0M');
+    expect(formatValue(15600000, 'RM 0.0a')).toBe('RM 15.6M');
     expect(formatValue(38400, 'RM 0.0a')).toBe('RM 38.4k');
   });
 
@@ -31,5 +32,15 @@ describe('Unified Declarative Formatter (YAML/JSON/XML)', () => {
     const rmCurrency = { symbol: 'RM', code: 'MYR', position: 'prefix' as const, space: true };
     expect(formatValue(1800000, '$0,0', rmCurrency)).toBe('RM 1,800,000');
     expect(formatValue(85000000, '$0.0a', rmCurrency)).toBe('RM 85.0M');
+  });
+
+  it('should format donut chart category values correctly', () => {
+    // Specifically test the user report where Snacks & Confectionery was unformatted 15600000
+    const rawVal = 15600000;
+    const formattedWithAbbr = formatValue(rawVal, 'RM 0.0a');
+    expect(formattedWithAbbr).toBe('RM 15.6M');
+
+    const formattedWithCommas = formatValue(rawVal, 'RM 0,0');
+    expect(formattedWithCommas).toBe('RM 15,600,000');
   });
 });
