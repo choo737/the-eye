@@ -87,10 +87,15 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   const [selectedPin, setSelectedPin] = useState<any | null>(null);
   const [mapStyle, setMapStyle] = useState<'google_streets' | 'google_satellite' | 'google_terrain'>('google_streets');
 
-  // Auto-reset deep-dive selection whenever the main filters or data change
+  // Preserve deep-dive selection on filter change & seamlessly reflect newly changed filter context
   useEffect(() => {
-    setSelectedPin(null);
-  }, [data, activeFilters]);
+    if (selectedPin) {
+      const updated = storePoints.find((p: any) => p.id === selectedPin.id);
+      if (updated) {
+        setSelectedPin(updated);
+      }
+    }
+  }, [data, activeFilters, storePoints]);
 
   const showTable = widget.map_config?.show_table !== false;
 

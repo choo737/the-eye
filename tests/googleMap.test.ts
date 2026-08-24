@@ -114,11 +114,9 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
     let currentSelected: any = null;
     const store1 = { id: '7E-1082', name: 'KLCC' };
 
-    // Select store1
     currentSelected = currentSelected?.id === store1.id ? null : store1;
     expect(currentSelected?.id).toBe('7E-1082');
 
-    // Click again -> should toggle unselect to null
     currentSelected = currentSelected?.id === store1.id ? null : store1;
     expect(currentSelected).toBeNull();
   });
@@ -137,7 +135,25 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
 
     const monthRes = executeWidgetQuery(mapWidget, { time_range: 'last_30_days' });
     expect(monthRes.mapPoints.length).toBeGreaterThan(0);
-    // Month sales should be scaled relative to YTD
     expect(monthRes.mapPoints[0].sales).toBeLessThan(ytdRes.mapPoints[0].sales * 1.5);
+  });
+
+  it('should preserve deep-dived item selection across main filter changes and update metrics', () => {
+    const mapWidget: WidgetSpec = {
+      id: 'map_stores',
+      title: 'Store Map',
+      type: 'google_map',
+      source: 'bq_gsheet_store_mesh',
+      position: { w: 12, h: 4 }
+    };
+
+    const ytdData = executeWidgetQuery(mapWidget, { time_range: '2026-YTD' });
+    const selectedStore = ytdData.mapPoints.find((p: any) => p.id === '7E-1082');
+    expect(selectedStore).toBeDefined();
+
+    const monthData = executeWidgetQuery(mapWidget, { time_range: 'last_30_days' });
+    const updatedStore = monthData.mapPoints.find((p: any) => p.id === selectedStore.id);
+    expect(updatedStore).toBeDefined();
+    expect(updatedStore.id).toBe('7E-1082');
   });
 });
