@@ -1,15 +1,15 @@
 export const SEVEN_ELEVEN_QLIK_BQ_YAML = `version: "1.0"
 id: "seven-eleven-retail-intelligence"
-title: "The Eye — 7-Eleven Store & POS Analytics (seven-eleven-qlik-bq)"
+title: "The Eye — 7-Eleven Store & POS Analytics (the-eye-bi-platform)"
 description: "Federated Data Mesh combining Live BigQuery POS Telemetry with Google Sheets Regional Target Allocations"
 theme: "emerald-slate"
 refresh_interval: "30s"
 
 data_sources:
   - id: bq_seven_eleven
-    name: "7-Eleven BigQuery Production (seven-eleven-qlik-bq)"
+    name: "7-Eleven BigQuery Live (the-eye-bi-platform)"
     type: bigquery
-    project: "seven-eleven-qlik-bq"
+    project: "the-eye-bi-platform"
     dataset: "retail_analytics"
     options:
       auth_mode: "google_oauth_adc_delegated"
