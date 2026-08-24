@@ -1,7 +1,7 @@
 export const SEVEN_ELEVEN_QLIK_BQ_YAML = `version: "1.0"
 id: "seven-eleven-retail-intelligence"
 title: "The Eye — 7-Eleven Store & POS Analytics (seven-eleven-qlik-bq)"
-description: "Live BigQuery production analytics for 7-Eleven omnichannel stores, POS transactions, basket size, and inventory velocity"
+description: "Federated Data Mesh combining Live BigQuery POS Telemetry with Google Sheets Regional Target Allocations"
 theme: "emerald-slate"
 refresh_interval: "30s"
 
@@ -13,7 +13,29 @@ data_sources:
     dataset: "retail_analytics"
     options:
       auth_mode: "google_oauth_adc_delegated"
-      location: "US"
+      location: "asia-southeast1"
+
+  - id: gsheet_store_targets
+    name: "Store Budget & Manager Quotas (Google Sheet)"
+    type: google_sheet
+    sheet_id: "19hOqN4p7rW09_7eleven_q3_targets_live"
+    range: "Targets!A1:E20"
+
+# Multi-Source Declarative Data Mesh Join Model
+data_mesh:
+  - id: bq_gsheet_store_mesh
+    name: "BigQuery POS Actuals × Google Sheet Q3 Targets"
+    primary_source: bq_seven_eleven
+    secondary_source: gsheet_store_targets
+    join_type: left
+    join_on: "store_id"
+    computed_fields:
+      - name: "target_achievement_pct"
+        formula: "(daily_sales / q3_budget_target) * 100"
+        format: "0.0%"
+      - name: "variance_to_budget"
+        formula: "daily_sales - q3_budget_target"
+        format: "$0,0"
 
 filters:
   - id: store_region
@@ -47,8 +69,10 @@ filters:
         value: "Beverages & Slurpee"
       - label: "Snacks & Confectionery"
         value: "Snacks & Confectionery"
-      - label: "Tobacco & Services"
-        value: "Tobacco & Services"
+      - label: "Tobacco & Core Services"
+        value: "Tobacco & Core Services"
+      - label: "General & Personal Care"
+        value: "General & Personal Care"
 
   - id: time_range
     label: "POS Transaction Horizon"
@@ -71,10 +95,6 @@ widgets:
     format: "$0.00a"
     comparison_label: "+14.2% YoY"
     sparkline: true
-    query: |
-      SELECT sum(total_amount) as gross_sales 
-      FROM \`seven-eleven-qlik-bq.retail_analytics.daily_store_sales\`
-      WHERE store_region IN (:store_region)
 
   - id: kpi_basket_size
     title: "Average Basket Size (ABV)"
@@ -85,9 +105,6 @@ widgets:
     format: "$0.00"
     comparison_label: "+$1.85 / basket"
     sparkline: true
-    query: |
-      SELECT avg(basket_amount) as basket_size 
-      FROM \`seven-eleven-qlik-bq.retail_analytics.pos_baskets\`
 
   - id: kpi_store_count
     title: "Active 7-Eleven Outlets"
@@ -112,7 +129,7 @@ widgets:
   # Row 2: Charts
   - id: pos_velocity_chart
     title: "POS Transaction Velocity & Footfall"
-    subtitle: "Showing {{active_grain}} stream for {{time_range}} from BigQuery (seven-eleven-qlik-bq)"
+    subtitle: "Showing {{active_grain}} stream for {{product_division}} ({{time_range}})"
     type: line_chart
     source: bq_seven_eleven
     position: { x: 0, y: 2, w: 8, h: 4 }
@@ -159,39 +176,40 @@ widgets:
     source: bq_seven_eleven
     position: { x: 7, y: 6, w: 5, h: 4 }
 
-  # Row 4: Top Outlets & SKU Movement Table
-  - id: store_performance_table
-    title: "Top Outlets Performance & POS Velocity"
-    subtitle: "Direct BigQuery push-down query results"
+  # Row 4: Meshed Federated Data Table (BigQuery Actuals + Google Sheet Targets)
+  - id: meshed_store_performance_table
+    title: "Meshed Store Intelligence (BigQuery POS × Google Sheet Targets)"
+    subtitle: "Federated join on store_id with live budget attainment calculations"
     type: table
-    source: bq_seven_eleven
+    source: bq_gsheet_store_mesh
     position: { x: 0, y: 10, w: 12, h: 4 }
     table_columns:
       - key: "store_id"
-        label: "Store ID"
+        label: "Store ID (Key)"
       - key: "store_name"
-        label: "Outlet Location"
-      - key: "region"
-        label: "Region"
+        label: "Outlet Location (BigQuery)"
+      - key: "store_manager"
+        label: "Store Manager (Google Sheet)"
       - key: "daily_sales"
-        label: "Daily Sales"
+        label: "Actual POS Sales (BigQuery)"
         format: "$0,0"
         align: "right"
-      - key: "avg_basket"
-        label: "Avg Basket"
-        format: "$0.00"
+      - key: "q3_budget_target"
+        label: "Q3 Target (Google Sheet)"
+        format: "$0,0"
         align: "right"
-      - key: "compliance"
-        label: "Audit & Stock Status"
+      - key: "target_achievement_pct"
+        label: "Attainment % (Computed)"
+        format: "0.0%"
+        align: "right"
+      - key: "audit_grade"
+        label: "Audit Grade (Google Sheet)"
         badge: true
-      - key: "pos_terminal_count"
-        label: "POS Terminals"
-        align: "center"
 `;
 
 export const SAMPLE_DASHBOARDS: Record<string, { name: string; yaml: string }> = {
   'seven-eleven-bq': {
-    name: '🏪 7-Eleven BigQuery (seven-eleven-qlik-bq)',
+    name: '🏪 7-Eleven BigQuery × Google Sheets (Data Mesh)',
     yaml: SEVEN_ELEVEN_QLIK_BQ_YAML,
   },
 };

@@ -148,6 +148,22 @@ export interface DashboardLayout {
   responsive?: boolean;
 }
 
+export interface ComputedFieldSpec {
+  name: string;
+  formula: string; // e.g. "sales_actual / budget_target * 100"
+  format?: string;
+}
+
+export interface DataMeshSpec {
+  id: string;
+  name: string;
+  primary_source: string;
+  secondary_source: string;
+  join_type: 'inner' | 'left' | 'right' | 'full';
+  join_on: string | { primary_key: string; secondary_key: string };
+  computed_fields?: ComputedFieldSpec[];
+}
+
 export interface DashboardSpec {
   version: string;
   id: string;
@@ -156,6 +172,7 @@ export interface DashboardSpec {
   theme?: DashboardTheme;
   refresh_interval?: string;
   data_sources: DataSourceSpec[];
+  data_mesh?: DataMeshSpec[];
   filters?: FilterSpec[];
   layout?: DashboardLayout;
   widgets: WidgetSpec[];

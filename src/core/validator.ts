@@ -181,7 +181,10 @@ export function validateDashboardSpec(spec: any, rawYaml?: string): ValidationRe
     });
   }
 
-  const declaredDataSources = new Set((spec.data_sources || []).map((ds: any) => ds.id));
+  const declaredDataSources = new Set([
+    ...(spec.data_sources || []).map((ds: any) => ds.id),
+    ...(spec.data_mesh || []).map((m: any) => m.id)
+  ]);
   const declaredFilters = new Set((spec.filters || []).map((f: any) => f.id));
 
   // 3. Filters Validation

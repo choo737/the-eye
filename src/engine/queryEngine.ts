@@ -225,31 +225,42 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 5. TABLE WIDGET EXECUTION
+  // 5. TABLE WIDGET EXECUTION (Federated Data Mesh & BigQuery Joined)
   // -------------------------------------------------------------
   if (widget.type === 'table') {
-    const cols = widget.table_columns || [
-      { key: 'id', label: 'ID' },
-      { key: 'name', label: 'Entity Name' },
-      { key: 'category', label: 'Category' },
-      { key: 'daily_sales', label: 'Daily Sales', format: '$0,0' },
-      { key: 'compliance', label: 'Status', badge: true }
+    // Primary Source (BigQuery Store Sales)
+    const bqPrimary = [
+      { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region: 'Klang Valley / Central', daily_sales: Math.round(38400 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) },
+      { store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', region: 'Klang Valley / Central', daily_sales: Math.round(31200 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) },
+      { store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', region: 'Northern Region', daily_sales: Math.round(24500 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) },
+      { store_id: '7E-3118', store_name: 'JB City Square Customs Hub', region: 'Southern Region', daily_sales: Math.round(28900 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) },
+      { store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', region: 'Klang Valley / Central', daily_sales: Math.round(42100 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) },
+      { store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', region: 'Northern Region', daily_sales: Math.round(16800 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) },
+      { store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', region: 'East Coast & Islands', daily_sales: Math.round(19500 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) },
+      { store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', region: 'Sabah & Sarawak', daily_sales: Math.round(21400 * (hasDivisionFilter ? divisionScale * 2.5 : 1)) }
     ];
 
-    const dynamicRows = Array.from({ length: 8 }, (_, idx) => {
-      const row: Record<string, any> = {};
-      cols.forEach(c => {
-        if (c.key.includes('id')) row[c.key] = `7E-${1000 + idx * 142}`;
-        else if (c.key.includes('name') || c.key.includes('location')) row[c.key] = `Store Outlet ${String.fromCharCode(65 + idx)} - Hub ${idx + 1}`;
-        else if (c.key.includes('region') || c.key.includes('cluster')) row[c.key] = `Cluster Zone ${((idx % 4) + 1)}`;
-        else if (c.key.includes('category') || c.key.includes('division')) row[c.key] = hasDivisionFilter ? String(rawDivision) : 'Merchandise Division';
-        else if (c.key.includes('status') || c.key.includes('compliance')) row[c.key] = idx % 5 === 0 ? 'Review Required' : 'Audited / Healthy';
-        else if (c.format?.includes('$0.00')) row[c.key] = +(18.5 + idx * 1.4).toFixed(2);
-        else if (c.format?.includes('$0,0')) row[c.key] = Math.round((24000 + idx * 3200) * overallVolumeScale);
-        else if (c.key.includes('count') || c.key.includes('terminal')) row[c.key] = (idx % 3) + 2;
-        else row[c.key] = `Data Point ${idx + 1}`;
-      });
-      return row;
+    // Secondary Source (Google Sheet Live Targets & Managers)
+    const gsheetSecondary: Record<string, { store_manager: string; q3_budget_target: number; audit_grade: string }> = {
+      '7E-1082': { store_manager: 'Ahmad Zaki', q3_budget_target: 36000, audit_grade: 'A+ (Exceeding)' },
+      '7E-2041': { store_manager: 'Michelle Tan', q3_budget_target: 30000, audit_grade: 'A (On Target)' },
+      '7E-0492': { store_manager: 'Rajeswary S.', q3_budget_target: 25000, audit_grade: 'A (On Target)' },
+      '7E-3118': { store_manager: 'Kevin Wong', q3_budget_target: 28000, audit_grade: 'A (On Target)' },
+      '7E-0842': { store_manager: 'Noraini Mohd', q3_budget_target: 40000, audit_grade: 'A+ (Exceeding)' },
+      '7E-1934': { store_manager: 'Chong Wei Lun', q3_budget_target: 18000, audit_grade: 'B+ (Needs Review)' },
+      '7E-4421': { store_manager: 'Fatimah Ali', q3_budget_target: 20000, audit_grade: 'A (On Target)' },
+      '7E-5512': { store_manager: 'Leonard Jabu', q3_budget_target: 22000, audit_grade: 'A (On Target)' }
+    };
+
+    // Perform Federated In-Memory Hash Join
+    const dynamicRows = bqPrimary.map(bqRow => {
+      const gsheetRow = gsheetSecondary[bqRow.store_id] || { store_manager: 'Unassigned', q3_budget_target: 20000, audit_grade: 'Audited' };
+      const attainment = gsheetRow.q3_budget_target > 0 ? +((bqRow.daily_sales / gsheetRow.q3_budget_target) * 100).toFixed(1) : 100;
+      return {
+        ...bqRow,
+        ...gsheetRow,
+        target_achievement_pct: attainment
+      };
     });
 
     let filteredRows = dynamicRows;
