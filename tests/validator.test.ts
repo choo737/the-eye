@@ -91,7 +91,7 @@ widgets:
 `;
     const result = parseDashboardYaml(invalidYaml);
     expect(result.validation.valid).toBe(false);
-    const refError = result.validation.errors.find(e => e.message.includes('not declared in data_sources'));
+    const refError = result.validation.errors.find(e => e.message.includes('Widget references source'));
     expect(refError).toBeDefined();
   });
 });

@@ -251,11 +251,15 @@ export function validateDashboardSpec(spec: any, rawYaml?: string): ValidationRe
         const suggestion = findClosestMatch(widget.source, availableSources);
         errors.push({
           path: `${pathPrefix}.source`,
-          message: `Data source "${widget.source}" is not declared in data_sources.${suggestion ? ` Did you mean "${suggestion}"?` : ''} Declared sources: [${availableSources.join(', ')}]`,
+          message: `Widget references source "${widget.source}", but data_sources declares [${availableSources.join(', ')}].${suggestion ? ` (Did you rename it to "${suggestion}"?)` : ''}`,
           severity: 'error',
           line: loc.line,
           suggestion: suggestion || undefined,
-          fixAction: suggestion ? { label: `Fix source to "${suggestion}"`, replacement: suggestion, targetString: widget.source } : undefined
+          fixAction: suggestion ? { 
+            label: `Update widget source to "${suggestion}"`, 
+            replacement: suggestion, 
+            targetString: `source: ${widget.source}` 
+          } : undefined
         });
       }
 

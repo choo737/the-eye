@@ -52,12 +52,20 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
     }
   }, [validation]);
 
-  const handleQuickFix = (err: LintDiagnostic) => {
+  const handleQuickFix = (err: LintDiagnostic, fixAll: boolean = false) => {
     if (!err.fixAction) return;
     const target = err.fixAction.targetString;
     const repl = err.fixAction.replacement;
     if (target && yamlCode.includes(target)) {
-      const updatedYaml = yamlCode.replace(target, repl);
+      let updatedYaml: string;
+      if (fixAll || target.startsWith('source:')) {
+        // Replace all occurrences of this stale reference
+        const regex = new RegExp(target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        const replacementWithPrefix = target.startsWith('source:') ? `source: ${repl}` : repl;
+        updatedYaml = yamlCode.replace(regex, replacementWithPrefix);
+      } else {
+        updatedYaml = yamlCode.replace(target, repl);
+      }
       onChange(updatedYaml);
     }
   };
