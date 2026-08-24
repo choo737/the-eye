@@ -1,5 +1,6 @@
 import React from 'react';
 import { WidgetSpec } from '../core/types';
+import { formatValue } from '../utils/formatters';
 import { TrendingUp, TrendingDown, Minus, Target } from 'lucide-react';
 
 interface KpiWidgetProps {
@@ -9,29 +10,9 @@ interface KpiWidgetProps {
 
 export const KpiWidget: React.FC<KpiWidgetProps> = ({ widget, data }) => {
   const rawValue = data?.value;
-  let formattedValue = '-';
-
-  if (typeof rawValue === 'number') {
-    if (widget.format === '$0.00a' || widget.format === '$0.0a') {
-      if (rawValue >= 1000000) {
-        formattedValue = `$${(rawValue / 1000000).toFixed(2)}M`;
-      } else if (rawValue >= 1000) {
-        formattedValue = `$${(rawValue / 1000).toFixed(1)}k`;
-      } else {
-        formattedValue = `$${rawValue.toLocaleString()}`;
-      }
-    } else if (widget.format === '0.0%' || widget.format === '0.00%') {
-      formattedValue = `${rawValue.toFixed(1)}%`;
-    } else if (widget.format === '0,0') {
-      formattedValue = Math.round(rawValue).toLocaleString();
-    } else if (widget.format && widget.format.includes('mos')) {
-      formattedValue = `${rawValue.toFixed(1)} mos`;
-    } else {
-      formattedValue = rawValue.toLocaleString();
-    }
-  } else if (rawValue !== undefined) {
-    formattedValue = String(rawValue);
-  }
+  const formattedValue = (rawValue !== undefined && rawValue !== null)
+    ? formatValue(rawValue, widget.format || '0,0')
+    : '-';
 
   const comparisonText = data?.comparison_label || widget.comparison_label;
   const isPositive = comparisonText?.includes('+') || comparisonText?.includes('uplift');
@@ -78,17 +59,17 @@ export const KpiWidget: React.FC<KpiWidgetProps> = ({ widget, data }) => {
           <span className="text-[11px] text-slate-500">Live Telemetry</span>
         )}
 
-        {widget.sparkline && data?.sparklineData && (
-          <div className="flex items-end gap-0.5 h-5 w-16">
+        {/* Dynamic Sparkline SVG */}
+        {data?.sparklineData && data.sparklineData.length > 0 && (
+          <div className="h-6 w-20 flex items-end gap-1">
             {data.sparklineData.map((val: number, idx: number) => {
               const max = Math.max(...data.sparklineData);
-              const min = Math.min(...data.sparklineData);
-              const heightPercent = max === min ? 50 : Math.max(15, Math.round(((val - min) / (max - min)) * 100));
+              const heightPct = max > 0 ? Math.max(15, Math.round((val / max) * 100)) : 20;
               return (
                 <div
                   key={idx}
-                  style={{ height: `${heightPercent}%` }}
-                  className="flex-1 bg-gradient-to-t from-cyan-500/40 to-cyan-400 rounded-t-sm group-hover:from-cyan-400 group-hover:to-sky-300 transition-all"
+                  className="flex-1 bg-gradient-to-t from-cyan-500 to-emerald-400 rounded-t-sm transition-all duration-300 opacity-80 group-hover:opacity-100"
+                  style={{ height: `${heightPct}%` }}
                 />
               );
             })}
