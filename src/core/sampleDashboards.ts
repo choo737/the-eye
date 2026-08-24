@@ -16,6 +16,20 @@ data_sources:
     type: bigquery
     project: "the-eye-bi-platform"
     dataset: "retail_analytics"
+    table: "fct_pos_transactions"
+    query: |
+      SELECT 
+        transaction_date,
+        store_id,
+        store_name,
+        region_cluster,
+        product_division,
+        category,
+        gross_revenue_myr,
+        basket_items_count,
+        transaction_id
+      FROM \`the-eye-bi-platform.retail_analytics.fct_pos_transactions\`
+      WHERE transaction_date BETWEEN @start_date AND @end_date
     options:
       auth_mode: "google_oauth_adc_delegated"
       location: "asia-southeast1"
@@ -24,7 +38,9 @@ data_sources:
     name: "Store Budget & Manager Quotas (Google Sheet)"
     type: google_sheet
     sheet_id: "1kxhTv9TKA1RJSJcV017xVq4jADPSZxx8bSuSWxgGii4"
+    table: "Targets"
     range: "Targets!A1:E20"
+    query: "SELECT store_id, store_manager, q3_budget_target FROM [Targets!A1:E20]"
 
 # Multi-Source Declarative Data Mesh Join Model
 data_mesh:
