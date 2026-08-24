@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, X, Lock } from 'lucide-react';
 
 interface DateRangePickerProps {
   value?: string | { startDate?: string; endDate?: string; preset?: string };
   onChange: (value: any) => void;
   label?: string;
+  minDate?: string;
+  maxDate?: string;
+  availablePresets?: string[];
 }
 
 interface DatePreset {
@@ -16,12 +19,28 @@ interface DatePreset {
 export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   value,
   onChange,
-  label = 'Date Range'
+  label = 'Date Range',
+  minDate,
+  maxDate,
+  availablePresets
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const PRESETS: DatePreset[] = [
+  // Parse min and max dates if provided
+  const parsedMinDate = useMemo(() => {
+    if (!minDate) return new Date(2024, 0, 1);
+    const d = new Date(minDate);
+    return isNaN(d.getTime()) ? new Date(2024, 0, 1) : d;
+  }, [minDate]);
+
+  const parsedMaxDate = useMemo(() => {
+    if (!maxDate) return new Date(2026, 11, 31);
+    const d = new Date(maxDate);
+    return isNaN(d.getTime()) ? new Date(2026, 11, 31) : d;
+  }, [maxDate]);
+
+  const ALL_PRESETS: DatePreset[] = [
     {
       id: 'today',
       label: 'Today',
@@ -79,20 +98,26 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   ];
 
+  // Filter presets based on declarative configuration
+  const activePresets = useMemo(() => {
+    if (!availablePresets || availablePresets.length === 0) return ALL_PRESETS;
+    return ALL_PRESETS.filter(p => availablePresets.includes(p.id));
+  }, [availablePresets]);
+
   const [selectedPreset, setSelectedPreset] = useState<string>('2026-YTD');
   const [startDate, setStartDate] = useState<Date>(new Date(2026, 0, 1));
   const [endDate, setEndDate] = useState<Date>(new Date(2026, 7, 24));
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
   // Default calendar month views: Left = July 2026, Right = August 2026
-  const [leftViewMonth, setLeftViewMonth] = useState<number>(6); // July (0-indexed)
+  const [leftViewMonth, setLeftViewMonth] = useState<number>(6); // July
   const [leftViewYear, setLeftViewYear] = useState<number>(2026);
-  const [rightViewMonth, setRightViewMonth] = useState<number>(7); // August (0-indexed)
+  const [rightViewMonth, setRightViewMonth] = useState<number>(7); // August
   const [rightViewYear, setRightViewYear] = useState<number>(2026);
 
   useEffect(() => {
     if (typeof value === 'string') {
-      const match = PRESETS.find(p => p.id === value);
+      const match = ALL_PRESETS.find(p => p.id === value);
       if (match) {
         setSelectedPreset(match.id);
         const { start, end } = match.getRange();
@@ -121,13 +146,19 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return `${mm}/${dd}/${yyyy}`;
   };
 
+  const isDateDisabled = (date: Date): boolean => {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const min = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), parsedMinDate.getDate());
+    const max = new Date(parsedMaxDate.getFullYear(), parsedMaxDate.getMonth(), parsedMaxDate.getDate());
+    return d < min || d > max;
+  };
+
   const handleSelectPreset = (preset: DatePreset) => {
     setSelectedPreset(preset.id);
     const { start, end } = preset.getRange();
     setStartDate(start);
     setEndDate(end);
 
-    // Center calendar view around selected range
     setLeftViewMonth(start.getMonth());
     setLeftViewYear(start.getFullYear());
     let nextMonth = start.getMonth() + 1;
@@ -148,7 +179,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       preset: selectedPreset,
       label: selectedPreset === 'custom' 
         ? `${formatDateString(startDate)} – ${formatDateString(endDate)}` 
-        : PRESETS.find(p => p.id === selectedPreset)?.label || `${formatDateString(startDate)} – ${formatDateString(endDate)}`
+        : ALL_PRESETS.find(p => p.id === selectedPreset)?.label || `${formatDateString(startDate)} – ${formatDateString(endDate)}`
     });
   };
 
@@ -156,8 +187,21 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setIsOpen(false);
   };
 
-  // Left Calendar Navigation
+  // Left Calendar Navigation with min/max bounds check
+  const canPrevLeft = useMemo(() => {
+    const target = new Date(leftViewYear, leftViewMonth, 1);
+    const minMonth = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), 1);
+    return target > minMonth;
+  }, [leftViewMonth, leftViewYear, parsedMinDate]);
+
+  const canNextRight = useMemo(() => {
+    const target = new Date(rightViewYear, rightViewMonth, 1);
+    const maxMonth = new Date(parsedMaxDate.getFullYear(), parsedMaxDate.getMonth(), 1);
+    return target < maxMonth;
+  }, [rightViewMonth, rightViewYear, parsedMaxDate]);
+
   const prevLeftMonth = () => {
+    if (!canPrevLeft) return;
     if (leftViewMonth === 0) {
       setLeftViewMonth(11);
       setLeftViewYear(leftViewYear - 1);
@@ -175,7 +219,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
-  // Right Calendar Navigation
   const prevRightMonth = () => {
     if (rightViewMonth === 0) {
       setRightViewMonth(11);
@@ -186,6 +229,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   };
 
   const nextRightMonth = () => {
+    if (!canNextRight) return;
     if (rightViewMonth === 11) {
       setRightViewMonth(0);
       setRightViewYear(rightViewYear + 1);
@@ -195,6 +239,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   };
 
   const handleDateClick = (date: Date) => {
+    if (isDateDisabled(date)) return;
+
     setSelectedPreset('custom');
     if (!startDate || (startDate && endDate)) {
       setStartDate(date);
@@ -209,12 +255,13 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
-  // Helper to render an isolated Month Calendar Card with dedicated navigation header
   const renderCalendarCard = (
     month: number, 
     year: number, 
     onPrev: () => void, 
-    onNext: () => void
+    onNext: () => void,
+    prevDisabled: boolean = false,
+    nextDisabled: boolean = false
   ) => {
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June', 
@@ -254,7 +301,10 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <button
             type="button"
             onClick={onPrev}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            disabled={prevDisabled}
+            className={`p-1 rounded-lg transition ${
+              prevDisabled ? 'opacity-20 cursor-not-allowed text-slate-600' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
             title="Previous Month"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -267,7 +317,10 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <button
             type="button"
             onClick={onNext}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            disabled={nextDisabled}
+            className={`p-1 rounded-lg transition ${
+              nextDisabled ? 'opacity-20 cursor-not-allowed text-slate-600' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
             title="Next Month"
           >
             <ChevronRight className="w-4 h-4" />
@@ -284,28 +337,31 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         {/* Days Grid */}
         <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium">
           {days.map((item, idx) => {
-            const isStart = startDate && item.date.toDateString() === startDate.toDateString();
-            const isEnd = endDate && item.date.toDateString() === endDate.toDateString();
-            const inRange = startDate && endDate && item.date >= startDate && item.date <= endDate;
-            const inHoverRange = startDate && !endDate && hoverDate && item.date >= startDate && item.date <= hoverDate;
+            const disabled = isDateDisabled(item.date);
+            const isStart = !disabled && startDate && item.date.toDateString() === startDate.toDateString();
+            const isEnd = !disabled && endDate && item.date.toDateString() === endDate.toDateString();
+            const inRange = !disabled && startDate && endDate && item.date >= startDate && item.date <= endDate;
+            const inHoverRange = !disabled && startDate && !endDate && hoverDate && item.date >= startDate && item.date <= hoverDate;
 
-            let cellClass = 'h-7 flex items-center justify-center rounded-lg transition cursor-pointer text-xs ';
+            let cellClass = 'h-7 flex items-center justify-center rounded-lg transition text-xs ';
 
-            if (!item.isCurrentMonth) {
-              cellClass += 'text-slate-600 hover:text-slate-400 ';
+            if (disabled) {
+              cellClass += 'text-slate-700 opacity-25 cursor-not-allowed pointer-events-none ';
+            } else if (!item.isCurrentMonth) {
+              cellClass += 'text-slate-600 hover:text-slate-400 cursor-pointer ';
             } else if (isStart || isEnd) {
-              cellClass += 'bg-cyan-500 text-slate-950 font-black shadow-md scale-105 z-10 ';
+              cellClass += 'bg-cyan-500 text-slate-950 font-black shadow-md scale-105 z-10 cursor-pointer ';
             } else if (inRange || inHoverRange) {
-              cellClass += 'bg-cyan-500/20 text-cyan-200 font-semibold ';
+              cellClass += 'bg-cyan-500/20 text-cyan-200 font-semibold cursor-pointer ';
             } else {
-              cellClass += 'text-slate-300 hover:bg-slate-800 hover:text-white ';
+              cellClass += 'text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer ';
             }
 
             return (
               <div
                 key={idx}
                 onClick={() => handleDateClick(item.date)}
-                onMouseEnter={() => setHoverDate(item.date)}
+                onMouseEnter={() => !disabled && setHoverDate(item.date)}
                 className={cellClass}
               >
                 {item.date.getDate()}
@@ -317,8 +373,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     );
   };
 
-  const displayLabel = PRESETS.find(p => p.id === selectedPreset)?.label 
-    ? `${formatDateString(startDate)} – ${formatDateString(endDate)} (${PRESETS.find(p => p.id === selectedPreset)?.label})`
+  const displayLabel = ALL_PRESETS.find(p => p.id === selectedPreset)?.label 
+    ? `${formatDateString(startDate)} – ${formatDateString(endDate)} (${ALL_PRESETS.find(p => p.id === selectedPreset)?.label})`
     : `${formatDateString(startDate)} – ${formatDateString(endDate)}`;
 
   return (
@@ -338,48 +394,61 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </span>
       </button>
 
-      {/* Advanced Dual Calendar Popover Modal (Right-Anchored & Viewport Constrained) */}
+      {/* Advanced Dual Calendar Popover Modal */}
       {isOpen && (
         <div 
           className="absolute top-full right-0 mt-2 z-50 bg-slate-950 border border-slate-700 rounded-3xl p-4 sm:p-5 shadow-2xl w-[660px] max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-150"
           style={{ backgroundColor: '#020617', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(51, 65, 85, 0.6)' }}
         >
-          {/* Top Date Inputs Row */}
-          <div className="grid grid-cols-2 gap-3 pb-3.5 mb-3.5 border-b border-slate-800">
-            <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
-              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">From</span>
-              <input
-                type="text"
-                readOnly
-                value={formatDateString(startDate)}
-                className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
-              />
+          {/* Top Date Inputs Row + Range Bounds Tag */}
+          <div className="flex flex-col gap-2 pb-3 mb-3 border-b border-slate-800">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
+                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">From</span>
+                <input
+                  type="text"
+                  readOnly
+                  value={formatDateString(startDate)}
+                  className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
+                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">To</span>
+                <input
+                  type="text"
+                  readOnly
+                  value={formatDateString(endDate)}
+                  className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
-              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">To</span>
-              <input
-                type="text"
-                readOnly
-                value={formatDateString(endDate)}
-                className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
-              />
-            </div>
+
+            {(minDate || maxDate) && (
+              <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono px-1">
+                <span className="flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-cyan-500/70" /> Configured Range Boundary:
+                </span>
+                <span className="text-cyan-400 font-bold">
+                  {formatDateString(parsedMinDate)} – {formatDateString(parsedMaxDate)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Main Body: Separated Dual Calendars + Right Presets Sidebar */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Left Month Calendar Card */}
-            {renderCalendarCard(leftViewMonth, leftViewYear, prevLeftMonth, nextLeftMonth)}
+            {renderCalendarCard(leftViewMonth, leftViewYear, prevLeftMonth, nextLeftMonth, !canPrevLeft, false)}
 
             {/* Right Month Calendar Card */}
-            {renderCalendarCard(rightViewMonth, rightViewYear, prevRightMonth, nextRightMonth)}
+            {renderCalendarCard(rightViewMonth, rightViewYear, prevRightMonth, nextRightMonth, false, !canNextRight)}
 
             {/* Right Quick Presets Sidebar */}
             <div className="w-full md:w-40 bg-slate-900/90 rounded-2xl p-2.5 border border-slate-800/80 flex flex-col gap-1 overflow-y-auto max-h-[290px] shadow-inner">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-2 pb-1 border-b border-slate-800">
                 Quick Presets
               </span>
-              {PRESETS.map((preset) => {
+              {activePresets.map((preset) => {
                 const isSelected = selectedPreset === preset.id;
                 return (
                   <button

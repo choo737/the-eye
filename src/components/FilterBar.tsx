@@ -84,6 +84,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   value={val}
                   onChange={(newRange) => onFilterChange(filter.id, typeof newRange === 'object' ? newRange.preset || newRange.startDate : newRange)}
                   label={filter.label}
+                  minDate={filter.min_date}
+                  maxDate={filter.max_date}
+                  availablePresets={filter.available_presets}
                 />
               </div>
             );
