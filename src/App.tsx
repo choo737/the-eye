@@ -17,6 +17,7 @@ export function App() {
   const [activeDashboard, setActiveDashboard] = useState<DashboardMetadata>(INITIAL_DASHBOARDS[0]);
   const [isHubView, setIsHubView] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'viewer' | 'editor'>('viewer');
+  const [managementMode, setManagementMode] = useState<'git_cicd' | 'ui_editor'>('git_cicd');
   
   // User Session & RBAC
   const [currentUserEmail] = useState<string>('admin@jackychoo.altostrat.com');
@@ -120,6 +121,8 @@ export function App() {
         onToggleHubView={() => setIsHubView(!isHubView)}
         viewMode={viewMode}
         onToggleViewMode={setViewMode}
+        managementMode={managementMode}
+        onChangeManagementMode={setManagementMode}
         showEditor={showEditor}
         onToggleEditor={() => setShowEditor(!showEditor)}
         showCopilot={showCopilot}
@@ -165,15 +168,45 @@ export function App() {
             />
           )}
 
-          {/* Dashboard Canvas (Available to Viewers, Editors, and Owners) */}
+          {/* Dashboard Canvas with Git CI/CD Governance Banner */}
           {parseResult.spec ? (
-            <DashboardCanvas
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {managementMode === 'git_cicd' && viewMode === 'editor' && (
+                <div className="bg-indigo-950/80 border-b border-indigo-800/80 px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-indigo-200">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold uppercase text-[10px]">
+                      Git CI/CD Governance
+                    </span>
+                    <span>
+                      On-screen dashboard edits are locked to prevent divergence from repository history. Updates are managed via pull request.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href="https://github.com/choo737/the-eye"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 bg-indigo-900/80 hover:bg-indigo-800 text-white rounded-md text-[11px] font-semibold border border-indigo-700/60 transition shadow-sm"
+                    >
+                      Open Repository (choo737/the-eye)
+                    </a>
+                    <button
+                      onClick={() => setManagementMode('ui_editor')}
+                      className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-md text-[11px] font-medium border border-slate-700 transition"
+                    >
+                      Unlock for UI Editing
+                    </button>
+                  </div>
+                </div>
+              )}
+              <DashboardCanvas
               spec={parseResult.spec}
               activeFilters={activeFilters}
               onFilterChange={handleFilterChange}
               onResetFilters={handleResetFilters}
               viewport={viewport}
             />
+          </div>
           ) : (
             <div className="flex-1 flex items-center justify-center p-8 text-center bg-slate-950">
               <div className="max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
@@ -189,6 +222,7 @@ export function App() {
               spec={parseResult.spec}
               onApplySpecYaml={handleApplySpecYaml}
               onClose={() => setShowCopilot(false)}
+              isGitLocked={managementMode === 'git_cicd'}
             />
           )}
         </div>

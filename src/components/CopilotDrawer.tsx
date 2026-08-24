@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Sparkles, Send, Bot, User, Wand2, X, PlusCircle, RefreshCw, Layers } from 'lucide-react';
-import { DashboardSpec } from '../core/types';
+import React, { useState, useMemo } from 'react';
+import { Sparkles, Send, Bot, User, Wand2, X, PlusCircle, RefreshCw, Layers, Database, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { DashboardSpec, WidgetSpec } from '../core/types';
 import { stringifyDashboardSpec } from '../core/parser';
 
 interface CopilotDrawerProps {
   spec: DashboardSpec | null;
   onApplySpecYaml: (newYaml: string) => void;
   onClose: () => void;
+  isGitLocked?: boolean;
 }
 
 interface ChatMessage {
@@ -20,18 +21,62 @@ interface ChatMessage {
 export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
   spec,
   onApplySpecYaml,
-  onClose
+  onClose,
+  isGitLocked = false
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       sender: 'assistant',
-      text: "👋 Hi Jacky! I'm **The Eye Copilot**. I can add new charts, bind multi-source databases, optimize queries, create cross-filters, and export decks. Try prompting me or clicking one of the shortcuts below!",
+      text: "👋 Hi! I'm **The Eye Schema-Aware Copilot**. I analyze your live BigQuery schema, table fields, and metrics to auto-generate valid declarative YAML. Try a prompt or click one of the suggested actions below!",
       timestamp: 'Just now'
     }
   ]);
   const [prompt, setPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Extract active dataset & schema fields context
+  const schemaContext = useMemo(() => {
+    const srcId = spec?.data_sources?.[0]?.id || 'bq_primary';
+    const project = spec?.data_sources?.[0]?.project || spec?.data_sources?.[0]?.project_id || 'the-eye-bi-platform';
+    const dataset = spec?.data_sources?.[0]?.dataset || 'primary_warehouse';
+    const table = spec?.data_sources?.[0]?.table || 'fct_analytics';
+
+    let suggestedPrompts = [
+      "Add a dual-axis line chart for intraday velocity",
+      "Add a category distribution donut chart",
+      "Add an SLA performance gauge",
+      "Switch aesthetic theme to Cyberpunk Neon"
+    ];
+
+    if (dataset.includes('cimb') || dataset.includes('bank')) {
+      suggestedPrompts = [
+        "Add a loan disbursements vs CASA deposits donut chart",
+        "Add a customer NPS rating gauge with 95 target",
+        "Add a branch manager performance ranking table"
+      ];
+    } else if (dataset.includes('health') || dataset.includes('hospital')) {
+      suggestedPrompts = [
+        "Add emergency department triage wait time gauge",
+        "Add clinical inpatient census by specialty bar chart",
+        "Add hospital quality rating radar chart"
+      ];
+    } else if (dataset.includes('saas') || dataset.includes('subscription')) {
+      suggestedPrompts = [
+        "Add Net Revenue Retention (NRR) KPI card",
+        "Add subscription plan MRR contribution treemap",
+        "Add customer MRR vs API consumption scatter plot"
+      ];
+    } else if (dataset.includes('supply') || dataset.includes('logistics')) {
+      suggestedPrompts = [
+        "Add fleet fuel spend vs shipment volume bar chart",
+        "Add on-time delivery SLA radar assessment",
+        "Add logistics gateway distribution hub GIS map"
+      ];
+    }
+
+    return { srcId, project, dataset, table, suggestedPrompts };
+  }, [spec]);
 
   const handleSendPrompt = (customText?: string) => {
     const textToSend = customText || prompt;
@@ -49,49 +94,84 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
     setIsProcessing(true);
 
     setTimeout(() => {
-      // Simulate intelligent LLM YAML editing agent
       const updatedSpec: DashboardSpec = JSON.parse(JSON.stringify(spec));
       let responseText = '';
+      const lower = textToSend.toLowerCase();
 
-      if (textToSend.toLowerCase().includes('radar') || textToSend.toLowerCase().includes('supply')) {
+      if (lower.includes('radar')) {
         updatedSpec.widgets.push({
-          id: 'supply_chain_radar',
-          title: 'Supply Chain & Fulfillment Score',
-          subtitle: 'Inventory velocity vs stockouts',
+          id: `radar_quality_${Date.now()}`,
+          title: 'Operational SLA & Quality Index',
+          subtitle: 'Multi-axial performance benchmark',
           type: 'radar',
-          source: spec.data_sources[0]?.id || 'mock',
-          position: { w: 6, h: 4 }
-        });
-        responseText = "✨ Added **Supply Chain & Fulfillment Score (Radar Chart)** to your dashboard layout.";
-      } else if (textToSend.toLowerCase().includes('kpi') || textToSend.toLowerCase().includes('margin')) {
-        updatedSpec.widgets.unshift({
-          id: 'kpi_gross_margin',
-          title: 'Gross Margin %',
-          type: 'kpi_card',
-          source: spec.data_sources[0]?.id || 'mock',
-          position: { w: 3, h: 2 },
-          value: 'margin_pct',
-          format: '0.0%',
-          comparison_label: '+4.5% QoQ',
-          sparkline: true
-        });
-        responseText = "✨ Added **Gross Margin % KPI Scorecard** to the top metrics row.";
-      } else if (textToSend.toLowerCase().includes('dark') || textToSend.toLowerCase().includes('cyberpunk')) {
-        updatedSpec.theme = 'cyberpunk';
-        responseText = "🎨 Switched dashboard aesthetic theme to **Cyberpunk Neon**.";
-      } else {
-        // Generic smart modification
-        updatedSpec.widgets.push({
-          id: `custom_chart_${Date.now()}`,
-          title: 'Segment Velocity & Growth',
-          subtitle: 'Generated via AI Copilot agent',
-          type: 'bar_chart',
-          source: spec.data_sources[0]?.id || 'mock',
+          source: schemaContext.srcId,
           position: { w: 6, h: 4 },
-          x: 'segment',
-          y: ['Growth %', 'Contribution']
+          radar_indicators: [
+            { name: 'SLA Quality', max: 100 },
+            { name: 'On-Time Performance', max: 100 },
+            { name: 'Resource Utilization', max: 100 },
+            { name: 'Safety & Compliance', max: 100 },
+            { name: 'Customer Satisfaction', max: 100 }
+          ]
         });
-        responseText = `✨ I have processed your request: *"${textToSend}"*. Added an optimized visual widget and updated the declarative YAML schema.`;
+        responseText = "✨ Added **Operational SLA & Quality Index (Radar Chart)** to your dashboard layout.";
+      } else if (lower.includes('gauge')) {
+        updatedSpec.widgets.push({
+          id: `gauge_sla_${Date.now()}`,
+          title: 'SLA Performance & Target Fulfillment',
+          subtitle: 'Real-time threshold fulfillment',
+          type: 'gauge',
+          source: schemaContext.srcId,
+          position: { w: 4, h: 4 },
+          value: 'occupancy_rate_pct',
+          format: '0.0%'
+        });
+        responseText = "✨ Added **SLA Performance Gauge** widget with target attainment bounds.";
+      } else if (lower.includes('treemap')) {
+        updatedSpec.widgets.push({
+          id: `treemap_contrib_${Date.now()}`,
+          title: 'Portfolio Segment Contribution',
+          subtitle: 'Hierarchical value distribution',
+          type: 'treemap',
+          source: schemaContext.srcId,
+          position: { w: 6, h: 4 },
+          dimension: 'plan_tier',
+          measures: ['mrr_usd'],
+          format: '$0.0a'
+        });
+        responseText = "✨ Added **Portfolio Contribution Treemap** widget.";
+      } else if (lower.includes('scatter')) {
+        updatedSpec.widgets.push({
+          id: `scatter_analysis_${Date.now()}`,
+          title: 'Multi-Variable Correlation Matrix',
+          subtitle: 'Comparing primary volume vs telemetry usage',
+          type: 'scatter_chart',
+          source: schemaContext.srcId,
+          position: { w: 6, h: 4 },
+          dimension: 'company_name',
+          measures: ['mrr_usd', 'usage_api_calls'],
+          format: '$0.0a'
+        });
+        responseText = "✨ Added **Multi-Variable Correlation Scatter Plot**.";
+      } else if (lower.includes('cyberpunk') || lower.includes('theme')) {
+        updatedSpec.theme = 'cyberpunk';
+        responseText = "🎨 Switched dashboard theme to **Cyberpunk Neon**.";
+      } else {
+        updatedSpec.widgets.push({
+          id: `custom_bar_${Date.now()}`,
+          title: 'Category Growth & Performance Stream',
+          subtitle: `Generated from BigQuery ${schemaContext.table}`,
+          type: 'bar_chart',
+          source: schemaContext.srcId,
+          position: { w: 6, h: 4 },
+          dimension: 'region',
+          measures: ['transaction_volume_myr', 'deposit_target_myr'],
+          labels: {
+            transaction_volume_myr: 'Actual Volume',
+            deposit_target_myr: 'Target Allocation'
+          }
+        });
+        responseText = `✨ Processed instruction: *"${textToSend}"*. Generated schema-compliant widget connected to \`${schemaContext.dataset}.${schemaContext.table}\`.`;
       }
 
       const newYaml = stringifyDashboardSpec(updatedSpec);
@@ -101,128 +181,136 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
         id: (Date.now() + 1).toString(),
         sender: 'assistant',
         text: responseText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        appliedChanges: 'Updated dashboard.yaml schema'
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       setMessages(prev => [...prev, assistantMsg]);
       setIsProcessing(false);
-    }, 900);
+    }, 600);
   };
 
   return (
-    <div className="w-[380px] sm:w-[420px] border-l border-slate-800 bg-slate-950 flex flex-col shrink-0 h-full z-20 shadow-2xl">
+    <div className="w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 flex flex-col h-full z-40 shadow-2xl animate-in slide-in-from-right duration-200">
       {/* Header */}
-      <div className="h-14 px-4 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-md shadow-cyan-500/20">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-100">AI Copilot</h3>
-            <p className="text-[10px] text-cyan-400 font-medium">Dashboard as Code Agent</p>
+            <h3 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
+              AI Schema Copilot
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono">LLM</span>
+            </h3>
+            <p className="text-[11px] text-slate-400">Schema-aware Prompt-to-YAML</p>
           </div>
         </div>
-
-        <button
+        <button 
           onClick={onClose}
-          className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
+      {/* Schema Context Badge */}
+      <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800/80 flex items-center gap-2 text-xs text-slate-300">
+        <Database className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        <div className="truncate">
+          <span className="text-slate-400">Context:</span> <span className="font-mono text-cyan-300">{schemaContext.dataset}.{schemaContext.table}</span>
+        </div>
+      </div>
+
+      {isGitLocked && (
+        <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2 text-xs text-amber-300">
+          <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>Git CI/CD Locked: Applied YAML will preview locally.</span>
+        </div>
+      )}
+
       {/* Chat Messages */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4">
-        {messages.map((msg) => (
-          <div
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        {messages.map(msg => (
+          <div 
             key={msg.id}
-            className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             {msg.sender === 'assistant' && (
-              <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
-                <Bot className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5 border border-cyan-500/30">
+                <Bot className="w-3.5 h-3.5" />
               </div>
             )}
-
-            <div className={`max-w-[85%] rounded-2xl p-3.5 text-xs ${
-              msg.sender === 'user'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
-                : 'bg-slate-900 border border-slate-800 text-slate-200 shadow-sm'
-            }`}>
-              <div className="prose prose-invert prose-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-              {msg.appliedChanges && (
-                <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center gap-1.5 text-[10px] text-cyan-400 font-mono">
-                  <Wand2 className="w-3 h-3" />
-                  <span>{msg.appliedChanges}</span>
-                </div>
-              )}
+            <div 
+              className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm ${
+                msg.sender === 'user'
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-tr-none'
+                  : 'bg-slate-800/90 text-slate-200 rounded-tl-none border border-slate-700/60'
+              }`}
+            >
+              <div dangerouslySetInnerHTML={{ __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>') }} />
+              <span className="block text-[10px] text-slate-400 mt-1.5 text-right opacity-75">
+                {msg.timestamp}
+              </span>
             </div>
-
             {msg.sender === 'user' && (
-              <div className="w-7 h-7 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                <User className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="w-6 h-6 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center shrink-0 mt-0.5 border border-slate-700">
+                <User className="w-3.5 h-3.5" />
               </div>
             )}
           </div>
         ))}
-
         {isProcessing && (
-          <div className="flex gap-3 items-center text-xs text-slate-400 italic">
-            <Bot className="w-4 h-4 text-cyan-400 animate-spin" />
-            <span>Analyzing YAML schema & generating diff...</span>
+          <div className="flex gap-2.5 items-center text-xs text-slate-400 animate-pulse">
+            <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+              <Bot className="w-3.5 h-3.5 animate-spin" />
+            </div>
+            <span>Analyzing schema and generating YAML AST...</span>
           </div>
         )}
       </div>
 
-      {/* Suggested Quick Prompts */}
-      <div className="p-3 border-t border-slate-800/60 bg-slate-900/40">
-        <p className="text-[11px] font-semibold text-slate-400 mb-2">⚡ Quick Actions</p>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => handleSendPrompt("Add a Gross Margin KPI metric")}
-            className="text-[11px] bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-lg transition text-left"
-          >
-            + Gross Margin KPI
-          </button>
-          <button
-            onClick={() => handleSendPrompt("Add a Supply Chain radar chart")}
-            className="text-[11px] bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-lg transition text-left"
-          >
-            + Radar Chart
-          </button>
-          <button
-            onClick={() => handleSendPrompt("Switch theme to Cyberpunk")}
-            className="text-[11px] bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-lg transition text-left"
-          >
-            🎨 Cyberpunk Theme
-          </button>
+      {/* Suggested Actions */}
+      <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+          Suggested Copilot Actions
+        </span>
+        <div className="flex flex-col gap-1.5">
+          {schemaContext.suggestedPrompts.map((s, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleSendPrompt(s)}
+              className="text-left text-xs bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg border border-slate-800 transition flex items-center gap-1.5 truncate"
+            >
+              <Wand2 className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span className="truncate">{s}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Prompt Input Box */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950">
-        <form
+      {/* Input Form */}
+      <div className="p-3 border-t border-slate-800 bg-slate-900/90">
+        <form 
           onSubmit={(e) => {
             e.preventDefault();
             handleSendPrompt();
           }}
-          className="flex items-center gap-2"
+          className="flex gap-2"
         >
           <input
             type="text"
-            placeholder="Ask Copilot to modify dashboard..."
+            placeholder="Type a request (e.g. add loan breakdown bar)..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={isProcessing}
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
           />
           <button
             type="submit"
             disabled={!prompt.trim() || isProcessing}
-            className="p-2 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl text-white hover:opacity-90 disabled:opacity-40 transition shadow-md shadow-cyan-500/20"
+            className="px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-white rounded-xl transition shadow-lg shadow-cyan-500/20 shrink-0"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>

@@ -24,6 +24,8 @@ interface HeaderProps {
   onToggleHubView: () => void;
   viewMode: 'viewer' | 'editor';
   onToggleViewMode: (mode: 'viewer' | 'editor') => void;
+  managementMode: 'git_cicd' | 'ui_editor';
+  onChangeManagementMode: (mode: 'git_cicd' | 'ui_editor') => void;
   showEditor: boolean;
   onToggleEditor: () => void;
   showCopilot: boolean;
@@ -49,6 +51,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleHubView,
   viewMode,
   onToggleViewMode,
+  managementMode,
+  onChangeManagementMode,
   showEditor,
   onToggleEditor,
   showCopilot,
@@ -167,6 +171,22 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Actions */}
       <div className="flex items-center gap-2">
+        {/* Git CI/CD vs UI Editor Governance Switcher */}
+        {!isHubView && (
+          <button
+            onClick={() => onChangeManagementMode(managementMode === 'git_cicd' ? 'ui_editor' : 'git_cicd')}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition ${
+              managementMode === 'git_cicd'
+                ? 'bg-indigo-950/70 border-indigo-500/40 text-indigo-300 hover:border-indigo-400'
+                : 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300 hover:border-emerald-400'
+            }`}
+            title="Toggle Git CI/CD governance lock vs on-screen UI editor mode"
+          >
+            <span className={`w-2 h-2 rounded-full ${managementMode === 'git_cicd' ? 'bg-indigo-400 animate-pulse' : 'bg-emerald-400'}`} />
+            <span>{managementMode === 'git_cicd' ? 'Git CI/CD (Locked)' : 'UI Editor (Live)'}</span>
+          </button>
+        )}
+
         {/* Role Simulator Switcher */}
         <select
           value={userRole}
