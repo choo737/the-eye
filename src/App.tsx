@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Header } from './components/Header';
 import { YamlEditor } from './components/YamlEditor';
 import { DashboardCanvas } from './components/DashboardCanvas';
@@ -7,16 +7,16 @@ import { DataSourceModal } from './components/DataSourceModal';
 import { ExportModal } from './components/ExportModal';
 import { SAMPLE_DASHBOARDS } from './core/sampleDashboards';
 import { parseDashboardYaml, stringifyDashboardSpec } from './core/parser';
-import { DashboardSpec, DashboardTheme } from './core/types';
+import { DashboardTheme } from './core/types';
 
 export function App() {
-  const [currentDashboardKey, setCurrentDashboardKey] = useState<string>('saas-executive');
-  const [yamlCode, setYamlCode] = useState<string>(SAMPLE_DASHBOARDS['saas-executive'].yaml);
+  const [currentDashboardKey, setCurrentDashboardKey] = useState<string>('seven-eleven-bq');
+  const [yamlCode, setYamlCode] = useState<string>(SAMPLE_DASHBOARDS['seven-eleven-bq'].yaml);
   const [showEditor, setShowEditor] = useState<boolean>(true);
   const [showCopilot, setShowCopilot] = useState<boolean>(false);
   const [showDataSources, setShowDataSources] = useState<boolean>(false);
   const [showExport, setShowExport] = useState<boolean>(false);
-  const [theme, setTheme] = useState<DashboardTheme>('modern-dark');
+  const [theme, setTheme] = useState<DashboardTheme>('emerald-slate');
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
 
@@ -35,7 +35,6 @@ export function App() {
     }
   };
 
-  // Filter change handlers
   const handleFilterChange = (filterId: string, value: any) => {
     setActiveFilters(prev => ({ ...prev, [filterId]: value }));
   };
@@ -44,12 +43,10 @@ export function App() {
     setActiveFilters({});
   };
 
-  // Reset to initial preset
   const handleReset = () => {
     handleSelectDashboard(currentDashboardKey);
   };
 
-  // Apply new YAML from AI Copilot
   const handleApplySpecYaml = (newYaml: string) => {
     setYamlCode(newYaml);
   };

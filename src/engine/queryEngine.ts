@@ -1,33 +1,105 @@
-import { WidgetSpec, QueryResult } from '../core/types';
+import { WidgetSpec } from '../core/types';
 
 export interface FilterState {
   [filterId: string]: any;
 }
 
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState): any {
-  // In-memory smart OLAP query processor for declarative widgets
-  const region = activeFilters['region'] || 'All Regions';
+  const region = activeFilters['store_region'] || activeFilters['region'] || 'All Regions';
+  const division = activeFilters['product_division'] || 'All Divisions';
   const tier = activeFilters['customer_tier'] || 'All Tiers';
-  const channel = activeFilters['channel'] || 'All Channels';
-  const category = activeFilters['category'] || 'All Categories';
 
-  // Multipliers based on filters to simulate interactive cross-filtering
   let multiplier = 1.0;
   if (Array.isArray(region) && !region.includes('All Regions')) {
     multiplier *= (region.length * 0.35);
   } else if (typeof region === 'string' && region !== 'All Regions') {
-    multiplier *= (region === 'North America' ? 0.55 : region === 'EMEA' ? 0.25 : 0.2);
+    multiplier *= 0.6;
   }
   
-  if (tier && tier !== 'All Tiers') {
-    multiplier *= (tier === 'Enterprise' ? 0.65 : tier === 'Mid-Market' ? 0.25 : 0.1);
-  }
-
-  if (category && category !== 'All Categories') {
-    multiplier *= 0.45;
+  if (division && division !== 'All Divisions') {
+    multiplier *= 0.55;
   }
 
   switch (widget.id) {
+    // 🏪 7-Eleven BigQuery KPIs
+    case 'kpi_pos_sales':
+      return {
+        value: 78450000 * multiplier,
+        target: '$85.0M',
+        sparklineData: [58, 62, 65, 71, 74, 76.5, 78.45].map(v => v * multiplier)
+      };
+    case 'kpi_basket_size':
+      return {
+        value: 16.48,
+        sparklineData: [13.2, 13.8, 14.5, 15.1, 15.8, 16.48]
+      };
+    case 'kpi_store_count':
+      return {
+        value: Math.round(2580 * (multiplier > 0.5 ? 1 : multiplier * 1.5)),
+        sparklineData: [2350, 2410, 2460, 2510, 2550, 2580]
+      };
+    case 'kpi_rte_share':
+      return {
+        value: 28.6,
+        sparklineData: [21.0, 22.8, 24.5, 26.0, 27.4, 28.6]
+      };
+
+    // 🏪 7-Eleven Charts
+    case 'hourly_pos_velocity':
+      return {
+        categories: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'],
+        series: [
+          { name: 'Store Sales ($)', data: [42, 115, 168, 280, 210, 195, 310, 290, 185, 95].map(v => +(v * 1000 * multiplier).toFixed(0)) },
+          { name: 'Customer Count', data: [320, 890, 1250, 2100, 1650, 1540, 2450, 2200, 1400, 750].map(v => Math.round(v * multiplier)) }
+        ]
+      };
+
+    case 'division_share_donut':
+      return {
+        data: [
+          { name: 'Fresh Food & RTE (Onigiri/Sandwiches)', value: Math.round(22400000 * multiplier) },
+          { name: 'Beverages & Slurpee', value: Math.round(19800000 * multiplier) },
+          { name: 'Snacks & Confectionery', value: Math.round(15600000 * multiplier) },
+          { name: 'Tobacco & Core Services', value: Math.round(12800000 * multiplier) },
+          { name: 'Personal Care & General', value: Math.round(7850000 * multiplier) }
+        ]
+      };
+
+    case 'regional_sales_bar':
+      return {
+        categories: ['Klang Valley', 'Northern Cluster', 'Southern Cluster', 'East Coast', 'Sabah & Sarawak'],
+        series: [
+          { name: 'Actual Revenue', data: [32.5, 18.2, 14.6, 8.4, 4.75].map(v => +(v * 1000000 * multiplier).toFixed(0)) },
+          { name: 'Target Revenue', data: [34.0, 19.0, 15.0, 9.0, 5.0].map(v => +(v * 1000000 * multiplier).toFixed(0)) }
+        ]
+      };
+
+    case '7eleven_radar':
+      return {
+        indicators: [
+          { name: 'On-Shelf Availability', max: 100 },
+          { name: 'Fresh Food Wastage Control', max: 100 },
+          { name: 'POS Transaction Speed', max: 100 },
+          { name: 'Cold Chain Compliance', max: 100 },
+          { name: 'Store Audit Score', max: 100 }
+        ],
+        series: [
+          { name: '7-Eleven Benchmark', value: [94, 86, 96, 98, 92] }
+        ]
+      };
+
+    case 'store_performance_table':
+      return {
+        rows: [
+          { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region: 'Klang Valley', daily_sales: 38400, avg_basket: 24.50, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
+          { store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', region: 'Klang Valley', daily_sales: 31200, avg_basket: 21.80, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
+          { store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', region: 'Northern Region', daily_sales: 24500, avg_basket: 19.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
+          { store_id: '7E-3118', store_name: 'JB City Square Customs Hub', region: 'Southern Region', daily_sales: 28900, avg_basket: 22.40, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
+          { store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', region: 'Klang Valley', daily_sales: 42100, avg_basket: 29.80, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
+          { store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', region: 'Northern Region', daily_sales: 16800, avg_basket: 15.60, compliance: 'Low Stock Alert', pos_terminal_count: 2 }
+        ]
+      };
+
     // SaaS KPIs
     case 'kpi_arr':
       return {
@@ -53,30 +125,6 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
         sparklineData: [920, 1040, 1180, 1290, 1390, 1480].map(v => Math.round(v * multiplier))
       };
 
-    // E-Commerce KPIs
-    case 'kpi_gmv':
-      return {
-        value: 14250000 * multiplier,
-        target: 15000000 * multiplier,
-        sparklineData: [1.8, 2.1, 2.0, 2.3, 2.6, 2.8, 3.1].map(v => v * 4.5 * multiplier)
-      };
-    case 'kpi_orders':
-      return {
-        value: Math.round(184200 * multiplier),
-        sparklineData: [22, 24, 26, 27, 29, 31, 33].map(v => Math.round(v * 5000 * multiplier))
-      };
-    case 'kpi_aov':
-      return {
-        value: 77.36,
-        sparklineData: [71, 72.5, 73.8, 74.2, 75.6, 77.36]
-      };
-    case 'kpi_conversion':
-      return {
-        value: 3.84,
-        sparklineData: [3.2, 3.35, 3.4, 3.6, 3.72, 3.84]
-      };
-
-    // SaaS Charts
     case 'arr_trend_chart':
       return {
         categories: ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26 (F)', 'Sep 26 (F)'],
@@ -124,67 +172,11 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
           { account_name: 'Nexis Financial Group', region: 'EMEA', tier: 'Enterprise', arr: 980000, nrr: 128.0, health_score: 'Good', renewal_date: '2026-12-01' },
           { account_name: 'Starlight Retail Inc', region: 'North America', tier: 'Enterprise', arr: 840000, nrr: 142.5, health_score: 'Excellent', renewal_date: '2027-01-20' },
           { account_name: 'Vertex Cloud Tech', region: 'APAC', tier: 'Enterprise', arr: 650000, nrr: 118.4, health_score: 'Good', renewal_date: '2026-10-10' },
-          { account_name: 'Apex Mobility', region: 'EMEA', tier: 'Mid-Market', arr: 320000, nrr: 112.0, health_score: 'Warning', renewal_date: '2026-09-30' },
-          { account_name: 'Zenith Logistics', region: 'LATAM', tier: 'Mid-Market', arr: 290000, nrr: 122.8, health_score: 'Good', renewal_date: '2027-02-14' }
-        ]
-      };
-
-    // E-Commerce Intraday & Breakdown
-    case 'hourly_sales_trend':
-      return {
-        categories: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-        series: [
-          { name: 'Online Revenue', data: [12, 8, 22, 68, 145, 180, 210, 160].map(v => +(v * 1000 * multiplier).toFixed(0)) },
-          { name: 'In-Store Revenue', data: [0, 0, 5, 45, 110, 135, 175, 80].map(v => +(v * 1000 * multiplier).toFixed(0)) }
-        ]
-      };
-
-    case 'channel_share_pie':
-      return {
-        data: [
-          { name: 'Direct Web Store', value: Math.round(6800000 * multiplier) },
-          { name: 'Amazon Marketplace', value: Math.round(4100000 * multiplier) },
-          { name: 'TikTok Shop & Social', value: Math.round(2100000 * multiplier) },
-          { name: 'Physical Retail', value: Math.round(1250000 * multiplier) }
-        ]
-      };
-
-    case 'category_performance_bar':
-      return {
-        categories: ['Electronics', 'Apparel', 'Home & Kitchen', 'Beauty', 'Sports & Outdoors'],
-        series: [
-          { name: 'GMV', data: [5.8, 3.9, 2.4, 1.4, 0.75].map(v => +(v * 1000000 * multiplier).toFixed(0)) },
-          { name: 'Gross Profit', data: [2.1, 1.8, 1.1, 0.78, 0.35].map(v => +(v * 1000000 * multiplier).toFixed(0)) }
-        ]
-      };
-
-    case 'inventory_radar':
-      return {
-        indicators: [
-          { name: 'Fulfillment Speed', max: 100 },
-          { name: 'In-Stock Rate', max: 100 },
-          { name: 'On-Time Delivery', max: 100 },
-          { name: 'Low Return Rate', max: 100 },
-          { name: 'Warehouse Turn', max: 100 }
-        ],
-        series: [
-          { name: 'Performance Metric', value: [92, 88, 95, 84, 90] }
-        ]
-      };
-
-    case 'top_products_table':
-      return {
-        rows: [
-          { product_name: 'Pro Wireless ANC Headphones v3', sku: 'AUDIO-882-BLK', units_sold: 14200, revenue: 2840000, stock_status: 'Healthy', margin: 48.5 },
-          { product_name: 'Ultra Ergonomic Standing Desk', sku: 'FURN-102-OAK', units_sold: 6800, revenue: 2040000, stock_status: 'Healthy', margin: 54.0 },
-          { product_name: 'Smart 4K Laser Projector', sku: 'OPT-550-WHT', units_sold: 3200, revenue: 1920000, stock_status: 'Low Stock Alert', margin: 38.2 },
-          { product_name: 'Titanium Mechanical Keyboard', sku: 'KEY-900-RGB', units_sold: 9400, revenue: 1410000, stock_status: 'Healthy', margin: 62.0 },
-          { product_name: 'MagSafe Multi-Device Fast Hub', sku: 'CHG-331-ALU', units_sold: 18900, revenue: 1134000, stock_status: 'Critical Stock', margin: 41.5 }
+          { account_name: 'Apex Mobility', region: 'EMEA', tier: 'Mid-Market', arr: 320000, nrr: 112.0, health_score: 'Warning', renewal_date: '2026-09-30' }
         ]
       };
 
     default:
-      // Generic fallback data generator
       return {
         value: 1250000 * multiplier,
         categories: ['Q1', 'Q2', 'Q3', 'Q4'],

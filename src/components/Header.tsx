@@ -8,7 +8,7 @@ import {
   Laptop, 
   Tablet, 
   Smartphone, 
-  RotateCcw,
+  ShieldCheck,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-16 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none">
       {/* Brand & Dashboard Switcher */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
             <Eye className="w-5 h-5 text-white" />
@@ -64,11 +64,11 @@ export const Header: React.FC<HeaderProps> = ({
                 THE EYE
               </span>
               <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                BI AS CODE
+                PROD
               </span>
             </div>
             <p className="text-[11px] text-slate-400 -mt-0.5 hidden sm:block">
-              Declarative • LLM-Native • Universal Connectors
+              Declarative BI • Google ADC Authority
             </p>
           </div>
         </div>
@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
         <select
           value={currentDashboardKey}
           onChange={(e) => onSelectDashboard(e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/50 hover:border-slate-700 transition"
+          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500/50 hover:border-slate-700 transition max-w-[240px] sm:max-w-[320px] truncate"
         >
           {Object.entries(SAMPLE_DASHBOARDS).map(([key, item]) => (
             <option key={key} value={key}>
@@ -88,17 +88,11 @@ export const Header: React.FC<HeaderProps> = ({
           ))}
         </select>
 
-        {/* Schema Status Indicator */}
-        <div className="hidden lg:flex items-center gap-1.5 text-xs">
-          {validation.valid ? (
-            <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Spec Valid
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 font-medium">
-              <AlertCircle className="w-3.5 h-3.5" /> {validation.errors.length} Errors
-            </span>
-          )}
+        {/* Google IAM & ADC Delegated Authority Badge */}
+        <div className="hidden xl:flex items-center gap-1.5 text-xs bg-indigo-950/40 border border-indigo-500/30 px-2.5 py-1 rounded-lg">
+          <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+          <span className="text-slate-300 font-medium">ADC / Google IAM:</span>
+          <span className="text-cyan-400 font-mono text-[11px]">seven-eleven-qlik-bq</span>
         </div>
       </div>
 
@@ -144,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850 hover:border-slate-700 transition"
         >
           <Download className="w-3.5 h-3.5 text-sky-400" />
-          <span className="hidden sm:inline">Export & Integrations</span>
+          <span className="hidden sm:inline">Export</span>
         </button>
 
         {/* YAML Code Editor Toggle */}
@@ -157,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Code2 className="w-3.5 h-3.5" />
-          <span>YAML Code</span>
+          <span>YAML Spec</span>
         </button>
 
         {/* AI Copilot Toggle */}
@@ -170,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Sparkles className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
-          <span>AI Copilot</span>
+          <span>Copilot</span>
         </button>
       </div>
     </header>
