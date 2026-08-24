@@ -289,7 +289,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             const inRange = startDate && endDate && item.date >= startDate && item.date <= endDate;
             const inHoverRange = startDate && !endDate && hoverDate && item.date >= startDate && item.date <= hoverDate;
 
-            let cellClass = 'h-8 flex items-center justify-center rounded-lg transition cursor-pointer ';
+            let cellClass = 'h-7 flex items-center justify-center rounded-lg transition cursor-pointer text-xs ';
 
             if (!item.isCurrentMonth) {
               cellClass += 'text-slate-600 hover:text-slate-400 ';
@@ -338,10 +338,10 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </span>
       </button>
 
-      {/* Advanced Dual Calendar Popover Modal (Solid 100% Opacity Background & Crisp Borders) */}
+      {/* Advanced Dual Calendar Popover Modal (Right-Anchored & Viewport Constrained) */}
       {isOpen && (
         <div 
-          className="absolute top-full left-0 mt-2 z-50 bg-slate-950 border border-slate-700 rounded-3xl p-5 shadow-2xl w-[730px] max-w-[95vw] animate-in fade-in zoom-in-95 duration-150"
+          className="absolute top-full right-0 mt-2 z-50 bg-slate-950 border border-slate-700 rounded-3xl p-4 sm:p-5 shadow-2xl w-[660px] max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-150"
           style={{ backgroundColor: '#020617', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(51, 65, 85, 0.6)' }}
         >
           {/* Top Date Inputs Row */}
@@ -375,7 +375,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             {renderCalendarCard(rightViewMonth, rightViewYear, prevRightMonth, nextRightMonth)}
 
             {/* Right Quick Presets Sidebar */}
-            <div className="w-full md:w-48 bg-slate-900/90 rounded-2xl p-3 border border-slate-800/80 flex flex-col gap-1 overflow-y-auto max-h-[300px] shadow-inner">
+            <div className="w-full md:w-40 bg-slate-900/90 rounded-2xl p-2.5 border border-slate-800/80 flex flex-col gap-1 overflow-y-auto max-h-[290px] shadow-inner">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-2 pb-1 border-b border-slate-800">
                 Quick Presets
               </span>
