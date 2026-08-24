@@ -178,32 +178,32 @@ widgets:
 
   # Row 4: Meshed Federated Data Table (BigQuery Actuals + Google Sheet Targets)
   - id: meshed_store_performance_table
-    title: "Meshed Store Intelligence (BigQuery POS × Google Sheet Targets)"
-    subtitle: "Federated join on store_id with live budget attainment calculations"
+    title: "Store Performance & Attainment Intelligence"
+    subtitle: "Combined POS actuals and commercial targets from federated data mesh"
     type: table
     source: bq_gsheet_store_mesh
     position: { x: 0, y: 10, w: 12, h: 4 }
     table_columns:
       - key: "store_id"
-        label: "Store ID (Key)"
+        label: "Store ID"
       - key: "store_name"
-        label: "Outlet Location (BigQuery)"
+        label: "Outlet Location"
       - key: "store_manager"
-        label: "Store Manager (Google Sheet)"
+        label: "Store Manager"
       - key: "daily_sales"
-        label: "Actual POS Sales (BigQuery)"
+        label: "Actual POS Sales"
         format: "$0,0"
         align: "right"
       - key: "q3_budget_target"
-        label: "Q3 Target (Google Sheet)"
+        label: "Q3 Budget Target"
         format: "$0,0"
         align: "right"
       - key: "target_achievement_pct"
-        label: "Attainment % (Computed)"
+        label: "Attainment %"
         format: "0.0%"
         align: "right"
       - key: "audit_grade"
-        label: "Audit Grade (Google Sheet)"
+        label: "Audit Grade"
         badge: true
 `;
 
