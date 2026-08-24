@@ -40,7 +40,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, curre
 
   // User Management State (RBAC)
   const [users, setUsers] = useState<UserManagementEntry[]>([
-    { id: '1', email: 'choochoonchee@gmail.com', name: 'Jacky Choo', role: 'owner', status: 'active', lastActive: 'Just now' },
+    { id: '1', email: 'jackychoo@google.com', name: 'Jacky Choo', role: 'owner', status: 'active', lastActive: 'Just now' },
     { id: '2', email: 'executive-lead@7-eleven.com.my', name: 'VP Retail Operations', role: 'editor', status: 'active', lastActive: '2h ago' },
     { id: '3', email: 'store-manager@7-eleven.com.my', name: 'Store Operations Team', role: 'viewer', status: 'active', lastActive: '1d ago' },
     { id: '4', email: 'board-member@corp.com', name: 'Board Audit Committee', role: 'viewer', status: 'active', lastActive: '3d ago' }
@@ -312,7 +312,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, curre
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
                     <span className="text-[11px] text-slate-400 block mb-1">Active ADC Credential</span>
-                    <span className="text-xs font-mono text-slate-200 font-bold">choochoonchee@gmail.com</span>
+                    <span className="text-xs font-mono text-slate-200 font-bold">jackychoo@google.com</span>
                   </div>
                   <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
                     <span className="text-[11px] text-slate-400 block mb-1">IAM Permission Scope</span>

@@ -22,13 +22,13 @@ export const INITIAL_DASHBOARDS: DashboardMetadata[] = [
     description: 'Live BigQuery production analytics for 7-Eleven omnichannel stores, POS transactions, basket size, and inventory velocity',
     dataSource: 'seven-eleven-qlik-bq.retail_analytics',
     dataSourceType: 'bigquery',
-    ownerEmail: 'choochoonchee@gmail.com',
+    ownerEmail: 'jackychoo@google.com',
     ownerName: 'Jacky Choo',
     createdAt: '2026-08-20',
     updatedAt: 'Just now',
     yaml: SEVEN_ELEVEN_QLIK_BQ_YAML,
     permissions: {
-      'choochoonchee@gmail.com': 'owner',
+      'jackychoo@google.com': 'owner',
       'executive-lead@7-eleven.com.my': 'editor',
       'store-manager@7-eleven.com.my': 'viewer'
     },
@@ -40,13 +40,13 @@ export const INITIAL_DASHBOARDS: DashboardMetadata[] = [
     description: 'Real-time cold-room sensors, distribution center turnaround times, and fresh food wastage audits',
     dataSource: 'seven-eleven-qlik-bq.supply_chain',
     dataSourceType: 'bigquery',
-    ownerEmail: 'choochoonchee@gmail.com',
+    ownerEmail: 'jackychoo@google.com',
     ownerName: 'Jacky Choo',
     createdAt: '2026-08-22',
     updatedAt: '2h ago',
     yaml: SEVEN_ELEVEN_QLIK_BQ_YAML.replace('7-Eleven Store & POS Analytics', '7-Eleven Supply Chain & Cold Chain Telemetry'),
     permissions: {
-      'choochoonchee@gmail.com': 'owner',
+      'jackychoo@google.com': 'owner',
       'logistics-director@7-eleven.com.my': 'editor'
     },
     tags: ['Supply Chain', 'BigQuery', 'IoT Telemetry']
