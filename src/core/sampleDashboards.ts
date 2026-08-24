@@ -181,13 +181,13 @@ widgets:
     source: bq_seven_eleven
     position: { x: 7, y: 6, w: 5, h: 4 }
 
-  # Row 4: Interactive Google Maps Geospatial Intelligence (Google Sheets Revenue Target Attainment)
+  # Row 4: Interactive Google Maps Geospatial Intelligence & Store Dive-in Sub-Widgets
   - id: outlet_geo_map
     title: "Store Outlets Revenue Target Attainment (Google Maps × Google Sheets)"
-    subtitle: "Filtered outlet locations colored by Google Sheets sales target attainment (Green: On Track >=100% to Red: At Risk <90%)"
+    subtitle: "All outlet locations plotted on Google Maps with declarative store drilldown sub-widgets"
     type: google_map
     source: bq_gsheet_store_mesh
-    position: { x: 0, y: 10, w: 12, h: 4 }
+    position: { x: 0, y: 10, w: 12, h: 6 }
     map_config:
       center: { lat: 3.1390, lng: 101.6869 }
       zoom: 6
@@ -199,10 +199,22 @@ widgets:
         min_color: "#ef4444"   # Red (At Risk <90%)
         mid_color: "#eab308"   # Amber (Warning 90-99%)
         max_color: "#22c55e"   # Green (On Track >=100%)
-    interaction:
-      on_click_filter:
-        filter_id: "store_region"
-        field: "region"
+    drilldown:
+      enabled: true
+      title: "Store Deep-Dive: {{selected_store_name}}"
+      subtitle: "Hourly POS velocity, category share, and commercial target variance"
+      sub_widgets:
+        - id: store_hourly_velocity
+          title: "Hourly POS Transaction Velocity"
+          type: line_chart
+          x: "hour"
+          y: ["Hourly POS Sales ($)", "POS Transactions"]
+          dual_axis: true
+        - id: store_category_donut
+          title: "Store Category Share"
+          type: donut_chart
+          category: "category"
+          value: "sales"
 
   # Row 5: Meshed Federated Data Table (BigQuery Actuals + Google Sheet Targets)
   - id: meshed_store_performance_table

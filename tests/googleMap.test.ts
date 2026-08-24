@@ -4,7 +4,7 @@ import { executeWidgetQuery } from '../src/engine/queryEngine';
 import { WidgetSpec } from '../src/core/types';
 
 describe('Google Maps & Geospatial Intelligence Widget', () => {
-  it('should validate google_map widget specification', () => {
+  it('should validate google_map widget specification with drilldown sub_widgets', () => {
     const validSpec = {
       id: 'test-dash',
       title: 'Geospatial Test',
@@ -15,12 +15,40 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
           title: 'Store Locations',
           type: 'google_map',
           source: 'bq1',
-          position: { w: 12, h: 4 },
+          position: { w: 12, h: 6 },
           map_config: {
             center: { lat: 3.1390, lng: 101.6869 },
             zoom: 6,
-            style: 'dark',
-            layer_type: 'pins_and_heatmap'
+            style: 'google_streets',
+            metric_field: 'target_achievement_pct',
+            color_scale: {
+              min: 80,
+              max: 110,
+              min_color: '#ef4444',
+              mid_color: '#eab308',
+              max_color: '#22c55e'
+            }
+          },
+          drilldown: {
+            enabled: true,
+            title: 'Store Deep-Dive: {{selected_store_name}}',
+            sub_widgets: [
+              {
+                id: 'store_hourly_velocity',
+                title: 'Hourly Velocity',
+                type: 'line_chart',
+                x: 'hour',
+                y: ['Sales', 'Transactions'],
+                dual_axis: true
+              },
+              {
+                id: 'store_category_donut',
+                title: 'Store Category Share',
+                type: 'donut_chart',
+                category: 'category',
+                value: 'sales'
+              }
+            ]
           }
         }
       ]
@@ -31,22 +59,18 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should execute google_map query and filter store pins by region', () => {
+  it('should execute google_map query and maintain all store pins with Google Sheets targets', () => {
     const mapWidget: WidgetSpec = {
       id: 'map_stores',
       title: 'Store Map',
       type: 'google_map',
-      source: 'bq_test',
+      source: 'bq_gsheet_store_mesh',
       position: { w: 12, h: 4 }
     };
 
-    // 1. All regions
-    const resAll = executeWidgetQuery(mapWidget, {});
-    expect(resAll.mapPoints.length).toBeGreaterThanOrEqual(8);
-
-    // 2. Filter to Northern Region
-    const resNorth = executeWidgetQuery(mapWidget, { store_region: 'Northern Region' });
-    expect(resNorth.mapPoints).toHaveLength(2);
-    expect(resNorth.mapPoints.every((p: any) => p.region === 'Northern Region')).toBe(true);
+    const res = executeWidgetQuery(mapWidget, {});
+    expect(res.mapPoints.length).toBeGreaterThanOrEqual(8);
+    expect(res.mapPoints[0].target_achievement_pct).toBeDefined();
+    expect(res.mapPoints[0].target).toBeDefined();
   });
 });

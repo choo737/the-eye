@@ -119,6 +119,27 @@ export interface MapConfigSpec {
   tooltip_fields?: string[];
 }
 
+export interface SubWidgetSpec {
+  id: string;
+  title: string;
+  subtitle?: string;
+  type: 'line_chart' | 'bar_chart' | 'donut_chart' | 'kpi_card' | 'table';
+  x?: string;
+  y?: string | string[];
+  category?: string;
+  value?: string;
+  dual_axis?: boolean;
+  format?: string;
+}
+
+export interface DrilldownSpec {
+  enabled: boolean;
+  title?: string;
+  subtitle?: string;
+  target_param?: string; // e.g. "store_id"
+  sub_widgets?: SubWidgetSpec[];
+}
+
 export interface WidgetSpec {
   id: string;
   title: string;
@@ -148,6 +169,7 @@ export interface WidgetSpec {
   show_values?: boolean;
   radar_indicators?: Array<{ name: string; max?: number }>;
   map_config?: MapConfigSpec;
+  drilldown?: DrilldownSpec;
   table_columns?: Array<{
     key: string;
     label: string;
