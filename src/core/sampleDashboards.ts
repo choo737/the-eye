@@ -181,10 +181,10 @@ widgets:
     source: bq_seven_eleven
     position: { x: 7, y: 6, w: 5, h: 4 }
 
-  # Row 4: Interactive Google Maps Geospatial Intelligence
+  # Row 4: Interactive Google Maps Geospatial Intelligence (Dynamic NPS Color Scale)
   - id: outlet_geo_map
     title: "Store Outlets Geospatial Intelligence (Google Maps)"
-    subtitle: "Interactive outlet location pins, sales intensity heatmap, and regional routing"
+    subtitle: "Filtered outlet locations colored by Customer NPS Rating (Green: 100 to Red: 0)"
     type: google_map
     source: bq_seven_eleven
     position: { x: 0, y: 10, w: 12, h: 4 }
@@ -192,7 +192,13 @@ widgets:
       center: { lat: 3.1390, lng: 101.6869 }
       zoom: 6
       style: "dark"
-      layer_type: "pins_and_heatmap"
+      metric_field: "nps_rating"
+      color_scale:
+        min: 0
+        max: 100
+        min_color: "#ef4444"   # Red (NPS 0)
+        mid_color: "#eab308"   # Yellow (NPS 50)
+        max_color: "#22c55e"   # Green (NPS 100)
     interaction:
       on_click_filter:
         filter_id: "store_region"

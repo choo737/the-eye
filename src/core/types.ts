@@ -97,6 +97,15 @@ export interface MeasureConfig {
   color?: string;
 }
 
+export interface ColorScaleSpec {
+  metric_field?: string; // e.g. "nps_rating"
+  min: number;
+  max: number;
+  min_color: string; // e.g. "#ef4444" (Red)
+  mid_color?: string; // e.g. "#eab308" (Yellow)
+  max_color: string; // e.g. "#22c55e" (Green)
+}
+
 export interface MapConfigSpec {
   center?: { lat: number; lng: number };
   zoom?: number;
@@ -105,6 +114,8 @@ export interface MapConfigSpec {
   lat_field?: string;
   lng_field?: string;
   value_field?: string;
+  metric_field?: string; // e.g. "nps_rating"
+  color_scale?: ColorScaleSpec;
   tooltip_fields?: string[];
 }
 
