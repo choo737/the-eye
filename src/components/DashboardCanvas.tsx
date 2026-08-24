@@ -1,3 +1,4 @@
+import { GoogleMapWidget } from './GoogleMapWidget';
 import React from 'react';
 import { DashboardSpec, WidgetSpec } from '../core/types';
 import { FilterBar } from './FilterBar';

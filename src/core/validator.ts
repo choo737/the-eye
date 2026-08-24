@@ -29,7 +29,9 @@ const VALID_WIDGET_TYPES = [
   'radar',
   'funnel',
   'gauge',
-  'table'
+  'table',
+  'google_map',
+  'geo_map'
 ];
 
 const VALID_THEMES = [

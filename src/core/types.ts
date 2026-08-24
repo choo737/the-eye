@@ -69,7 +69,7 @@ export type WidgetType =
   | 'radar'
   | 'funnel'
   | 'gauge'
-  | 'table';
+  | 'table' | 'google_map' | 'geo_map';
 
 export interface WidgetPosition {
   x?: number;
@@ -95,6 +95,17 @@ export interface MeasureConfig {
   axis?: 'left' | 'right';
   format?: string;
   color?: string;
+}
+
+export interface MapConfigSpec {
+  center?: { lat: number; lng: number };
+  zoom?: number;
+  style?: 'dark' | 'roadmap' | 'satellite' | 'night';
+  layer_type?: 'pins' | 'heatmap' | 'clusters' | 'pins_and_heatmap';
+  lat_field?: string;
+  lng_field?: string;
+  value_field?: string;
+  tooltip_fields?: string[];
 }
 
 export interface WidgetSpec {
@@ -125,6 +136,7 @@ export interface WidgetSpec {
   stacked?: boolean;
   show_values?: boolean;
   radar_indicators?: Array<{ name: string; max?: number }>;
+  map_config?: MapConfigSpec;
   table_columns?: Array<{
     key: string;
     label: string;

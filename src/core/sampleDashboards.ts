@@ -181,13 +181,30 @@ widgets:
     source: bq_seven_eleven
     position: { x: 7, y: 6, w: 5, h: 4 }
 
-  # Row 4: Meshed Federated Data Table (BigQuery Actuals + Google Sheet Targets)
+  # Row 4: Interactive Google Maps Geospatial Intelligence
+  - id: outlet_geo_map
+    title: "Store Outlets Geospatial Intelligence (Google Maps)"
+    subtitle: "Interactive outlet location pins, sales intensity heatmap, and regional routing"
+    type: google_map
+    source: bq_seven_eleven
+    position: { x: 0, y: 10, w: 12, h: 4 }
+    map_config:
+      center: { lat: 3.1390, lng: 101.6869 }
+      zoom: 6
+      style: "dark"
+      layer_type: "pins_and_heatmap"
+    interaction:
+      on_click_filter:
+        filter_id: "store_region"
+        field: "region"
+
+  # Row 5: Meshed Federated Data Table (BigQuery Actuals + Google Sheet Targets)
   - id: meshed_store_performance_table
     title: "Store Performance & Attainment Intelligence"
     subtitle: "Combined POS actuals and commercial targets from federated data mesh"
     type: table
     source: bq_gsheet_store_mesh
-    position: { x: 0, y: 10, w: 12, h: 4 }
+    position: { x: 0, y: 14, w: 12, h: 4 }
     table_columns:
       - key: "store_id"
         label: "Store ID"

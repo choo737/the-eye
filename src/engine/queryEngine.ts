@@ -115,6 +115,34 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const overallVolumeScale = regionDimensionScale * divisionScale * timeFlowMultiplier;
 
   // -------------------------------------------------------------
+  // 7. GOOGLE MAPS / GEOSPATIAL WIDGET EXECUTION
+  // -------------------------------------------------------------
+  if (widget.type === 'google_map' || widget.type === 'geo_map') {
+    const rawPoints = [
+      { id: '7E-1082', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: Math.round(38400 * overallVolumeScale), manager: 'Ahmad Zaki', status: 'A+ (Exceeding)' },
+      { id: '7E-2041', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: Math.round(31200 * overallVolumeScale), manager: 'Michelle Tan', status: 'A (On Target)' },
+      { id: '7E-0492', name: 'Gurney Plaza Waterfront', lat: 5.4377, lng: 100.3098, region: 'Northern Region', sales: Math.round(24500 * overallVolumeScale), manager: 'Rajeswary S.', status: 'A (On Target)' },
+      { id: '7E-3118', name: 'JB City Square Customs Hub', lat: 1.4619, lng: 103.7638, region: 'Southern Region', sales: Math.round(28900 * overallVolumeScale), manager: 'Kevin Wong', status: 'A (On Target)' },
+      { id: '7E-0842', name: 'KLIA2 Departure Hall Terminal', lat: 2.7456, lng: 101.6841, region: 'Klang Valley / Central', sales: Math.round(42100 * overallVolumeScale), manager: 'Noraini Mohd', status: 'A+ (Exceeding)' },
+      { id: '7E-1934', name: 'Ipoh Old Town Heritage', lat: 4.5975, lng: 101.0772, region: 'Northern Region', sales: Math.round(16800 * overallVolumeScale), manager: 'Chong Wei Lun', status: 'B+ (Needs Review)' },
+      { id: '7E-4421', name: 'Kuantan Teluk Cempedak Beach', lat: 3.8168, lng: 103.3654, region: 'East Coast & Islands', sales: Math.round(19500 * overallVolumeScale), manager: 'Fatimah Ali', status: 'A (On Target)' },
+      { id: '7E-5512', name: 'Kuching Waterfront Heritage', lat: 1.5583, lng: 110.3444, region: 'Sabah & Sarawak', sales: Math.round(21400 * overallVolumeScale), manager: 'Leonard Jabu', status: 'A (On Target)' }
+    ];
+
+    let filteredPoints = rawPoints;
+    if (activeTokens.length > 0) {
+      filteredPoints = rawPoints.filter(p => matchesFilter(p.region, activeTokens) || matchesFilter(p.name, activeTokens));
+      if (filteredPoints.length === 0) filteredPoints = rawPoints;
+    }
+
+    return {
+      dynamicTitle,
+      dynamicSubtitle,
+      mapPoints: filteredPoints
+    };
+  }
+
+  // -------------------------------------------------------------
   // 1. KPI WIDGET EXECUTION
   // -------------------------------------------------------------
   if (widget.type === 'kpi_card') {
