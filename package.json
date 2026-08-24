@@ -1,0 +1,58 @@
+{
+  "name": "the-eye",
+  "version": "1.0.0",
+  "description": "The Eye: Declarative Code-First BI & Data Visualization Platform (Dashboard as Code) with Multi-Source Connectors and Microsoft/Google Workspace Integration",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/choo737/the-eye.git"
+  },
+  "keywords": [
+    "dashboard-as-code",
+    "declarative-bi",
+    "business-intelligence",
+    "data-visualization",
+    "llm-bi",
+    "powerbi-alternative",
+    "looker-studio-alternative",
+    "echarts",
+    "duckdb",
+    "google-workspace",
+    "microsoft-365"
+  ],
+  "author": "Jacky Choo",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@types/js-yaml": "^4.0.9",
+    "clsx": "^2.1.1",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
+    "html2canvas": "^1.4.1",
+    "js-yaml": "^5.3.0",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.33.0",
+    "monaco-editor": "^0.56.0",
+    "pptxgenjs": "^4.0.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.0",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}

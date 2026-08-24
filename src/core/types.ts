@@ -1,0 +1,167 @@
+export type DataSourceType = 
+  | 'duckdb'
+  | 'postgres'
+  | 'mysql'
+  | 'mssql'
+  | 'bigquery'
+  | 'snowflake'
+  | 'databricks'
+  | 'google_sheet'
+  | 'excel'
+  | 'rest_api'
+  | 'mock';
+
+export interface DataSourceSpec {
+  id: string;
+  name?: string;
+  type: DataSourceType;
+  url?: string;
+  connection_string?: string;
+  project?: string;
+  dataset?: string;
+  database?: string;
+  warehouse?: string;
+  host?: string;
+  port?: number;
+  sheet_id?: string;
+  range?: string;
+  path?: string;
+  refresh_interval?: string;
+  options?: Record<string, any>;
+}
+
+export type FilterType = 
+  | 'daterange' 
+  | 'multi_select' 
+  | 'single_select' 
+  | 'number_range' 
+  | 'search';
+
+export interface FilterOption {
+  label: string;
+  value: string | number;
+}
+
+export interface FilterSpec {
+  id: string;
+  label: string;
+  type: FilterType;
+  source?: string;
+  column?: string;
+  default?: any;
+  options?: FilterOption[];
+  placeholder?: string;
+}
+
+export type WidgetType = 
+  | 'kpi_card'
+  | 'line_chart'
+  | 'bar_chart'
+  | 'stacked_bar'
+  | 'area_chart'
+  | 'pie_chart'
+  | 'donut_chart'
+  | 'scatter_chart'
+  | 'heatmap'
+  | 'treemap'
+  | 'sankey'
+  | 'radar'
+  | 'funnel'
+  | 'gauge'
+  | 'table';
+
+export interface WidgetPosition {
+  x?: number;
+  y?: number;
+  w: number; // 1-12 columns
+  h?: number; // height in grid units or px
+}
+
+export interface WidgetInteraction {
+  on_click_filter?: {
+    filter_id: string;
+    field: string;
+  };
+  drill_down?: {
+    target_dashboard?: string;
+    pass_filters?: string[];
+  };
+}
+
+export interface WidgetSpec {
+  id: string;
+  title: string;
+  subtitle?: string;
+  type: WidgetType;
+  source: string;
+  query?: string;
+  position: WidgetPosition;
+  
+  // Visual mapping
+  x?: string;
+  y?: string | string[];
+  group_by?: string;
+  category?: string;
+  value?: string;
+  target?: string;
+  format?: string; // e.g. "$0.0a", "0.0%", "0,0"
+  color_scheme?: string | string[];
+  sparkline?: boolean;
+  comparison_label?: string;
+  
+  // Customization
+  smooth?: boolean;
+  stacked?: boolean;
+  show_values?: boolean;
+  table_columns?: Array<{
+    key: string;
+    label: string;
+    format?: string;
+    align?: 'left' | 'center' | 'right';
+    badge?: boolean;
+  }>;
+  
+  interaction?: WidgetInteraction;
+}
+
+export type DashboardTheme = 
+  | 'modern-dark'
+  | 'minimal-light'
+  | 'cyberpunk'
+  | 'corporate-navy'
+  | 'emerald-slate';
+
+export interface DashboardLayout {
+  columns: number;
+  row_height?: number;
+  responsive?: boolean;
+}
+
+export interface DashboardSpec {
+  version: string;
+  id: string;
+  title: string;
+  description?: string;
+  theme?: DashboardTheme;
+  refresh_interval?: string;
+  data_sources: DataSourceSpec[];
+  filters?: FilterSpec[];
+  layout?: DashboardLayout;
+  widgets: WidgetSpec[];
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: Array<{
+    path: string;
+    message: string;
+    severity: 'error' | 'warning';
+  }>;
+}
+
+export interface QueryResult {
+  columns: string[];
+  data: Record<string, any>[];
+  total_count: number;
+  execution_time_ms: number;
+}
