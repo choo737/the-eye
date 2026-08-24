@@ -28,6 +28,15 @@ function matchesFilter(targetValue: string, filterValues: string[]): boolean {
   });
 }
 
+// Canonical regional metadata table (Stores & Sales Distribution)
+const REGION_REGISTRY = [
+  { name: 'Klang Valley / Central', stores: 1240, salesWeight: 0.48, avgBasket: 24.50 },
+  { name: 'Northern Region', stores: 580, salesWeight: 0.23, avgBasket: 19.20 },
+  { name: 'Southern Region', stores: 460, salesWeight: 0.18, avgBasket: 22.40 },
+  { name: 'East Coast & Islands', stores: 190, salesWeight: 0.07, avgBasket: 18.20 },
+  { name: 'Sabah & Sarawak', stores: 110, salesWeight: 0.04, avgBasket: 20.10 }
+];
+
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
   const timeRange = activeFilters['time_range'] || activeFilters['date_range'] || '2026-YTD';
   
@@ -61,57 +70,96 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const dynamicTitle = interpolateString(widget.title, context);
   const dynamicSubtitle = widget.subtitle ? interpolateString(widget.subtitle, context) : `Showing ${grainLabel} rollup for ${timeLabel}`;
 
-  // Extract non-temporal active filter values
-  const activeTokens: string[] = [];
-  let scale = 1.0;
+  // Time volume multiplier (applies to flow metrics like Revenue / Sales, NOT entity counts like store outlets)
+  let timeFlowMultiplier = 1.0;
+  if (timeRange === 'last_30_days') timeFlowMultiplier = 0.28;
+  else if (timeRange === 'last_90_days') timeFlowMultiplier = 0.65;
+  else if (timeRange === 'all_time') timeFlowMultiplier = 1.45;
 
-  Object.entries(activeFilters).forEach(([key, val]) => {
-    if (key.includes('time') || key.includes('date')) return;
-    if (Array.isArray(val)) {
-      const nonAll = val.filter(v => !String(v).startsWith('All'));
-      if (nonAll.length > 0) {
-        scale *= Math.min(1.0, nonAll.length * 0.35);
-        activeTokens.push(...nonAll.map(String));
-      }
-    } else if (val && !String(val).startsWith('All')) {
-      scale *= 0.55;
-      activeTokens.push(String(val));
-    }
-  });
+  // Extract selected regions
+  const rawRegion = activeFilters['store_region'] || activeFilters['region'] || ['All Regions'];
+  const selectedRegionList: string[] = Array.isArray(rawRegion) ? rawRegion : [rawRegion];
+  const isAllRegions = selectedRegionList.includes('All Regions') || selectedRegionList.length === 0;
 
-  if (timeRange === 'last_30_days') scale *= 0.28;
-  else if (timeRange === 'last_90_days') scale *= 0.65;
-  else if (timeRange === 'all_time') scale *= 1.45;
+  // Compute exact regional aggregations
+  let matchedRegions = REGION_REGISTRY;
+  if (!isAllRegions) {
+    matchedRegions = REGION_REGISTRY.filter(r => matchesFilter(r.name, selectedRegionList));
+    if (matchedRegions.length === 0) matchedRegions = REGION_REGISTRY;
+  }
+
+  const totalStores = matchedRegions.reduce((sum, r) => sum + r.stores, 0);
+  const regionSalesFraction = matchedRegions.reduce((sum, r) => sum + r.salesWeight, 0);
+  const weightedBasket = matchedRegions.reduce((sum, r) => sum + (r.avgBasket * (r.stores / totalStores)), 0);
+
+  // Extract division/category filter
+  const rawDivision = activeFilters['product_division'] || activeFilters['category'] || 'All Divisions';
+  let divisionMultiplier = 1.0;
+  if (rawDivision && !String(rawDivision).startsWith('All')) {
+    const divStr = String(rawDivision).toLowerCase();
+    if (divStr.includes('fresh') || divStr.includes('rte')) divisionMultiplier = 0.32;
+    else if (divStr.includes('beverage') || divStr.includes('slurpee')) divisionMultiplier = 0.28;
+    else if (divStr.includes('snack')) divisionMultiplier = 0.22;
+    else if (divStr.includes('tobacco')) divisionMultiplier = 0.18;
+    else divisionMultiplier = 0.40;
+  }
 
   // -------------------------------------------------------------
-  // 1. KPI WIDGET EXECUTION
+  // 1. KPI WIDGET EXECUTION (Point-in-Time vs Flow Metric Aware)
   // -------------------------------------------------------------
   if (widget.type === 'kpi_card') {
-    let baseVal = 78450000;
-    if (widget.format?.includes('%')) baseVal = 28.6;
-    else if (widget.format?.includes('$0.00') && !widget.format?.includes('a')) baseVal = 16.48;
-    else if (widget.format === '0,0') baseVal = 2580;
-    else if (widget.format?.includes('mos')) baseVal = 11.4;
+    // A) Store Count (Entity count - does not scale with time)
+    if (widget.value === 'store_count' || widget.format === '0,0') {
+      return {
+        dynamicTitle,
+        dynamicSubtitle,
+        value: totalStores,
+        comparison_label: isAllRegions ? '+28 new store openings' : `+${Math.round(totalStores * 0.03)} in selected regions`,
+        sparklineData: [
+          Math.round(totalStores * 0.92),
+          Math.round(totalStores * 0.95),
+          Math.round(totalStores * 0.98),
+          totalStores
+        ]
+      };
+    }
 
-    const computedVal = widget.format?.includes('%') 
-      ? +(baseVal * (scale > 0.6 ? 1 : 0.95)).toFixed(1)
-      : widget.format?.includes('$0.00') && !widget.format?.includes('a')
-      ? +(baseVal * (scale > 0.6 ? 1 : 1.08)).toFixed(2)
-      : Math.round(baseVal * scale);
+    // B) Average Basket Size (ABV)
+    if (widget.value === 'basket_size' || (widget.format?.includes('$0.00') && !widget.format?.includes('a'))) {
+      const computedAbv = +(weightedBasket * (divisionMultiplier > 0.8 ? 1 : 1.12)).toFixed(2);
+      return {
+        dynamicTitle,
+        dynamicSubtitle,
+        value: computedAbv,
+        comparison_label: timeRange === 'last_30_days' ? '+$0.65 / basket' : '+$1.85 / basket',
+        sparklineData: [13.2, 13.8, 14.5, 15.1, 15.8, computedAbv]
+      };
+    }
 
-    const comparisonText = timeRange === 'last_30_days' 
-      ? '+8.4% vs prev 30 days' 
-      : timeRange === 'last_90_days' 
-      ? '+16.2% vs Q1' 
-      : widget.comparison_label || '+14.2% YoY';
+    // C) Fresh Food & RTE Percentage
+    if (widget.format?.includes('%')) {
+      const rtePct = String(rawDivision).startsWith('All') ? 28.6 : (String(rawDivision).includes('Fresh') ? 100 : 8.4);
+      return {
+        dynamicTitle,
+        dynamicSubtitle,
+        value: rtePct,
+        comparison_label: '+3.8% mix shift',
+        sparklineData: [21.0, 22.8, 24.5, 26.0, 27.4, rtePct]
+      };
+    }
+
+    // D) POS Gross Sales (Additive Flow metric)
+    const baseAnnualSales = 78450000;
+    const computedSales = Math.round(baseAnnualSales * regionSalesFraction * divisionMultiplier * timeFlowMultiplier);
+    const targetSales = `$${((85.0 * regionSalesFraction * divisionMultiplier * timeFlowMultiplier)).toFixed(1)}M`;
 
     return {
       dynamicTitle,
       dynamicSubtitle,
-      value: computedVal,
-      target: widget.target ? interpolateString(widget.target, context) : undefined,
-      comparison_label: comparisonText,
-      sparklineData: [0.75, 0.82, 0.88, 0.93, 0.97, 1.0].map(m => +(computedVal * m).toFixed(1))
+      value: computedSales,
+      target: targetSales,
+      comparison_label: timeRange === 'last_30_days' ? '+8.4% vs prev 30d' : '+14.2% YoY',
+      sparklineData: [0.75, 0.82, 0.88, 0.93, 0.97, 1.0].map(m => Math.round(computedSales * m))
     };
   }
 
@@ -120,15 +168,15 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   // -------------------------------------------------------------
   if (widget.type === 'donut_chart' || widget.type === 'pie_chart') {
     let slices = [
-      { name: 'Fresh Food & Ready-to-Eat (RTE)', value: Math.round(24500000 * scale) },
-      { name: 'Beverages & Slurpee', value: Math.round(19800000 * scale) },
-      { name: 'Snacks & Confectionery', value: Math.round(15600000 * scale) },
-      { name: 'Tobacco & Core Services', value: Math.round(12800000 * scale) },
-      { name: 'General & Personal Care', value: Math.round(7850000 * scale) }
+      { name: 'Fresh Food & Ready-to-Eat (RTE)', value: Math.round(24500000 * regionSalesFraction * timeFlowMultiplier) },
+      { name: 'Beverages & Slurpee', value: Math.round(19800000 * regionSalesFraction * timeFlowMultiplier) },
+      { name: 'Snacks & Confectionery', value: Math.round(15600000 * regionSalesFraction * timeFlowMultiplier) },
+      { name: 'Tobacco & Core Services', value: Math.round(12800000 * regionSalesFraction * timeFlowMultiplier) },
+      { name: 'General & Personal Care', value: Math.round(7850000 * regionSalesFraction * timeFlowMultiplier) }
     ];
 
-    if (activeTokens.length > 0) {
-      const match = slices.filter(s => matchesFilter(s.name, activeTokens));
+    if (rawDivision && !String(rawDivision).startsWith('All')) {
+      const match = slices.filter(s => matchesFilter(s.name, [String(rawDivision)]));
       if (match.length > 0) slices = match;
     }
 
@@ -169,11 +217,11 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       dynamicTitle,
       dynamicSubtitle,
       data: [
-        { name: 'MQL Website Traffic', value: Math.round(450000 * scale) },
-        { name: 'PQL App Signups', value: Math.round(48000 * scale) },
-        { name: 'SQL Store Leads', value: Math.round(8400 * scale) },
-        { name: 'Demo / Proposal', value: Math.round(3200 * scale) },
-        { name: 'Closed Contract', value: Math.round(620 * scale) }
+        { name: 'MQL Website Traffic', value: Math.round(450000 * regionSalesFraction * timeFlowMultiplier) },
+        { name: 'PQL App Signups', value: Math.round(48000 * regionSalesFraction * timeFlowMultiplier) },
+        { name: 'SQL Store Leads', value: Math.round(8400 * regionSalesFraction * timeFlowMultiplier) },
+        { name: 'Demo / Proposal', value: Math.round(3200 * regionSalesFraction * timeFlowMultiplier) },
+        { name: 'Closed Contract', value: Math.round(620 * regionSalesFraction * timeFlowMultiplier) }
       ]
     };
   }
@@ -183,23 +231,19 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   // -------------------------------------------------------------
   if (widget.type === 'table') {
     const allRows = [
-      { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region: 'Klang Valley / Central', daily_sales: Math.round(38400 * scale), avg_basket: 24.50, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
-      { store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', region: 'Klang Valley / Central', daily_sales: Math.round(31200 * scale), avg_basket: 21.80, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
-      { store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', region: 'Northern Region', daily_sales: Math.round(24500 * scale), avg_basket: 19.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
-      { store_id: '7E-3118', store_name: 'JB City Square Customs Hub', region: 'Southern Region', daily_sales: Math.round(28900 * scale), avg_basket: 22.40, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
-      { store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', region: 'Klang Valley / Central', daily_sales: Math.round(42100 * scale), avg_basket: 29.80, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
-      { store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', region: 'Northern Region', daily_sales: Math.round(16800 * scale), avg_basket: 15.60, compliance: 'Low Stock Alert', pos_terminal_count: 2 },
-      { store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', region: 'East Coast & Islands', daily_sales: Math.round(19500 * scale), avg_basket: 18.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
-      { store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', region: 'Sabah & Sarawak', daily_sales: Math.round(21400 * scale), avg_basket: 20.10, compliance: 'Healthy / Audited', pos_terminal_count: 3 }
+      { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region: 'Klang Valley / Central', daily_sales: Math.round(38400 * divisionMultiplier), avg_basket: 24.50, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
+      { store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', region: 'Klang Valley / Central', daily_sales: Math.round(31200 * divisionMultiplier), avg_basket: 21.80, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
+      { store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', region: 'Northern Region', daily_sales: Math.round(24500 * divisionMultiplier), avg_basket: 19.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
+      { store_id: '7E-3118', store_name: 'JB City Square Customs Hub', region: 'Southern Region', daily_sales: Math.round(28900 * divisionMultiplier), avg_basket: 22.40, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
+      { store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', region: 'Klang Valley / Central', daily_sales: Math.round(42100 * divisionMultiplier), avg_basket: 29.80, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
+      { store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', region: 'Northern Region', daily_sales: Math.round(16800 * divisionMultiplier), avg_basket: 15.60, compliance: 'Low Stock Alert', pos_terminal_count: 2 },
+      { store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', region: 'East Coast & Islands', daily_sales: Math.round(19500 * divisionMultiplier), avg_basket: 18.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
+      { store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', region: 'Sabah & Sarawak', daily_sales: Math.round(21400 * divisionMultiplier), avg_basket: 20.10, compliance: 'Healthy / Audited', pos_terminal_count: 3 }
     ];
 
     let filteredRows = allRows;
-    if (activeTokens.length > 0) {
-      filteredRows = allRows.filter(row => {
-        return activeTokens.some(token => 
-          matchesFilter(row.region, [token]) || matchesFilter(row.store_name, [token])
-        );
-      });
+    if (!isAllRegions) {
+      filteredRows = allRows.filter(row => matchesFilter(row.region, selectedRegionList));
       if (filteredRows.length === 0) filteredRows = allRows;
     }
 
@@ -211,7 +255,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 6. CARTESIAN CHARTS (Time Series & Category Bar)
+  // 6. CARTESIAN TIME-SERIES & CATEGORY BAR CHARTS
   // -------------------------------------------------------------
   const yMeasures = Array.isArray(widget.y) ? widget.y : (widget.y ? [widget.y] : ['Sales Volume']);
   const isDualAxis = widget.dual_axis || (yMeasures.length > 1 && yMeasures.some(m => String(m).toLowerCase().includes('count') || String(m).toLowerCase().includes('rate')));
@@ -235,8 +279,8 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
 
       const baseNumbers = categories.map((_, i) => {
         const trend = (i + 1) / categories.length;
-        if (isSecondary) return Math.round((18000 + trend * 12000) * (scale > 0.5 ? 1 : scale * 1.5));
-        return Math.round((2400 + trend * 1600) * 1000 * scale);
+        if (isSecondary) return Math.round((18000 + trend * 12000) * (totalStores / 2580));
+        return Math.round((2400 + trend * 1600) * 1000 * regionSalesFraction * divisionMultiplier);
       });
 
       return {
@@ -257,29 +301,15 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     };
   }
 
-  // Canonical Category Clusters
-  const allClusters = [
-    { name: 'Klang Valley / Central', baseVal: 32.5 },
-    { name: 'Northern Region', baseVal: 18.2 },
-    { name: 'Southern Region', baseVal: 14.6 },
-    { name: 'East Coast & Islands', baseVal: 8.4 },
-    { name: 'Sabah & Sarawak', baseVal: 4.75 }
-  ];
-
-  let visibleClusters = allClusters;
-  if (activeTokens.length > 0) {
-    const matched = allClusters.filter(c => matchesFilter(c.name, activeTokens));
-    if (matched.length > 0) visibleClusters = matched;
-  }
-
-  const series = yMeasures.map((measure, mIdx) => {
+  // Category Bar Chart (exact clusters for selected regions)
+  const series = yMeasures.map((measure) => {
     const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
     const isTarget = measureName.toLowerCase().includes('target');
     return {
       name: measureName,
-      data: visibleClusters.map((c) => {
-        const val = isTarget ? (c.baseVal * 1.06) : c.baseVal;
-        return Math.round(val * 1000000 * scale);
+      data: matchedRegions.map((c) => {
+        const val = isTarget ? (c.salesWeight * 78.45 * 1.06) : (c.salesWeight * 78.45);
+        return Math.round(val * 1000000 * divisionMultiplier * timeFlowMultiplier);
       })
     };
   });
@@ -288,7 +318,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     dynamicTitle,
     dynamicSubtitle,
     useDualAxis: isDualAxis,
-    categories: visibleClusters.map(c => c.name),
+    categories: matchedRegions.map(c => c.name),
     series
   };
 }
