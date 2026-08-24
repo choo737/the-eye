@@ -4,6 +4,7 @@
   "description": "The Eye: Declarative Code-First BI & Data Visualization Platform (Dashboard as Code) with Multi-Source Connectors and Microsoft/Google Workspace Integration",
   "type": "module",
   "scripts": {
+    "test": "vitest run",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
@@ -64,6 +65,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }
