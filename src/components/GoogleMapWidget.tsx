@@ -53,34 +53,50 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     carto_dark: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
   };
 
-  // 1. Initialize Map
+  // 1. Safe Leaflet Map Initialization (StrictMode & Remount safe)
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    if (!mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center: [3.5, 103.5],
-        zoom: 6,
-        zoomControl: true,
-        scrollWheelZoom: true
-      });
+    try {
+      // Clear any prior Leaflet container ID to prevent "Map container is already initialized"
+      if ((mapContainerRef.current as any)._leaflet_id) {
+        (mapContainerRef.current as any)._leaflet_id = null;
+      }
 
-      const tileLayer = L.tileLayer(TILE_URLS[mapStyle], {
-        maxZoom: 19,
-        attribution: '© Google Maps'
-      }).addTo(map);
+      if (!mapInstanceRef.current) {
+        const map = L.map(mapContainerRef.current, {
+          center: [3.5, 103.5],
+          zoom: 6,
+          zoomControl: true,
+          scrollWheelZoom: true
+        });
 
-      const markersGroup = L.layerGroup().addTo(map);
+        const tileLayer = L.tileLayer(TILE_URLS[mapStyle], {
+          maxZoom: 19,
+          attribution: '© Google Maps'
+        }).addTo(map);
 
-      mapInstanceRef.current = map;
-      tileLayerRef.current = tileLayer;
-      markersLayerRef.current = markersGroup;
+        const markersGroup = L.layerGroup().addTo(map);
+
+        mapInstanceRef.current = map;
+        tileLayerRef.current = tileLayer;
+        markersLayerRef.current = markersGroup;
+      }
+    } catch (err) {
+      console.warn('Leaflet map initialization notice:', err);
     }
 
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+      try {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
+        if (mapContainerRef.current) {
+          (mapContainerRef.current as any)._leaflet_id = null;
+        }
+      } catch (err) {
+        // silent cleanup
       }
     };
   }, []);
@@ -96,71 +112,75 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
-    markersLayerRef.current.clearLayers();
+    try {
+      markersLayerRef.current.clearLayers();
 
-    if (mapData.length === 0) return;
+      if (mapData.length === 0) return;
 
-    const bounds = L.latLngBounds([]);
+      const bounds = L.latLngBounds([]);
 
-    mapData.forEach((pin: any) => {
-      const attainmentPct = pin.target_achievement_pct ?? 100;
-      const { color } = getAttainmentColor(attainmentPct);
-      const isSelected = selectedPin?.id === pin.id;
+      mapData.forEach((pin: any) => {
+        const attainmentPct = pin.target_achievement_pct ?? 100;
+        const { color } = getAttainmentColor(attainmentPct);
+        const isSelected = selectedPin?.id === pin.id;
 
-      // Custom HTML Pin Marker with Target Attainment Status Badge
-      const markerHtml = `
-        <div style="
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: rgba(15, 23, 42, 0.95);
-          color: white;
-          padding: 5px 10px;
-          border-radius: 14px;
-          border: 2px solid ${isSelected ? '#38bdf8' : color};
-          box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 12px ${color}70;
-          font-family: ui-sans-serif, system-ui, sans-serif;
-          white-space: nowrap;
-          cursor: pointer;
-          transform: translate(-50%, -50%);
-        ">
-          <span style="
-            background: ${color};
-            color: #020617;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 2px 6px;
-            border-radius: 8px;
-            letter-spacing: 0.2px;
-          ">${attainmentPct}% Target</span>
-          <span style="font-size: 11px; font-weight: 700; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
-            ${pin.name}
-          </span>
-        </div>
-      `;
+        // Custom HTML Pin Marker with Target Attainment Status Badge
+        const markerHtml = `
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.95);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 14px;
+            border: 2px solid ${isSelected ? '#38bdf8' : color};
+            box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 12px ${color}70;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            white-space: nowrap;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+          ">
+            <span style="
+              background: ${color};
+              color: #020617;
+              font-size: 10px;
+              font-weight: 800;
+              padding: 2px 6px;
+              border-radius: 8px;
+              letter-spacing: 0.2px;
+            ">${attainmentPct}% Target</span>
+            <span style="font-size: 11px; font-weight: 700; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
+              ${pin.name}
+            </span>
+          </div>
+        `;
 
-      const customIcon = L.divIcon({
-        html: markerHtml,
-        className: 'custom-map-pin',
-        iconSize: [180, 34],
-        iconAnchor: [90, 17]
+        const customIcon = L.divIcon({
+          html: markerHtml,
+          className: 'custom-map-pin',
+          iconSize: [180, 34],
+          iconAnchor: [90, 17]
+        });
+
+        const marker = L.marker([pin.lat, pin.lng], { icon: customIcon });
+
+        marker.on('click', () => {
+          setSelectedPin(pin);
+          if (onFilterChange && widget.interaction?.on_click_filter) {
+            onFilterChange(widget.interaction.on_click_filter.filter_id, pin.region);
+          }
+        });
+
+        markersLayerRef.current?.addLayer(marker);
+        bounds.extend([pin.lat, pin.lng]);
       });
 
-      const marker = L.marker([pin.lat, pin.lng], { icon: customIcon });
-
-      marker.on('click', () => {
-        setSelectedPin(pin);
-        if (onFilterChange && widget.interaction?.on_click_filter) {
-          onFilterChange(widget.interaction.on_click_filter.filter_id, pin.region);
-        }
-      });
-
-      markersLayerRef.current?.addLayer(marker);
-      bounds.extend([pin.lat, pin.lng]);
-    });
-
-    if (mapData.length > 0) {
-      mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+      if (mapData.length > 0) {
+        mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+      }
+    } catch (err) {
+      console.warn('Marker render notice:', err);
     }
   }, [mapData, selectedPin, colorScale]);
 
@@ -247,7 +267,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                   {selectedPin.id}
                 </span>
-                {/* Dynamic Attainment Badge */}
                 <span 
                   className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-lg flex items-center gap-1"
                   style={{
