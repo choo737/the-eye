@@ -17,7 +17,7 @@ export const CreateDashboardModal: React.FC<CreateDashboardModalProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [dataSource, setDataSource] = useState('seven-eleven-qlik-bq');
+  const [dataSource, setDataSource] = useState('enterprise-analytics-gcp');
   const [datasetName, setDatasetName] = useState('retail_analytics');
 
   const handleCreate = (e: React.FormEvent) => {
@@ -51,12 +51,12 @@ filters:
     options:
       - label: "All Regions"
         value: "All Regions"
-      - label: "Klang Valley / Central"
-        value: "Klang Valley / Central"
-      - label: "Northern Region"
-        value: "Northern Region"
-      - label: "Southern Region"
-        value: "Southern Region"
+      - label: "Region North"
+        value: "Region North"
+      - label: "Region South"
+        value: "Region South"
+      - label: "Region Central"
+        value: "Region Central"
 
   - id: time_range
     label: "Time Horizon"

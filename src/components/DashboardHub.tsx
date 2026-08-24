@@ -72,7 +72,7 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({
               <span className="text-[11px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                 Workspace Portal
               </span>
-              <span className="text-xs text-slate-500 font-mono">GCP Project: seven-eleven-qlik-bq</span>
+              <span className="text-xs text-slate-500 font-mono">Data Sources Connected: {dashboards.length}</span>
             </div>
             <h1 className="text-3xl font-extrabold text-white tracking-tight mt-1">
               Dashboards & Business Intelligence Hub

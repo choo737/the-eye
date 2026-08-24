@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 -mt-0.5 hidden sm:block">
-              BigQuery • seven-eleven-qlik-bq
+              {spec?.data_sources?.[0]?.name || spec?.data_sources?.[0]?.project || "Declarative BI Engine"}
             </p>
           </div>
         </div>

@@ -301,7 +301,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, curre
                     <Database className="w-5 h-5 text-cyan-400" />
                     <div>
                       <h3 className="text-xs font-bold text-white uppercase tracking-wider">GCP BigQuery Authority Status</h3>
-                      <p className="text-[11px] text-slate-400">Target Project: <span className="font-mono text-cyan-300 font-bold">seven-eleven-qlik-bq</span></p>
+                      <p className="text-[11px] text-slate-400">Target Authority: <span className="font-mono text-cyan-300 font-bold">Enterprise Cloud IAM</span></p>
                     </div>
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold flex items-center gap-1">
