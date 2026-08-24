@@ -203,16 +203,16 @@ widgets:
     drilldown:
       enabled: true
       title: "Store Performance Drill-Down: {{store_name}} ({{store_id}})"
-      subtitle: "Hourly POS transaction velocity, category mix, and commercial budget attainment for {{store_id}}"
+      subtitle: "Intraday transaction velocity, product category mix, and budget attainment for {{store_id}}"
       sub_widgets:
-        - id: store_hourly_velocity
-          title: "Hourly POS Transaction Velocity"
+        - id: store_transaction_velocity
+          title: "POS Transaction Velocity & Customer Traffic"
           type: line_chart
-          x: "hour"
-          y: ["Hourly POS Sales (RM)", "POS Transactions"]
+          x: "time_grain"
+          y: ["POS Sales (RM)", "POS Transactions"]
           dual_axis: true
         - id: store_category_donut
-          title: "Store Category Share"
+          title: "Product Division Share"
           type: donut_chart
           category: "category"
           value: "sales"

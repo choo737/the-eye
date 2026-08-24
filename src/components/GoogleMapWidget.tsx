@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { WidgetSpec, ColorScaleSpec } from '../core/types';
 import { formatValue } from '../utils/formatters';
 import { 
-  MapPin, Store, DollarSign, User, ShieldCheck, 
+  Focus, Scan, MapPin, Store, DollarSign, User, ShieldCheck, 
   Globe, Satellite, Target, Plus, Minus, Compass, 
   TrendingUp, PieChart, X, Sparkles, Layers, Table as TableIcon,
   ChevronRight, ArrowUpDown
@@ -318,7 +318,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
       ],
       series: [
         {
-          name: 'Hourly POS Sales (RM)',
+          name: widget.drilldown?.sub_widgets?.[0]?.y?.[0] || 'POS Sales (RM)',
           type: 'line',
           smooth: true,
           data: salesData,
@@ -335,7 +335,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           }
         },
         {
-          name: 'POS Transactions',
+          name: widget.drilldown?.sub_widgets?.[0]?.y?.[1] || 'POS Transactions',
           type: 'line',
           yAxisIndex: 1,
           smooth: true,
@@ -581,8 +581,8 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         <div className="border-t border-slate-800 bg-slate-950/95 p-5 animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                <Sparkles className="w-4 h-4" />
+              <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/10">
+                <Focus className="w-4 h-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -640,7 +640,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             <div className="lg:col-span-8 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> Hourly Transaction Velocity & Customer Traffic
+                  <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> {widget.drilldown?.sub_widgets?.[0]?.title || 'Transaction Velocity & Customer Traffic'}
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">Live BigQuery Stream</span>
               </div>
@@ -652,7 +652,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             <div className="lg:col-span-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <PieChart className="w-3.5 h-3.5 text-indigo-400" /> Division Share
+                  <PieChart className="w-3.5 h-3.5 text-indigo-400" /> {widget.drilldown?.sub_widgets?.[1]?.title || 'Product Division Share'}
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">Product Mix</span>
               </div>
