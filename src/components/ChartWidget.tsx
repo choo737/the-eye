@@ -30,9 +30,9 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
   const option = useMemo(() => {
     const textColor = '#94a3b8';
     const gridLineColor = 'rgba(255, 255, 255, 0.06)';
-    const cyanPalette = ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#fbbf24', '#a78bfa'];
+    const cyanPalette = ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#fbbf24', '#a78bfa', '#2dd4bf', '#fb923c'];
 
-    // 1. Donut and Pie Charts (Strict Declarative Formatting)
+    // 1. Donut and Pie Charts
     if (effectiveType === 'donut_chart' || effectiveType === 'pie_chart') {
       const pieData = data?.data || [];
       return {
@@ -68,7 +68,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
           {
             name: data?.dynamicTitle || widget.title,
             type: 'pie',
-            center: ['50%', '40%'], // Raised center to avoid legend collision
+            center: ['50%', '40%'],
             radius: effectiveType === 'donut_chart' ? ['38%', '64%'] : '60%',
             avoidLabelOverlap: true,
             itemStyle: {
@@ -76,10 +76,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
               borderColor: '#0f172a',
               borderWidth: 2
             },
-            label: {
-              show: false,
-              position: 'center'
-            },
+            label: { show: false, position: 'center' },
             emphasis: {
               label: {
                 show: true,
@@ -95,9 +92,212 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       };
     }
 
-    // 2. Funnel Charts
+    // 2. Gauge Chart & Bullet Chart
+    if (effectiveType === 'gauge' || effectiveType === 'bullet_chart') {
+      const metricVal = typeof data?.value === 'number' ? data.value : 88.4;
+      const targetVal = typeof data?.target === 'number' ? data.target : 100;
+      return {
+        series: [
+          {
+            type: 'gauge',
+            startAngle: 180,
+            endAngle: 0,
+            center: ['50%', '75%'],
+            radius: '95%',
+            min: 0,
+            max: targetVal > 100 ? targetVal : 100,
+            splitNumber: 5,
+            axisLine: {
+              lineStyle: {
+                width: 14,
+                color: [
+                  [0.3, '#ef4444'],
+                  [0.7, '#eab308'],
+                  [1, '#22c55e']
+                ]
+              }
+            },
+            pointer: {
+              icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+              length: '12%',
+              width: 12,
+              offsetCenter: [0, '-60%'],
+              itemStyle: { color: '#38bdf8' }
+            },
+            axisTick: { length: 8, lineStyle: { color: 'auto', width: 1 } },
+            splitLine: { length: 14, lineStyle: { color: 'auto', width: 2 } },
+            axisLabel: { color: '#94a3b8', fontSize: 10, distance: -35 },
+            title: { offsetCenter: [0, '-20%'], fontSize: 12, color: '#94a3b8' },
+            detail: {
+              fontSize: 22,
+              offsetCenter: [0, '0%'],
+              valueAnimation: true,
+              formatter: (val: number) => formatValue(val, widget.format || '0.0%'),
+              color: '#f8fafc',
+              fontWeight: 'bold'
+            },
+            data: [{ value: metricVal, name: widget.title }]
+          }
+        ]
+      };
+    }
+
+    // 3. Treemap Chart
+    if (effectiveType === 'treemap') {
+      const treeData = data?.data || [
+        { name: 'Fresh Food & RTE', value: 38400000 },
+        { name: 'Beverages & Slurpee', value: 24500000 },
+        { name: 'Packaged Snacks', value: 15600000 },
+        { name: 'Tobacco & Nicotine', value: 12800000 },
+        { name: 'Personal Care', value: 8900000 }
+      ];
+      return {
+        tooltip: {
+          formatter: (params: any) => `${params.name}: <strong>${formatValue(params.value, widget.format || 'RM 0.0a')}</strong>`,
+          backgroundColor: '#0f172a',
+          borderColor: '#334155',
+          textStyle: { color: '#f8fafc' }
+        },
+        series: [
+          {
+            type: 'treemap',
+            data: treeData,
+            leafDepth: 1,
+            roam: false,
+            label: {
+              show: true,
+              formatter: (p: any) => `${p.name}\n${formatValue(p.value, widget.format || 'RM 0.0a')}`,
+              fontSize: 11,
+              color: '#f8fafc'
+            },
+            itemStyle: { borderColor: '#0f172a', borderWidth: 2, gapWidth: 2 }
+          }
+        ]
+      };
+    }
+
+    // 4. Sankey Flow Diagram
+    if (effectiveType === 'sankey') {
+      const sankeyData = data?.data || {
+        nodes: [
+          { name: 'POS Transactions' },
+          { name: 'Cash / DuitNow' },
+          { name: 'Credit / Debit Card' },
+          { name: 'Ready-to-Eat' },
+          { name: 'Beverages' },
+          { name: 'Snacks' }
+        ],
+        links: [
+          { source: 'POS Transactions', target: 'Cash / DuitNow', value: 45000 },
+          { source: 'POS Transactions', target: 'Credit / Debit Card', value: 55000 },
+          { source: 'Cash / DuitNow', target: 'Ready-to-Eat', value: 25000 },
+          { source: 'Cash / DuitNow', target: 'Beverages', value: 20000 },
+          { source: 'Credit / Debit Card', target: 'Beverages', value: 25000 },
+          { source: 'Credit / Debit Card', target: 'Snacks', value: 30000 }
+        ]
+      };
+      return {
+        tooltip: { trigger: 'item', triggerOn: 'mousemove', backgroundColor: '#0f172a', textStyle: { color: '#f8fafc' } },
+        series: [
+          {
+            type: 'sankey',
+            data: sankeyData.nodes,
+            links: sankeyData.links,
+            emphasis: { focus: 'adjacency' },
+            lineStyle: { color: 'gradient', curveness: 0.5 },
+            itemStyle: { borderColor: '#1e293b', borderWidth: 1 },
+            label: { color: '#f8fafc', fontSize: 10 }
+          }
+        ]
+      };
+    }
+
+    // 5. Heatmap Matrix
+    if (effectiveType === 'heatmap') {
+      const hours = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'];
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const heatmapData = [];
+      for (let i = 0; i < days.length; i++) {
+        for (let j = 0; j < hours.length; j++) {
+          heatmapData.push([j, i, Math.floor(Math.random() * 80 + 20)]);
+        }
+      }
+      return {
+        tooltip: {
+          position: 'top',
+          formatter: (p: any) => `${days[p.value[1]]} @ ${hours[p.value[0]]}: <strong>${p.value[2]} tx/hr</strong>`,
+          backgroundColor: '#0f172a',
+          textStyle: { color: '#f8fafc' }
+        },
+        grid: { top: 20, bottom: 30, left: 45, right: 15 },
+        xAxis: { type: 'category', data: hours, splitArea: { show: true }, axisLabel: { color: textColor, fontSize: 10 } },
+        yAxis: { type: 'category', data: days, splitArea: { show: true }, axisLabel: { color: textColor, fontSize: 10 } },
+        visualMap: {
+          min: 0,
+          max: 100,
+          calculable: true,
+          orient: 'horizontal',
+          left: 'center',
+          bottom: 0,
+          show: false,
+          inRange: { color: ['#0f172a', '#0284c7', '#38bdf8', '#34d399', '#fbbf24'] }
+        },
+        series: [{ type: 'heatmap', data: heatmapData, label: { show: false } }]
+      };
+    }
+
+    // 6. Scatter & Bubble Chart
+    if (effectiveType === 'scatter_chart' || effectiveType === 'bubble_chart') {
+      const scatterPoints = data?.data || [
+        [35000, 38400, 8, 'KLCC'],
+        [32000, 31200, 6, 'Mid Valley'],
+        [25000, 24500, 5, 'Gurney'],
+        [30000, 28900, 6, 'JB Customs'],
+        [38000, 42100, 10, 'KLIA2'],
+        [22000, 16800, 4, 'Ipoh'],
+        [20000, 19500, 4, 'Kuantan'],
+        [22000, 21400, 5, 'Kuching']
+      ];
+      return {
+        tooltip: {
+          formatter: (p: any) => `${p.value[3]}: Target ${formatValue(p.value[0], 'RM 0,0')} | Sales ${formatValue(p.value[1], 'RM 0,0')}`,
+          backgroundColor: '#0f172a',
+          textStyle: { color: '#f8fafc' }
+        },
+        grid: { top: 30, left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+          type: 'value',
+          name: 'Target (RM)',
+          nameTextStyle: { color: textColor, fontSize: 10 },
+          splitLine: { lineStyle: { color: gridLineColor } },
+          axisLabel: { color: textColor, fontSize: 10, formatter: (v: number) => formatValue(v, 'RM 0.0a') }
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Actual Sales (RM)',
+          nameTextStyle: { color: textColor, fontSize: 10 },
+          splitLine: { lineStyle: { color: gridLineColor } },
+          axisLabel: { color: textColor, fontSize: 10, formatter: (v: number) => formatValue(v, 'RM 0.0a') }
+        },
+        series: [
+          {
+            type: 'scatter',
+            symbolSize: (val: any[]) => Math.max(12, val[2] * 3),
+            data: scatterPoints,
+            itemStyle: { color: '#38bdf8', shadowBlur: 8, shadowColor: 'rgba(56, 189, 248, 0.5)' }
+          }
+        ]
+      };
+    }
+
+    // 7. Funnel Chart
     if (effectiveType === 'funnel') {
-      const funnelData = data?.data || [];
+      const funnelData = data?.data || [
+        { value: 100, name: 'Footfall / Visitors' },
+        { value: 68, name: 'Store Browsers' },
+        { value: 42, name: 'Items in Basket' },
+        { value: 34, name: 'Checkout Complete' }
+      ];
       return {
         tooltip: {
           trigger: 'item',
@@ -134,84 +334,67 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       };
     }
 
-    // 3. Radar Charts
+    // 8. Radar Chart
     if (effectiveType === 'radar') {
-      const indicators = data?.indicators || [];
-      const series = data?.series || [];
+      const indicators = data?.indicators || [
+        { name: 'POS Velocity', max: 100 },
+        { name: 'Basket Size', max: 100 },
+        { name: 'Staff NPS', max: 100 },
+        { name: 'Stock Fill Rate', max: 100 },
+        { name: 'Digital Payment %', max: 100 }
+      ];
+      const series = data?.series || [
+        { value: [92, 84, 96, 88, 79], name: 'Current Outlets' }
+      ];
       return {
-        tooltip: {
-          backgroundColor: '#0f172a',
-          borderColor: '#334155',
-          textStyle: { color: '#f8fafc' }
-        },
+        tooltip: { backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#f8fafc' } },
         radar: {
           indicator: indicators,
           radius: '65%',
           splitNumber: 4,
-          axisName: {
-            color: '#94a3b8',
-            fontSize: 10
-          },
-          splitLine: {
-            lineStyle: { color: gridLineColor }
-          },
-          splitArea: {
-            show: true,
-            areaStyle: {
-              color: ['rgba(30, 41, 59, 0.4)', 'rgba(15, 23, 42, 0.6)']
-            }
-          },
-          axisLine: {
-            lineStyle: { color: gridLineColor }
-          }
+          axisName: { color: '#94a3b8', fontSize: 10 },
+          splitLine: { lineStyle: { color: gridLineColor } },
+          splitArea: { show: true, areaStyle: { color: ['rgba(30, 41, 59, 0.4)', 'rgba(15, 23, 42, 0.6)'] } },
+          axisLine: { lineStyle: { color: gridLineColor } }
         },
         series: [
           {
             type: 'radar',
             data: series,
-            areaStyle: {
-              color: 'rgba(56, 189, 248, 0.25)'
-            },
-            lineStyle: {
-              color: '#38bdf8',
-              width: 2
-            },
-            itemStyle: {
-              color: '#38bdf8'
-            }
+            areaStyle: { color: 'rgba(56, 189, 248, 0.25)' },
+            lineStyle: { color: '#38bdf8', width: 2 },
+            itemStyle: { color: '#38bdf8' }
           }
         ]
       };
     }
 
-    // 4. Default Cartesian charts (Line, Area, Bar, Stacked Bar)
+    // 9. Cartesian Charts (Line, Spline, Bar, Horizontal Bar, Stacked Bar, 100% Stacked, Area, Combo)
     const categories = data?.categories || [];
-    const useDualAxis = !!data?.useDualAxis;
+    const useDualAxis = !!data?.useDualAxis || effectiveType === 'combo_chart';
+    const isHorizontal = effectiveType === 'horizontal_bar';
 
     const seriesList = (data?.series || []).map((s: any, idx: number) => {
       const isArea = effectiveType === 'area_chart';
-      const isBar = effectiveType === 'bar_chart' || effectiveType === 'stacked_bar';
+      const isBar = effectiveType === 'bar_chart' || effectiveType === 'horizontal_bar' || effectiveType === 'stacked_bar' || effectiveType === 'stacked_bar_100' || (effectiveType === 'combo_chart' && idx === 0);
       const color = cyanPalette[idx % cyanPalette.length];
 
       return {
         name: s.name,
         type: isBar ? 'bar' : 'line',
-        yAxisIndex: s.yAxisIndex !== undefined ? s.yAxisIndex : 0,
-        stack: effectiveType === 'stacked_bar' ? 'total' : undefined,
+        yAxisIndex: (s.yAxisIndex !== undefined && !isHorizontal) ? s.yAxisIndex : 0,
+        stack: (effectiveType === 'stacked_bar' || effectiveType === 'stacked_bar_100') ? 'total' : undefined,
         smooth: widget.smooth ?? true,
         data: s.data,
         itemStyle: {
           color: color,
-          borderRadius: isBar ? [4, 4, 0, 0] : 0
+          borderRadius: isBar ? (isHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : 0
         },
         areaStyle: isArea ? {
           opacity: 0.25,
           color: {
             type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
+            x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
               { offset: 0, color: color },
               { offset: 1, color: 'transparent' }
@@ -224,49 +407,29 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
     const primaryAxisName = Array.isArray(widget.y) ? widget.y[0] : (widget.y || 'Sales (RM)');
     const secondaryAxisName = Array.isArray(widget.y) && widget.y[1] ? widget.y[1] : 'Footfall / Count';
 
-    const yAxisConfig = useDualAxis ? [
-      {
-        type: 'value',
-        name: primaryAxisName,
-        nameTextStyle: { color: textColor, fontSize: 10 },
-        splitLine: { lineStyle: { color: gridLineColor } },
-        axisLabel: {
-          color: textColor,
-          fontSize: 11,
-          formatter: (val: number) => formatValue(val, widget.format || 'RM 0.0a')
-        }
-      },
-      {
-        type: 'value',
-        name: secondaryAxisName,
-        nameTextStyle: { color: textColor, fontSize: 10 },
-        splitLine: { show: false },
-        axisLabel: {
-          color: '#818cf8',
-          fontSize: 11,
-          formatter: (val: number) => formatValue(val, '0.0a')
-        }
+    const valueAxisConfig = {
+      type: 'value',
+      name: primaryAxisName,
+      nameTextStyle: { color: textColor, fontSize: 10 },
+      splitLine: { lineStyle: { color: gridLineColor } },
+      axisLabel: {
+        color: textColor,
+        fontSize: 11,
+        formatter: (val: number) => formatValue(val, widget.format || 'RM 0.0a')
       }
-    ] : [
-      {
-        type: 'value',
-        name: primaryAxisName,
-        splitLine: { lineStyle: { color: gridLineColor } },
-        axisLabel: {
-          color: textColor,
-          fontSize: 11,
-          formatter: (val: number) => formatValue(val, widget.format || 'RM 0.0a')
-        }
-      }
-    ];
+    };
+
+    const categoryAxisConfig = {
+      type: 'category',
+      data: categories,
+      axisLine: { lineStyle: { color: gridLineColor } },
+      axisLabel: { color: textColor, fontSize: 11 }
+    };
 
     return {
       tooltip: {
         trigger: 'axis',
-        axisPointer: {
-          type: 'cross',
-          crossStyle: { color: '#64748b' }
-        },
+        axisPointer: { type: 'cross', crossStyle: { color: '#64748b' } },
         backgroundColor: '#0f172a',
         borderColor: '#334155',
         textStyle: { color: '#f8fafc' },
@@ -298,13 +461,21 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         bottom: '3%',
         containLabel: true
       },
-      xAxis: {
-        type: 'category',
-        data: categories,
-        axisLine: { lineStyle: { color: gridLineColor } },
-        axisLabel: { color: textColor, fontSize: 11 }
-      },
-      yAxis: yAxisConfig,
+      xAxis: isHorizontal ? valueAxisConfig : categoryAxisConfig,
+      yAxis: isHorizontal ? categoryAxisConfig : (useDualAxis ? [
+        valueAxisConfig,
+        {
+          type: 'value',
+          name: secondaryAxisName,
+          nameTextStyle: { color: textColor, fontSize: 10 },
+          splitLine: { show: false },
+          axisLabel: {
+            color: '#818cf8',
+            fontSize: 11,
+            formatter: (val: number) => formatValue(val, '0.0a')
+          }
+        }
+      ] : [valueAxisConfig]),
       series: seriesList
     };
   }, [widget, data, effectiveType]);
@@ -321,7 +492,6 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-900/90 rounded-2xl border border-slate-800/80 p-4 relative shadow-xl backdrop-blur-md">
-      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="flex items-center gap-2">
@@ -341,7 +511,6 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
           )}
         </div>
 
-        {/* Chart View Mode Controls */}
         <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
           {widget.type === 'line_chart' && (
             <>
@@ -371,7 +540,6 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         </div>
       </div>
 
-      {/* Chart Canvas */}
       <div className="flex-1 min-h-[220px]">
         <ReactECharts
           option={option}

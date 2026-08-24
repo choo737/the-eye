@@ -15,23 +15,40 @@ const VALID_DATA_SOURCE_TYPES = [
 ];
 
 const VALID_WIDGET_TYPES = [
+  // 1. Tables & Pivots
+  'table',
+  'pivot_table',
+  // 2. Scorecards
   'kpi_card',
+  'scorecard',
+  // 3. Time Series & Cartesian
   'line_chart',
   'bar_chart',
+  'horizontal_bar',
   'stacked_bar',
+  'stacked_bar_100',
   'area_chart',
+  'combo_chart',
+  'waterfall',
+  // 4. Pie & Donut
   'pie_chart',
   'donut_chart',
-  'scatter_chart',
-  'heatmap',
-  'treemap',
-  'sankey',
-  'radar',
-  'funnel',
-  'gauge',
-  'table',
+  // 5. Maps & Geospatial
   'google_map',
-  'geo_map'
+  'geo_map',
+  'bubble_map',
+  // 6. Scatter & Bubble
+  'scatter_chart',
+  'bubble_chart',
+  // 7. Gauges & Performance
+  'gauge',
+  'bullet_chart',
+  'funnel',
+  'radar',
+  // 8. Hierarchical & Flows
+  'treemap',
+  'heatmap',
+  'sankey'
 ];
 
 const VALID_THEMES = [
