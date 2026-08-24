@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Filter, Calendar, Layers, X, Check, ChevronDown } from 'lucide-react';
+import { Filter, Calendar, Layers, X, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { FilterSpec } from '../core/types';
+import { DateRangePicker } from './DateRangePicker';
 
 interface FilterBarProps {
   filters?: FilterSpec[];
@@ -32,23 +33,25 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   const hasActiveFilterOverrides = Object.entries(activeFilters).some(([_, val]) => {
     if (Array.isArray(val)) return val.length > 0 && !val.includes('All Regions') && !val.includes('All Channels') && !val.includes('All Divisions');
+    if (typeof val === 'object' && val !== null) return true;
     return val && val !== '2026-YTD' && !String(val).startsWith('All');
   });
 
   return (
-    <div ref={containerRef} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl backdrop-blur-md space-y-3 relative z-20">
+    <div ref={containerRef} className="bg-slate-900/95 border border-slate-800 rounded-3xl p-4 shadow-2xl backdrop-blur-xl space-y-3 relative z-30">
+      {/* Filter Bar Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-            <Filter className="w-4 h-4 text-cyan-400" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-sm">
+            <Filter className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-100 uppercase tracking-wider">
+              <span className="text-xs font-extrabold text-slate-100 uppercase tracking-wider">
                 Filter & Slice Controls
               </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">
-                Cross-Filtering Active
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold font-mono">
+                Sticky Top Pin Active
               </span>
             </div>
           </div>
@@ -57,36 +60,31 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {hasActiveFilterOverrides && (
           <button
             onClick={onResetFilters}
-            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition"
+            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition shadow-sm"
           >
             <X className="w-3.5 h-3.5" /> Clear All Filters
           </button>
         )}
       </div>
 
+      {/* Filter Inputs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
         {filters.map((filter) => {
           const val = activeFilters[filter.id] ?? filter.default;
 
-          // 1. Date Range Filter
+          // 1. Advanced Dual-Calendar Date Range Filter
           if (filter.type === 'daterange') {
-            const currentVal = typeof val === 'string' ? val : '2026-YTD';
             return (
-              <div key={filter.id} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between gap-1.5">
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+              <div key={filter.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between gap-1.5">
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
                   <Calendar className="w-3.5 h-3.5 text-cyan-400" />
                   <span>{filter.label}</span>
                 </div>
-                <select
-                  value={currentVal}
-                  onChange={(e) => onFilterChange(filter.id, e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300 font-semibold focus:outline-none focus:ring-1 focus:ring-cyan-500 cursor-pointer"
-                >
-                  <option value="2026-YTD">📅 2026 YTD (Full Year)</option>
-                  <option value="last_90_days">📅 Last Quarter (Q2 2026)</option>
-                  <option value="last_30_days">📅 Last 30 Days (Current Month)</option>
-                  <option value="all_time">📅 All-Time Historical</option>
-                </select>
+                <DateRangePicker
+                  value={val}
+                  onChange={(newRange) => onFilterChange(filter.id, typeof newRange === 'object' ? newRange.preset || newRange.startDate : newRange)}
+                  label={filter.label}
+                />
               </div>
             );
           }
@@ -115,14 +113,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             };
 
             return (
-              <div key={filter.id} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between gap-1.5 relative">
-                <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+              <div key={filter.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between gap-1.5 relative">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-semibold">
                   <div className="flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-indigo-400" />
                     <span>{filter.label}</span>
                   </div>
                   {!isAllSelected && (
-                    <span className="text-[10px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-mono font-bold">
+                    <span className="text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-mono font-bold">
                       {selectedList.length} Selected
                     </span>
                   )}
@@ -132,7 +130,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 <button
                   type="button"
                   onClick={() => setOpenDropdownId(isOpen ? null : filter.id)}
-                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 font-semibold flex items-center justify-between transition"
+                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl px-3 py-2 text-xs text-indigo-300 font-semibold flex items-center justify-between transition"
                 >
                   <span className="truncate">
                     {isAllSelected ? 'All Selected (All Clusters)' : selectedList.join(', ')}
@@ -140,22 +138,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Popover Menu */}
                 {isOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 space-y-1 max-h-56 overflow-y-auto">
+                  <div className="absolute top-full left-0 mt-2 w-full bg-slate-950 border border-slate-800 rounded-2xl p-2 shadow-2xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-800/60 animate-in fade-in duration-150">
                     {options.map((opt) => {
-                      const optStr = String(opt.value);
-                      const isChecked = selectedList.includes(optStr) || (isAllSelected && optStr.startsWith('All'));
+                      const isChecked = selectedList.includes(String(opt.value));
                       return (
                         <div
-                          key={optStr}
-                          onClick={() => handleToggleOption(optStr)}
-                          className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
-                            isChecked ? 'bg-cyan-500/10 text-cyan-300 font-bold' : 'text-slate-300 hover:bg-slate-800'
-                          }`}
+                          key={String(opt.value)}
+                          onClick={() => handleToggleOption(String(opt.value))}
+                          className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-900 cursor-pointer text-xs transition"
                         >
-                          <span>{opt.label}</span>
-                          {isChecked && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                          <span className={isChecked ? 'text-white font-bold' : 'text-slate-400'}>
+                            {opt.label}
+                          </span>
+                          <div className={`w-4 h-4 rounded-md border flex items-center justify-center ${isChecked ? 'bg-cyan-500 border-cyan-500 text-slate-950' : 'border-slate-700 bg-slate-900'}`}>
+                            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
                         </div>
                       );
                     })}
@@ -165,33 +164,26 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             );
           }
 
-          // 3. Single-Select Filter
-          if (filter.type === 'single_select') {
-            const options = filter.options || [];
-            const currentVal = typeof val === 'string' ? val : (options[0]?.value || '');
-
-            return (
-              <div key={filter.id} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between gap-1.5">
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{filter.label}</span>
-                </div>
-                <select
-                  value={String(currentVal)}
-                  onChange={(e) => onFilterChange(filter.id, e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-                >
-                  {options.map((opt) => (
-                    <option key={String(opt.value)} value={String(opt.value)} className="bg-slate-900 text-slate-200">
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+          // 3. Single-Select Dropdown
+          return (
+            <div key={filter.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between gap-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+                <Filter className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{filter.label}</span>
               </div>
-            );
-          }
-
-          return null;
+              <select
+                value={val || ''}
+                onChange={(e) => onFilterChange(filter.id, e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-emerald-300 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+              >
+                {(filter.options || []).map((opt) => (
+                  <option key={String(opt.value)} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          );
         })}
       </div>
     </div>

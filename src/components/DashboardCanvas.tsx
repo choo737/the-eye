@@ -72,9 +72,9 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
           )}
         </div>
 
-        {/* Dynamic Filters Bar */}
+        {/* Sticky Filter Bar (Pinned at top during scroll) */}
         {spec.filters && spec.filters.length > 0 && (
-          <div className="mb-6">
+          <div className="sticky top-0 z-40 mb-6 py-2 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/60 shadow-2xl transition-all">
             <FilterBar
               filters={spec.filters}
               activeFilters={activeFilters}
