@@ -1,3 +1,4 @@
+import { formatValue } from '../utils/formatters';
 import React, { useState } from 'react';
 import { WidgetSpec } from '../core/types';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';

@@ -1,3 +1,4 @@
+import { formatValue } from '../utils/formatters';
 import React, { useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { WidgetSpec } from '../core/types';

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { WidgetSpec, ColorScaleSpec } from '../core/types';
+import { formatValue } from '../utils/formatters';
 import { 
   MapPin, Store, DollarSign, User, ShieldCheck, 
   Globe, Satellite, Target, Plus, Minus, Compass, 
-  TrendingUp, PieChart, X, Sparkles, Layers, CheckCircle2, ChevronRight 
+  TrendingUp, PieChart, X, Sparkles, Layers 
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 
@@ -18,7 +21,12 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   data,
   onFilterChange
 }) => {
-  // All Master 7-Eleven Store Branches across Malaysia
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+
+  // Master 7-Eleven Store Branches across Malaysia with accurate coordinates
   const allMasterStores = [
     { id: '7E-1082', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: 38400, target: 35000, manager: 'Ahmad Zaki', nps: 96, pos_count: 8 },
     { id: '7E-2041', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: 31200, target: 32000, manager: 'Michelle Tan', nps: 88, pos_count: 6 },
@@ -36,10 +44,9 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     };
   });
 
-  // Requirement 1: Sub-widget is HIDDEN by default until user clicks a store!
+  // Sub-widget starts HIDDEN until user clicks a store pin!
   const [selectedPin, setSelectedPin] = useState<any | null>(null);
-  const [mapType, setMapType] = useState<'roadmap' | 'satellite' | 'terrain'>('roadmap');
-  const [zoomLevel, setZoomLevel] = useState<number>(6);
+  const [mapStyle, setMapStyle] = useState<'google_streets' | 'google_satellite' | 'google_terrain'>('google_streets');
 
   // Extract declarative color scale from YAML configuration
   const colorScale: ColorScaleSpec = widget.map_config?.color_scale || {
@@ -51,35 +58,158 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     max_color: '#22c55e'
   };
 
-  const getAttainmentColor = (pct: number = 100): { color: string; label: string; badgeBg: string } => {
+  const getAttainmentColor = (pct: number = 100): { color: string; label: string } => {
     if (pct >= 100) {
-      return { color: colorScale.max_color || '#22c55e', label: 'On Track (≥100%)', badgeBg: 'bg-emerald-500 text-slate-950' };
+      return { color: colorScale.max_color || '#22c55e', label: 'On Track (≥100%)' };
     } else if (pct >= 90) {
-      return { color: colorScale.mid_color || '#eab308', label: 'Near Target (90-99%)', badgeBg: 'bg-amber-400 text-slate-950' };
+      return { color: colorScale.mid_color || '#eab308', label: 'Near Target (90-99%)' };
     } else {
-      return { color: colorScale.min_color || '#ef4444', label: 'At Risk (<90%)', badgeBg: 'bg-rose-500 text-white' };
+      return { color: colorScale.min_color || '#ef4444', label: 'At Risk (<90%)' };
     }
   };
 
-  // Precise Geographic Coordinate Projection calibrated to Google Maps Malaysia Viewport
-  // Malaysia Bounding Box: Lat [1.0°N, 7.5°N], Lng [99.5°E, 119.5°E]
-  const minLat = 0.8;
-  const maxLat = 7.4;
-  const minLng = 99.0;
-  const maxLng = 119.5;
+  // Official Google Maps Tile Providers
+  const GOOGLE_MAP_TILES = {
+    google_streets: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    google_satellite: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', // Satellite Hybrid with Road Names
+    google_terrain: 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}'
+  };
 
-  const projectToPercent = (lat: number, lng: number) => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * 82 + 9;
-    const y = ((maxLat - lat) / (maxLat - minLat)) * 74 + 13;
-    return {
-      x: Math.max(6, Math.min(94, x)),
-      y: Math.max(10, Math.min(90, y))
+  // 1. Initialize Leaflet with Real Google Maps Tiles
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    try {
+      if ((mapContainerRef.current as any)._leaflet_id) {
+        (mapContainerRef.current as any)._leaflet_id = null;
+      }
+
+      if (!mapInstanceRef.current) {
+        const map = L.map(mapContainerRef.current, {
+          center: [4.2105, 108.9758], // Malaysia center (Peninsular & Borneo)
+          zoom: 6,
+          zoomControl: false, // Custom styled zoom controls
+          scrollWheelZoom: true
+        });
+
+        const tileLayer = L.tileLayer(GOOGLE_MAP_TILES[mapStyle], {
+          maxZoom: 19,
+          attribution: '© Google Maps'
+        }).addTo(map);
+
+        const markersGroup = L.layerGroup().addTo(map);
+
+        mapInstanceRef.current = map;
+        tileLayerRef.current = tileLayer;
+        markersLayerRef.current = markersGroup;
+      }
+    } catch (err) {
+      console.warn('Map init:', err);
+    }
+
+    return () => {
+      try {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
+        if (mapContainerRef.current) {
+          (mapContainerRef.current as any)._leaflet_id = null;
+        }
+      } catch (err) {}
     };
-  };
+  }, []);
 
-  const handlePinClick = (pin: any) => {
-    setSelectedPin(pin);
-  };
+  // 2. Switch Google Map Tile Layer
+  useEffect(() => {
+    if (mapInstanceRef.current && tileLayerRef.current) {
+      tileLayerRef.current.setUrl(GOOGLE_MAP_TILES[mapStyle]);
+    }
+  }, [mapStyle]);
+
+  // 3. Render Authentic Google Maps Teardrop Needles Pointing Exactly at GPS Ground Location
+  useEffect(() => {
+    if (!mapInstanceRef.current || !markersLayerRef.current) return;
+
+    try {
+      markersLayerRef.current.clearLayers();
+
+      allMasterStores.forEach((pin) => {
+        const isSelected = selectedPin?.id === pin.id;
+        const attainmentPct = pin.target_achievement_pct ?? 100;
+        const { color } = getAttainmentColor(attainmentPct);
+
+        // Authentic Google Maps Teardrop Pointer with Needle Tip pointing directly to ground coordinates
+        const markerHtml = `
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transform: translate(0, 0);">
+            <!-- Teardrop Map Pin Card -->
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              background: #0f172a;
+              color: white;
+              padding: 4px 10px;
+              border-radius: 12px;
+              border: 2px solid ${isSelected ? '#38bdf8' : color};
+              box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px ${color}80;
+              font-family: ui-sans-serif, system-ui, sans-serif;
+              white-space: nowrap;
+            ">
+              <span style="
+                background: ${color};
+                color: #020617;
+                font-size: 11px;
+                font-weight: 900;
+                padding: 2px 6px;
+                border-radius: 6px;
+              ">${attainmentPct}%</span>
+              <span style="font-size: 11px; font-weight: 800; color: #f8fafc; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
+                ${pin.name}
+              </span>
+            </div>
+
+            <!-- Downward Pointing Teardrop Needle Tip -->
+            <div style="
+              width: 0;
+              height: 0;
+              border-left: 7px solid transparent;
+              border-right: 7px solid transparent;
+              border-top: 9px solid ${isSelected ? '#38bdf8' : color};
+              margin-top: -1px;
+              filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+            "></div>
+
+            <!-- Ground Contact Dot -->
+            <div style="
+              width: 5px;
+              height: 5px;
+              background: ${color};
+              border-radius: 50%;
+              margin-top: -2px;
+            "></div>
+          </div>
+        `;
+
+        const customIcon = L.divIcon({
+          html: markerHtml,
+          className: 'custom-teardrop-pin',
+          iconSize: [180, 42],
+          iconAnchor: [90, 42] // Precise anchor at the bottom needle tip!
+        });
+
+        const marker = L.marker([pin.lat, pin.lng], { icon: customIcon });
+
+        marker.on('click', () => {
+          setSelectedPin(pin);
+        });
+
+        markersLayerRef.current?.addLayer(marker);
+      });
+    } catch (err) {
+      console.warn('Marker render notice:', err);
+    }
+  }, [selectedPin, mapStyle, colorScale]);
 
   const handleCloseDrilldown = () => {
     setSelectedPin(null);
@@ -94,7 +224,21 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
     return {
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any[]) => {
+          let res = `<div style="font-weight: bold; margin-bottom: 4px;">Time: ${params[0].name}</div>`;
+          params.forEach(p => {
+            const isSales = p.seriesName.includes('Sales');
+            const val = isSales ? formatValue(p.value, '$0,0') : formatValue(p.value, '0,0');
+            res += `<div style="display: flex; justify-content: space-between; gap: 12px;">
+              <span>${p.marker} ${p.seriesName}</span>
+              <strong>${val}</strong>
+            </div>`;
+          });
+          return res;
+        }
+      },
       legend: { textStyle: { color: '#94a3b8', fontSize: 11 }, top: 0 },
       grid: { top: 35, left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: {
@@ -109,14 +253,22 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           name: 'Sales ($)',
           nameTextStyle: { color: '#94a3b8', fontSize: 10 },
           splitLine: { lineStyle: { color: '#1e293b' } },
-          axisLabel: { color: '#94a3b8', fontSize: 10, formatter: '${value}' }
+          axisLabel: { 
+            color: '#94a3b8', 
+            fontSize: 10, 
+            formatter: (v: number) => formatValue(v, '$0,0') 
+          }
         },
         {
           type: 'value',
           name: 'POS Tx',
           nameTextStyle: { color: '#94a3b8', fontSize: 10 },
           splitLine: { show: false },
-          axisLabel: { color: '#94a3b8', fontSize: 10 }
+          axisLabel: { 
+            color: '#94a3b8', 
+            fontSize: 10,
+            formatter: (v: number) => formatValue(v, '0,0')
+          }
         }
       ],
       series: [
@@ -153,7 +305,10 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   const getCategoryChartOption = () => {
     return {
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'item', formatter: '{b}: ${c} ({d}%)' },
+      tooltip: { 
+        trigger: 'item', 
+        formatter: (p: any) => `${p.name}: <strong>${formatValue(p.value, '$0,0')}</strong> (${p.percent}%)` 
+      },
       legend: { show: false },
       series: [
         {
@@ -177,7 +332,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
   return (
     <div className="flex flex-col w-full bg-slate-900/90 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
-      {/* 1. Header Bar with Layer Switcher */}
+      {/* 1. Header Bar with Real Google Maps Layer Switcher */}
       <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between shrink-0">
         <div>
           <div className="flex items-center gap-2.5">
@@ -201,25 +356,25 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         {/* Real Live Map Layer Switcher */}
         <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs">
           <button
-            onClick={() => setMapType('roadmap')}
+            onClick={() => setMapStyle('google_streets')}
             className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition ${
-              mapType === 'roadmap' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
+              mapStyle === 'google_streets' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
             }`}
           >
             <Globe className="w-3.5 h-3.5" /> Google Roadmap
           </button>
           <button
-            onClick={() => setMapType('satellite')}
+            onClick={() => setMapStyle('google_satellite')}
             className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition ${
-              mapType === 'satellite' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
+              mapStyle === 'google_satellite' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
             }`}
           >
             <Satellite className="w-3.5 h-3.5" /> Google Satellite
           </button>
           <button
-            onClick={() => setMapType('terrain')}
+            onClick={() => setMapStyle('google_terrain')}
             className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition ${
-              mapType === 'terrain' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
+              mapStyle === 'google_terrain' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
             }`}
           >
             <Layers className="w-3.5 h-3.5" /> Google Terrain
@@ -227,77 +382,14 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         </div>
       </div>
 
-      {/* 2. Real Google Maps Viewport with Actual Map Cartography & Labels */}
-      <div className="h-[480px] relative overflow-hidden bg-[#70b5c4] select-none">
-        {/* Actual Google Maps Live Interactive Map Iframe Embed */}
-        <iframe
-          key={mapType}
-          title="Google Maps Malaysia"
-          width="100%"
-          height="100%"
-          style={{ border: 0, filter: mapType === 'satellite' ? 'none' : 'contrast(1.05)' }}
-          loading="lazy"
-          allowFullScreen
-          src={`https://maps.google.com/maps?q=Malaysia&t=${mapType === 'satellite' ? 'k' : mapType === 'terrain' ? 'p' : 'm'}&z=${zoomLevel}&ie=UTF8&iwloc=&output=embed`}
-          className="absolute inset-0 w-full h-full pointer-events-auto"
-        />
+      {/* 2. Real Interactive Google Maps Viewport with Synchronized Teardrop Pins */}
+      <div className="h-[480px] relative w-full bg-slate-950">
+        <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-10" />
 
-        {/* Transparent Interactive Overlay for Dynamic 7-Eleven Store Pins */}
-        <div className="absolute inset-0 pointer-events-none">
-          {allMasterStores.map((pin) => {
-            const isSelected = selectedPin?.id === pin.id;
-            const attainmentPct = pin.target_achievement_pct ?? 100;
-            const { color } = getAttainmentColor(attainmentPct);
-            const { x, y } = projectToPercent(pin.lat, pin.lng);
-
-            return (
-              <div
-                key={pin.id}
-                onClick={() => handlePinClick(pin)}
-                style={{ left: `${x}%`, top: `${y}%` }}
-                className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto transition-all duration-300 transform ${
-                  isSelected ? 'scale-125 z-40' : 'hover:scale-115 z-20'
-                }`}
-              >
-                {/* Dynamic Glowing Aura */}
-                <div
-                  className="absolute -inset-4 rounded-full blur-md animate-pulse pointer-events-none"
-                  style={{ backgroundColor: `${color}70` }}
-                ></div>
-
-                {/* Google Maps Store Pin Pill */}
-                <div 
-                  className={`px-3 py-1.5 rounded-2xl border flex items-center gap-2 shadow-2xl backdrop-blur-md transition ${
-                    isSelected
-                      ? 'bg-slate-950 text-white ring-4 ring-cyan-400 shadow-cyan-500/50'
-                      : 'bg-slate-950/95 text-slate-100 hover:bg-slate-900 border-slate-700'
-                  }`}
-                  style={{ borderColor: isSelected ? '#38bdf8' : color }}
-                >
-                  {/* Attainment Badge */}
-                  <span 
-                    className="px-2 py-0.5 rounded-lg font-mono text-[11px] font-black text-slate-950 shadow-sm"
-                    style={{ backgroundColor: color }}
-                  >
-                    {attainmentPct}%
-                  </span>
-
-                  <div className="text-left">
-                    <div className="text-xs font-black leading-tight truncate max-w-[140px] text-slate-100">{pin.name}</div>
-                    <div className="text-[10px] text-slate-400 font-semibold">
-                      ${(pin.sales || 0).toLocaleString()} / day
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Google Maps Navigation Controls (Top Right) */}
-        <div className="absolute top-4 right-4 flex flex-col gap-1 z-30 bg-slate-950/90 p-1 rounded-xl border border-slate-800 shadow-xl backdrop-blur-md pointer-events-auto">
+        {/* Custom Zoom Controls (Top Right) */}
+        <div className="absolute top-4 right-4 flex flex-col gap-1 z-20 bg-slate-950/90 p-1 rounded-xl border border-slate-800 shadow-xl backdrop-blur-md">
           <button
-            onClick={() => setZoomLevel(prev => Math.min(10, prev + 1))}
+            onClick={() => mapInstanceRef.current?.zoomIn()}
             className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition"
             title="Zoom In"
           >
@@ -305,16 +397,24 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           </button>
           <div className="h-px bg-slate-800 w-full"></div>
           <button
-            onClick={() => setZoomLevel(prev => Math.max(4, prev - 1))}
+            onClick={() => mapInstanceRef.current?.zoomOut()}
             className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition"
             title="Zoom Out"
           >
             <Minus className="w-4 h-4" />
           </button>
+          <div className="h-px bg-slate-800 w-full"></div>
+          <button
+            onClick={() => mapInstanceRef.current?.setView([4.2105, 108.9758], 6)}
+            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition"
+            title="Reset to Malaysia View"
+          >
+            <Compass className="w-4 h-4 text-cyan-400" />
+          </button>
         </div>
 
-        {/* Declarative Target Attainment Legend Bar (Bottom Right) */}
-        <div className="absolute bottom-4 right-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-md z-30 flex flex-col gap-1.5 text-[11px] pointer-events-auto">
+        {/* Target Attainment Legend Bar (Bottom Right) */}
+        <div className="absolute bottom-4 right-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-md z-20 flex flex-col gap-1.5 text-[11px] pointer-events-auto">
           <div className="flex items-center justify-between text-slate-300 font-bold gap-4">
             <span className="flex items-center gap-1.5">
               <Target className="w-3.5 h-3.5 text-cyan-400" /> Revenue Attainment Status
@@ -335,11 +435,11 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           </div>
         </div>
 
-        {/* Prompt Banner when no store is clicked */}
+        {/* Prompt Pill when no store is selected */}
         {!selectedPin && (
-          <div className="absolute bottom-4 left-4 bg-slate-950/90 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-xl z-30 flex items-center gap-2.5 text-xs text-slate-300 pointer-events-auto animate-in fade-in">
+          <div className="absolute bottom-4 left-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-xl z-20 flex items-center gap-2.5 text-xs text-slate-300 pointer-events-auto animate-in fade-in">
             <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span>Click any store pin on the map to dive into detailed hourly & category performance.</span>
+            <span>Click any teardrop store pin on the map to dive into detailed hourly & category performance.</span>
           </div>
         )}
       </div>
@@ -374,7 +474,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                 {allMasterStores.map(st => (
                   <button
                     key={st.id}
-                    onClick={() => handlePinClick(st)}
+                    onClick={() => setSelectedPin(st)}
                     className={`px-2.5 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                       selectedPin?.id === st.id
                         ? 'bg-cyan-500 text-slate-950 shadow-md'
@@ -400,13 +500,13 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily POS Revenue</span>
-              <span className="text-xl font-black text-white mt-0.5 block">${selectedPin.sales.toLocaleString()}</span>
+              <span className="text-xl font-black text-white mt-0.5 block">{formatValue(selectedPin.sales, '$0,0')}</span>
               <span className="text-[10px] text-emerald-400 font-semibold mt-0.5 block">+12.4% vs last week</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">GSheet Budget Target</span>
-              <span className="text-xl font-black text-cyan-300 mt-0.5 block">${selectedPin.target.toLocaleString()}</span>
+              <span className="text-xl font-black text-cyan-300 mt-0.5 block">{formatValue(selectedPin.target, '$0,0')}</span>
               <span className="text-[10px] font-semibold mt-0.5 block" style={{ color: getAttainmentColor(selectedPin.target_achievement_pct).color }}>
                 {selectedPin.target_achievement_pct}% Attainment
               </span>
