@@ -5,17 +5,22 @@ import { DashboardCanvas } from './components/DashboardCanvas';
 import { CopilotDrawer } from './components/CopilotDrawer';
 import { DataSourceModal } from './components/DataSourceModal';
 import { ExportModal } from './components/ExportModal';
+import { AdminPanelModal } from './components/AdminPanelModal';
 import { SAMPLE_DASHBOARDS } from './core/sampleDashboards';
 import { parseDashboardYaml, stringifyDashboardSpec } from './core/parser';
 import { DashboardTheme } from './core/types';
+import { UserRole } from './core/authTypes';
 
 export function App() {
   const [currentDashboardKey, setCurrentDashboardKey] = useState<string>('seven-eleven-bq');
   const [yamlCode, setYamlCode] = useState<string>(SAMPLE_DASHBOARDS['seven-eleven-bq'].yaml);
+  const [viewMode, setViewMode] = useState<'viewer' | 'editor'>('viewer');
+  const [userRole, setUserRole] = useState<UserRole>('owner');
   const [showEditor, setShowEditor] = useState<boolean>(true);
   const [showCopilot, setShowCopilot] = useState<boolean>(false);
   const [showDataSources, setShowDataSources] = useState<boolean>(false);
   const [showExport, setShowExport] = useState<boolean>(false);
+  const [showAdmin, setShowAdmin] = useState<boolean>(false);
   const [theme, setTheme] = useState<DashboardTheme>('emerald-slate');
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
@@ -49,18 +54,25 @@ export function App() {
     setYamlCode(newYaml);
   };
 
+  const canEdit = userRole === 'owner' || userRole === 'editor';
+
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
       <Header
         spec={parseResult.spec}
         currentDashboardKey={currentDashboardKey}
         onSelectDashboard={handleSelectDashboard}
+        viewMode={viewMode}
+        onToggleViewMode={setViewMode}
         showEditor={showEditor}
         onToggleEditor={() => setShowEditor(!showEditor)}
         showCopilot={showCopilot}
         onToggleCopilot={() => setShowCopilot(!showCopilot)}
         onOpenDataSources={() => setShowDataSources(true)}
         onOpenExport={() => setShowExport(true)}
+        onOpenAdmin={() => setShowAdmin(true)}
+        userRole={userRole}
+        onChangeUserRole={setUserRole}
         validation={parseResult.validation}
         theme={theme}
         onChangeTheme={setTheme}
@@ -70,7 +82,8 @@ export function App() {
       />
 
       <div className="flex-1 flex overflow-hidden relative">
-        {showEditor && (
+        {/* Monaco YAML Editor (Only in Editor Mode for Authorized Roles) */}
+        {viewMode === 'editor' && canEdit && showEditor && (
           <YamlEditor
             yamlCode={yamlCode}
             onChange={setYamlCode}
@@ -83,6 +96,7 @@ export function App() {
           />
         )}
 
+        {/* Dashboard Canvas (Available to Viewers, Editors, and Owners) */}
         {parseResult.spec ? (
           <DashboardCanvas
             spec={parseResult.spec}
@@ -100,7 +114,8 @@ export function App() {
           </div>
         )}
 
-        {showCopilot && (
+        {/* AI Copilot Drawer (Only in Editor Mode) */}
+        {viewMode === 'editor' && canEdit && showCopilot && (
           <CopilotDrawer
             spec={parseResult.spec}
             onApplySpecYaml={handleApplySpecYaml}
@@ -109,6 +124,7 @@ export function App() {
         )}
       </div>
 
+      {/* Modals */}
       {showDataSources && (
         <DataSourceModal
           sources={parseResult.spec?.data_sources || []}
@@ -121,6 +137,13 @@ export function App() {
           spec={parseResult.spec}
           activeFilters={activeFilters}
           onClose={() => setShowExport(false)}
+        />
+      )}
+
+      {showAdmin && (
+        <AdminPanelModal
+          onClose={() => setShowAdmin(false)}
+          currentUserRole={userRole}
         />
       )}
     </div>
