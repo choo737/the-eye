@@ -291,25 +291,35 @@ export function transformGenericTabularData(
 
     const storeMap = new Map<string, any>();
     filteredRows.forEach(r => {
-      const id = String(r['store_id'] || r['id'] || r[nameCol]);
+      const id = String(r['branch_code'] || r['store_id'] || r['id'] || r[nameCol]);
+      const name = String(r[nameCol] || r['branch_name'] || r['store_name'] || id);
+      const region = String(r['region'] || r['region_cluster'] || r['state'] || 'Malaysia');
+      const manager = String(r['branch_manager'] || r['store_manager'] || r['manager'] || 'Branch Manager');
+      const nps = Number(r['customer_nps'] || r['nps_score'] || r['nps'] || 88);
+      const pos_count = Number(r['atm_count'] || r['pos_terminal_count'] || r['pos_count'] || 6);
+      const target = Number(r[targetCol] || r['deposit_target_myr'] || r['monthly_budget_target'] || r['target'] || 0);
+
       if (!storeMap.has(id)) {
         storeMap.set(id, {
           id,
           store_id: id,
-          name: String(r[nameCol] || id),
-          store_name: String(r[nameCol] || id),
+          branch_code: id,
+          name,
+          store_name: name,
+          branch_name: name,
           lat: Number(r[latCol] || r['lat'] || 3.14),
           lng: Number(r[lngCol] || r['lng'] || 101.69),
-          region: String(r['region_cluster'] || r['region'] || 'Central'),
+          region,
+          state: String(r['state'] || region),
           sales: 0,
-          target: Number(r[targetCol] || r['target'] || 30000),
-          manager: String(r['store_manager'] || r['manager'] || 'Store Lead'),
-          nps: Number(r['nps_score'] || r['nps'] || 85),
-          pos_count: Number(r['pos_terminal_count'] || r['pos_count'] || 6)
+          target,
+          manager,
+          nps,
+          pos_count
         });
       }
       const entry = storeMap.get(id);
-      entry.sales += Number(r[valCol] || r['sales'] || 0);
+      entry.sales += Number(r[valCol] || r['transaction_volume_myr'] || r['gross_revenue_myr'] || r['sales'] || 0);
     });
 
     const mapPoints = Array.from(storeMap.values()).map(p => {
@@ -344,14 +354,14 @@ export function transformGenericTabularData(
 }
 
 export const DEFAULT_CIMB_DATASET: TabularRow[] = [
-  { branch_code: 'CIMB-0101', branch_name: 'CIMB Menara KL Sentral Main', region: 'Central Region', state: 'Kuala Lumpur', latitude: 3.1343, longitude: 101.6865, banking_product: 'Consumer CASA Deposits', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 12100000000, fee_income_myr: 36510000, deposit_target_myr: 15000000000, branch_manager: 'Datuk Faridah Rahman', customer_nps: 94, atm_count: 12 },
-  { branch_code: 'CIMB-0102', branch_name: 'CIMB Jalan Raja Chulan Financial Hub', region: 'Central Region', state: 'Kuala Lumpur', latitude: 3.1498, longitude: 101.7088, banking_product: 'Mortgages & Home Loans', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 12070000000, fee_income_myr: 36570000, deposit_target_myr: 12000000000, branch_manager: 'Tan Sri Lawrence Lim', customer_nps: 91, atm_count: 8 },
-  { branch_code: 'CIMB-0201', branch_name: 'CIMB Gurney Drive Premier Branch', region: 'Northern Region', state: 'Penang', latitude: 5.4398, longitude: 100.3090, banking_product: 'Wealth & Unit Trusts', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 12080000000, fee_income_myr: 36520000, deposit_target_myr: 8500000000, branch_manager: 'Dr. Raj Kumar', customer_nps: 89, atm_count: 6 },
-  { branch_code: 'CIMB-0301', branch_name: 'CIMB Johor Bahru City Centre Gateway', region: 'Southern Region', state: 'Johor', latitude: 1.4655, longitude: 103.7618, banking_product: 'SME & Commercial Loans', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 12080000000, fee_income_myr: 36540000, deposit_target_myr: 9500000000, branch_manager: 'Grace Goh Bee Lian', customer_nps: 88, atm_count: 8 },
-  { branch_code: 'CIMB-0401', branch_name: 'CIMB Kuantan Coastal Main Branch', region: 'East Coast', state: 'Pahang', latitude: 3.8077, longitude: 103.3260, banking_product: 'Consumer CASA Deposits', transaction_channel: 'ATM & Cash Deposit Machine', transaction_volume_myr: 12080000000, fee_income_myr: 36500000, deposit_target_myr: 6000000000, branch_manager: 'Haji Shahrul Azman', customer_nps: 82, atm_count: 5 },
-  { branch_code: 'CIMB-0501', branch_name: 'CIMB Kuching Waterfront Premier Center', region: 'East Malaysia', state: 'Sarawak', latitude: 1.5595, longitude: 103.3422, banking_product: 'Auto Financing & Hire Purchase', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 12070000000, fee_income_myr: 36580000, deposit_target_myr: 7000000000, branch_manager: 'Jonathan Ting Choon', customer_nps: 86, atm_count: 6 },
-  { branch_code: 'CIMB-0502', branch_name: 'CIMB Kota Kinabalu Financial Center', region: 'East Malaysia', state: 'Sabah', latitude: 5.9804, longitude: 116.0735, banking_product: 'SME & Commercial Loans', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 12080000000, fee_income_myr: 36540000, deposit_target_myr: 6500000000, branch_manager: 'Dayang Nurul Hidayah', customer_nps: 85, atm_count: 6 },
-  { branch_code: 'CIMB-0103', branch_name: 'CIMB Damansara Uptown Commercial Hub', region: 'Central Region', state: 'Selangor', latitude: 3.1366, longitude: 101.6225, banking_product: 'Consumer CASA Deposits', transaction_channel: 'CIMB Clicks & Digital Hub', transaction_volume_myr: 12070000000, fee_income_myr: 36540000, deposit_target_myr: 11000000000, branch_manager: 'Michael Chong Wai Keat', customer_nps: 92, atm_count: 7 }
+  { branch_code: 'CIMB-0101', branch_name: 'CIMB Menara KL Sentral Main', region: 'Central Region', state: 'Kuala Lumpur', latitude: 3.1343, longitude: 101.6865, banking_product: 'Consumer CASA Deposits', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 29560000000, fee_income_myr: 85310000, deposit_target_myr: 32000000000, branch_manager: 'Datuk Faridah Rahman', customer_nps: 94, atm_count: 12 },
+  { branch_code: 'CIMB-0102', branch_name: 'CIMB Jalan Raja Chulan Financial Hub', region: 'Central Region', state: 'Kuala Lumpur', latitude: 3.1498, longitude: 101.7088, banking_product: 'Mortgages & Home Loans', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 22330000000, fee_income_myr: 64370000, deposit_target_myr: 24000000000, branch_manager: 'Tan Sri Lawrence Lim', customer_nps: 91, atm_count: 8 },
+  { branch_code: 'CIMB-0103', branch_name: 'CIMB Damansara Uptown Commercial Hub', region: 'Central Region', state: 'Selangor', latitude: 3.1366, longitude: 101.6225, banking_product: 'Consumer CASA Deposits', transaction_channel: 'CIMB Clicks & Digital Hub', transaction_volume_myr: 16910000000, fee_income_myr: 48730000, deposit_target_myr: 18000000000, branch_manager: 'Michael Chong Wai Keat', customer_nps: 92, atm_count: 7 },
+  { branch_code: 'CIMB-0301', branch_name: 'CIMB Johor Bahru City Centre Gateway', region: 'Southern Region', state: 'Johor', latitude: 1.4655, longitude: 103.7618, banking_product: 'SME & Commercial Loans', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 15110000000, fee_income_myr: 43490000, deposit_target_myr: 16000000000, branch_manager: 'Grace Goh Bee Lian', customer_nps: 88, atm_count: 8 },
+  { branch_code: 'CIMB-0201', branch_name: 'CIMB Gurney Drive Premier Branch', region: 'Northern Region', state: 'Penang', latitude: 5.4398, longitude: 100.3090, banking_product: 'Wealth & Unit Trusts', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 13890000000, fee_income_myr: 40020000, deposit_target_myr: 15000000000, branch_manager: 'Dr. Raj Kumar', customer_nps: 89, atm_count: 6 },
+  { branch_code: 'CIMB-0501', branch_name: 'CIMB Kuching Waterfront Premier Center', region: 'East Malaysia', state: 'Sarawak', latitude: 1.5595, longitude: 103.3422, banking_product: 'Auto Financing & Hire Purchase', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 10260000000, fee_income_myr: 29570000, deposit_target_myr: 11000000000, branch_manager: 'Jonathan Ting Choon', customer_nps: 86, atm_count: 6 },
+  { branch_code: 'CIMB-0502', branch_name: 'CIMB Kota Kinabalu Financial Center', region: 'East Malaysia', state: 'Sabah', latitude: 5.9804, longitude: 116.0735, banking_product: 'SME & Commercial Loans', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 9060000000, fee_income_myr: 26110000, deposit_target_myr: 10000000000, branch_manager: 'Dayang Nurul Hidayah', customer_nps: 85, atm_count: 6 },
+  { branch_code: 'CIMB-0401', branch_name: 'CIMB Kuantan Coastal Main Branch', region: 'East Coast', state: 'Pahang', latitude: 3.8077, longitude: 103.3260, banking_product: 'Consumer CASA Deposits', transaction_channel: 'ATM & Cash Deposit Machine', transaction_volume_myr: 5430000000, fee_income_myr: 15660000, deposit_target_myr: 6000000000, branch_manager: 'Haji Shahrul Azman', customer_nps: 82, atm_count: 5 }
 ];
 
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
