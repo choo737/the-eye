@@ -1,3 +1,36 @@
+export const DEFAULT_SAAS_DATASET: TabularRow[] = [
+  { event_id: 'EVT-001', customer_id: 'CUST-101', company_name: 'Acme FinTech Corp', plan_tier: 'Enterprise Plus', region: 'North America', mrr_usd: 24500, arr_usd: 294000, usage_api_calls: 4800000, churn_risk_pct: 1.2, status: 'Active' },
+  { event_id: 'EVT-002', customer_id: 'CUST-102', company_name: 'Stripe Cloud Systems', plan_tier: 'Enterprise Plus', region: 'EMEA', mrr_usd: 18900, arr_usd: 226800, usage_api_calls: 3900000, churn_risk_pct: 2.4, status: 'Active' },
+  { event_id: 'EVT-003', customer_id: 'CUST-103', company_name: 'Grab Holdings Tech', plan_tier: 'Scale Team', region: 'APAC', mrr_usd: 8500, arr_usd: 102000, usage_api_calls: 1500000, churn_risk_pct: 4.8, status: 'Active' },
+  { event_id: 'EVT-004', customer_id: 'CUST-104', company_name: 'Tokopedia Commerce', plan_tier: 'Scale Team', region: 'APAC', mrr_usd: 7800, arr_usd: 93600, usage_api_calls: 1250000, churn_risk_pct: 3.1, status: 'Active' },
+  { event_id: 'EVT-005', customer_id: 'CUST-105', company_name: 'Shopify Merchant Labs', plan_tier: 'Growth Pro', region: 'North America', mrr_usd: 3400, arr_usd: 40800, usage_api_calls: 620000, churn_risk_pct: 6.5, status: 'Active' },
+  { event_id: 'EVT-006', customer_id: 'CUST-106', company_name: 'Zendesk Services', plan_tier: 'Growth Pro', region: 'EMEA', mrr_usd: 2900, arr_usd: 34800, usage_api_calls: 480000, churn_risk_pct: 5.2, status: 'Active' },
+  { event_id: 'EVT-007', customer_id: 'CUST-107', company_name: 'Vercel Fast Deploy', plan_tier: 'Starter Dev', region: 'North America', mrr_usd: 850, arr_usd: 10200, usage_api_calls: 120000, churn_risk_pct: 12.0, status: 'Active' },
+  { event_id: 'EVT-008', customer_id: 'CUST-108', company_name: 'Postman API Networks', plan_tier: 'Enterprise Plus', region: 'North America', mrr_usd: 32000, arr_usd: 384000, usage_api_calls: 6100000, churn_risk_pct: 0.8, status: 'Active' }
+];
+
+export const DEFAULT_HEALTHCARE_DATASET: TabularRow[] = [
+  { hospital_id: 'HOSP-01', hospital_name: 'Prince Court Medical Centre', city: 'Kuala Lumpur', latitude: 3.1505, longitude: 101.7198, clinical_department: 'Cardiology & Vascular', active_inpatients: 142, total_bed_capacity: 160, occupancy_rate_pct: 88.8, avg_length_of_stay_days: 3.8, emergency_wait_time_min: 14, quality_score: 98 },
+  { hospital_id: 'HOSP-02', hospital_name: 'Gleneagles Hospital KL', city: 'Kuala Lumpur', latitude: 3.1592, longitude: 101.7388, clinical_department: 'Oncology & Radiotherapy', active_inpatients: 210, total_bed_capacity: 240, occupancy_rate_pct: 87.5, avg_length_of_stay_days: 5.2, emergency_wait_time_min: 18, quality_score: 96 },
+  { hospital_id: 'HOSP-03', hospital_name: 'Subang Jaya Medical Centre', city: 'Selangor', latitude: 3.0768, longitude: 101.5901, clinical_department: 'Orthopaedics & Trauma', active_inpatients: 185, total_bed_capacity: 220, occupancy_rate_pct: 84.1, avg_length_of_stay_days: 4.1, emergency_wait_time_min: 22, quality_score: 94 },
+  { hospital_id: 'HOSP-04', hospital_name: 'Island Hospital Penang', city: 'Penang', latitude: 5.4215, longitude: 100.3118, clinical_department: 'Neurology & Stroke Unit', active_inpatients: 160, total_bed_capacity: 190, occupancy_rate_pct: 84.2, avg_length_of_stay_days: 4.5, emergency_wait_time_min: 19, quality_score: 92 },
+  { hospital_id: 'HOSP-05', hospital_name: 'KPJ Johor Specialist Hospital', city: 'Johor Bahru', latitude: 1.4889, longitude: 103.7378, clinical_department: 'Emergency & Acute Care', active_inpatients: 175, total_bed_capacity: 210, occupancy_rate_pct: 83.3, avg_length_of_stay_days: 3.4, emergency_wait_time_min: 25, quality_score: 90 },
+  { hospital_id: 'HOSP-06', hospital_name: 'Timberland Medical Centre', city: 'Kuching', latitude: 1.5165, longitude: 110.3345, clinical_department: 'General Surgery', active_inpatients: 115, total_bed_capacity: 140, occupancy_rate_pct: 82.1, avg_length_of_stay_days: 3.9, emergency_wait_time_min: 21, quality_score: 88 },
+  { hospital_id: 'HOSP-07', hospital_name: 'KPJ Sabah Specialist Hospital', city: 'Kota Kinabalu', latitude: 5.9612, longitude: 116.0798, clinical_department: 'Paediatrics & Neonatal', active_inpatients: 125, total_bed_capacity: 150, occupancy_rate_pct: 83.3, avg_length_of_stay_days: 3.1, emergency_wait_time_min: 16, quality_score: 91 },
+  { hospital_id: 'HOSP-08', hospital_name: 'Kuantan Medical Centre', city: 'Kuantan', latitude: 3.8245, longitude: 103.3288, clinical_department: 'Gastroenterology', active_inpatients: 98, total_bed_capacity: 120, occupancy_rate_pct: 81.7, avg_length_of_stay_days: 3.6, emergency_wait_time_min: 28, quality_score: 86 }
+];
+
+export const DEFAULT_SUPPLY_CHAIN_DATASET: TabularRow[] = [
+  { hub_code: 'HUB-KL01', hub_name: 'Port Klang Mega Logistics Gateway', state: 'Selangor', latitude: 2.9988, longitude: 101.3918, transport_mode: 'Heavy Haulage', daily_shipment_volume: 48500, on_time_delivery_pct: 96.8, transit_hours_avg: 4.2, fuel_cost_myr: 125000, warehouse_utilization_pct: 91.5 },
+  { hub_code: 'HUB-KL02', hub_name: 'KLIA Air Cargo Super Hub', state: 'Selangor', latitude: 2.7433, longitude: 101.7012, transport_mode: 'Air Freight', daily_shipment_volume: 32000, on_time_delivery_pct: 98.4, transit_hours_avg: 2.1, fuel_cost_myr: 185000, warehouse_utilization_pct: 88.0 },
+  { hub_code: 'HUB-PG01', hub_name: 'Batu Kawan Industrial Fulfillment', state: 'Penang', latitude: 5.2612, longitude: 100.4312, transport_mode: 'Road Express', daily_shipment_volume: 28500, on_time_delivery_pct: 95.2, transit_hours_avg: 5.8, fuel_cost_myr: 89000, warehouse_utilization_pct: 86.4 },
+  { hub_code: 'HUB-JB01', hub_name: 'Tanjung Pelepas Container Hub', state: 'Johor', latitude: 1.3654, longitude: 103.5512, transport_mode: 'Ocean Freight', daily_shipment_volume: 42000, on_time_delivery_pct: 94.6, transit_hours_avg: 6.5, fuel_cost_myr: 142000, warehouse_utilization_pct: 93.2 },
+  { hub_code: 'HUB-EC01', hub_name: 'Kuantan Port Deepwater Terminal', state: 'Pahang', latitude: 3.9788, longitude: 103.4288, transport_mode: 'Bulk Shipping', daily_shipment_volume: 18500, on_time_delivery_pct: 92.1, transit_hours_avg: 8.4, fuel_cost_myr: 62000, warehouse_utilization_pct: 78.5 },
+  { hub_code: 'HUB-SW01', hub_name: 'Senari Port Logistics Center', state: 'Sarawak', latitude: 1.5645, longitude: 110.3988, transport_mode: 'Coastal Feeder', daily_shipment_volume: 16200, on_time_delivery_pct: 93.4, transit_hours_avg: 7.8, fuel_cost_myr: 54000, warehouse_utilization_pct: 82.0 },
+  { hub_code: 'HUB-SB01', hub_name: 'Sepangar Bay Container Terminal', state: 'Sabah', latitude: 6.0688, longitude: 116.1412, transport_mode: 'Inter-Island Marine', daily_shipment_volume: 14800, on_time_delivery_pct: 91.8, transit_hours_avg: 9.2, fuel_cost_myr: 51000, warehouse_utilization_pct: 80.5 },
+  { hub_code: 'HUB-IP01', hub_name: 'Ipoh Inland Dry Port Hub', state: 'Perak', latitude: 4.5712, longitude: 101.0812, transport_mode: 'Rail Cargo', daily_shipment_volume: 21000, on_time_delivery_pct: 95.8, transit_hours_avg: 5.1, fuel_cost_myr: 68000, warehouse_utilization_pct: 84.8 }
+];
+
 export function resolveFieldLabel(fieldName: string, widget?: WidgetSpec): string {
   if (!fieldName) return '';
   
@@ -330,6 +363,84 @@ export function transformGenericTabularData(
     };
   }
 
+  // 6. Treemap Chart: Generic Hierarchical Sizing
+  if (widget.type === 'treemap') {
+    const dimCol = widget.dimension || 'category' || 'plan_tier' || 'clinical_department';
+    const metricCol = (widget.measures && widget.measures[0]) || 'mrr_usd' || 'sales' || 'active_inpatients';
+
+    const groupMap = new Map<string, number>();
+    filteredRows.forEach(r => {
+      const cat = String(r[dimCol] || r['category'] || r['region'] || 'Item');
+      const val = Number(r[metricCol] || r['mrr_usd'] || r['sales'] || 1000);
+      groupMap.set(cat, (groupMap.get(cat) || 0) + val);
+    });
+
+    const data = Array.from(groupMap.entries()).map(([name, value]) => ({ name, value: Math.round(value) }));
+    return { dynamicTitle, dynamicSubtitle, grain, activeGrain: grainLabel, data };
+  }
+
+  // 7. Funnel Chart: Generic Conversion Stage
+  if (widget.type === 'funnel') {
+    const dimCol = widget.dimension || 'stage' || 'plan_tier';
+    const metricCol = (widget.measures && widget.measures[0]) || 'value' || 'count' || 'mrr_usd';
+
+    const groupMap = new Map<string, number>();
+    filteredRows.forEach(r => {
+      const stage = String(r[dimCol] || r['stage'] || 'Stage');
+      const val = Number(r[metricCol] || 100);
+      groupMap.set(stage, (groupMap.get(stage) || 0) + val);
+    });
+
+    const data = Array.from(groupMap.entries())
+      .map(([name, value]) => ({ name, value: Math.round(value) }))
+      .sort((a, b) => b.value - a.value);
+
+    return { dynamicTitle, dynamicSubtitle, grain, activeGrain: grainLabel, data };
+  }
+
+  // 8. Gauge / Bullet: Metric vs Target
+  if (widget.type === 'gauge' || widget.type === 'bullet_chart') {
+    const metricCol = widget.value || (widget.measures && widget.measures[0]) || 'occupancy_rate_pct' || 'on_time_delivery_pct';
+    const sumVal = filteredRows.reduce((sum, r) => sum + Number(r[metricCol] || 85), 0);
+    const avgVal = filteredRows.length > 0 ? +(sumVal / filteredRows.length).toFixed(1) : 85;
+    return { dynamicTitle, dynamicSubtitle, grain, activeGrain: grainLabel, value: avgVal, target: 100 };
+  }
+
+  // 9. Radar Chart: Multi-Axis Performance Index
+  if (widget.type === 'radar') {
+    const indicators = widget.radar_indicators || [
+      { name: 'SLA Quality', max: 100 },
+      { name: 'On-Time Delivery', max: 100 },
+      { name: 'Fleet Utilization', max: 100 },
+      { name: 'Safety Compliance', max: 100 },
+      { name: 'Customer Satisfaction', max: 100 }
+    ];
+    return {
+      dynamicTitle,
+      dynamicSubtitle,
+      grain,
+      activeGrain: grainLabel,
+      indicators,
+      series: [{ value: [94, 96, 91, 98, 92], name: 'Operational Actuals' }]
+    };
+  }
+
+  // 10. Scatter / Bubble Chart
+  if (widget.type === 'scatter_chart' || widget.type === 'bubble_chart') {
+    const m1 = (widget.measures && widget.measures[0]) || 'mrr_usd' || 'sales';
+    const m2 = (widget.measures && widget.measures[1]) || 'usage_api_calls' || 'target';
+    const nameCol = widget.dimension || 'company_name' || 'hospital_name' || 'hub_name';
+
+    const data = filteredRows.map(r => [
+      Number(r[m1] || 10000),
+      Number(r[m2] || 50000),
+      Number(r['churn_risk_pct'] || r['quality_score'] || 8),
+      String(r[nameCol] || 'Entity')
+    ]);
+
+    return { dynamicTitle, dynamicSubtitle, grain, activeGrain: grainLabel, data };
+  }
+
   // 5. Google Maps / Geospatial Widget
   if (widget.type === 'google_map' || widget.type === 'geo_map') {
     const latCol = (widget as any).latitude_col || 'latitude' || 'lat';
@@ -414,8 +525,17 @@ export const DEFAULT_CIMB_DATASET: TabularRow[] = [
 ];
 
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
-  const isCimb = widget.source?.toLowerCase().includes('cimb') || (widget as any).dataset?.toLowerCase().includes('cimb');
-  const dataset = isCimb ? DEFAULT_CIMB_DATASET : DEFAULT_STORE_DATASET;
+  const src = (widget.source || (widget as any).dataset || '').toLowerCase();
+  let dataset = DEFAULT_STORE_DATASET;
+  if (src.includes('cimb') || src.includes('bank')) {
+    dataset = DEFAULT_CIMB_DATASET;
+  } else if (src.includes('saas') || src.includes('subscription')) {
+    dataset = DEFAULT_SAAS_DATASET;
+  } else if (src.includes('health') || src.includes('hospital') || src.includes('clinical')) {
+    dataset = DEFAULT_HEALTHCARE_DATASET;
+  } else if (src.includes('supply') || src.includes('logistics') || src.includes('fleet')) {
+    dataset = DEFAULT_SUPPLY_CHAIN_DATASET;
+  }
   return transformGenericTabularData(widget, dataset, activeFilters, overrideGrain);
 }
 

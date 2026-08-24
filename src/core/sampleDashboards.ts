@@ -469,3 +469,356 @@ widgets:
           type: donut_chart
           position: { x: 6, y: 0, w: 6, h: 3 }
 `;
+
+export const SAAS_GROWTH_BQ_YAML = `version: "1.0"
+id: "saas-subscription-growth-intelligence"
+title: "Cloud SaaS Platform — Subscription Growth & NRR Intelligence"
+description: "Live BigQuery warehouse for SaaS multi-tenant telemetry, MRR expansion, plan tiers, and retention risk"
+theme: "modern-dark"
+currency:
+  symbol: "$"
+  code: "USD"
+  position: "prefix"
+  space: false
+layout:
+  columns: 12
+  gap: 16
+
+data_sources:
+  - id: "bq_saas"
+    type: "bigquery"
+    project_id: "the-eye-bi-platform"
+    dataset: "saas_analytics"
+    table: "fct_subscription_events"
+    location: "asia-southeast1"
+
+filters:
+  - id: "time_range"
+    label: "Billing Period"
+    type: "daterange"
+    default_value: "ytd"
+    options:
+      - label: "Today"
+        value: "today"
+      - label: "Last 30 Days"
+        value: "30d"
+      - label: "Year to Date (YTD)"
+        value: "ytd"
+
+  - id: "plan_tier"
+    label: "Subscription Tier"
+    type: "single_select"
+    default_value: "all"
+    options:
+      - label: "All Tiers"
+        value: "all"
+      - label: "Enterprise Plus"
+        value: "Enterprise Plus"
+      - label: "Scale Team"
+        value: "Scale Team"
+      - label: "Growth Pro"
+        value: "Growth Pro"
+
+widgets:
+  - id: saas_kpi_mrr
+    title: "Monthly Recurring Revenue (MRR)"
+    type: kpi_card
+    source: bq_saas
+    position: { x: 0, y: 0, w: 3, h: 2 }
+    value: "mrr_usd"
+    format: "$0.0a"
+    comparison_label: "+18.4% YoY"
+
+  - id: saas_kpi_arr
+    title: "Annualized Run Rate (ARR)"
+    type: kpi_card
+    source: bq_saas
+    position: { x: 3, y: 0, w: 3, h: 2 }
+    value: "arr_usd"
+    format: "$0.0a"
+    comparison_label: "+24.2% Net Expansion"
+
+  - id: saas_kpi_customers
+    title: "Active Enterprise Accounts"
+    type: kpi_card
+    source: bq_saas
+    position: { x: 6, y: 0, w: 3, h: 2 }
+    value: "customer_id"
+    format: "0,0"
+    comparison_label: "Zero Net Churn"
+
+  - id: saas_kpi_churn
+    title: "Average Churn Risk Index"
+    type: kpi_card
+    source: bq_saas
+    position: { x: 9, y: 0, w: 3, h: 2 }
+    value: "churn_risk_pct"
+    format: "0.0%"
+    comparison_label: "-1.8% vs last quarter"
+
+  - id: saas_treemap_plans
+    title: "Subscription Tier MRR Contribution"
+    type: treemap
+    source: bq_saas
+    position: { x: 0, y: 2, w: 6, h: 4 }
+    dimension: "plan_tier"
+    measures: ["mrr_usd"]
+    format: "$0.0a"
+
+  - id: saas_scatter_ltv
+    title: "Account MRR vs API Telemetry Consumption"
+    type: scatter_chart
+    source: bq_saas
+    position: { x: 6, y: 2, w: 6, h: 4 }
+    dimension: "company_name"
+    measures: ["mrr_usd", "usage_api_calls"]
+    format: "$0.0a"
+
+  - id: saas_table_accounts
+    title: "Enterprise Customer Health & License Directory"
+    type: table
+    source: bq_saas
+    position: { x: 0, y: 6, w: 12, h: 4 }
+    table_columns:
+      - key: "customer_id"
+        label: "Account ID"
+      - key: "company_name"
+        label: "Enterprise Customer"
+      - key: "plan_tier"
+        label: "Subscription Plan"
+      - key: "mrr_usd"
+        label: "Monthly MRR ($)"
+        format: "$0,0"
+        align: "right"
+      - key: "usage_api_calls"
+        label: "API Calls / Mo"
+        format: "0,0"
+        align: "right"
+      - key: "status"
+        label: "Account Status"
+        badge: true
+`;
+
+export const HEALTHCARE_OPERATIONS_BQ_YAML = `version: "1.0"
+id: "healthcare-hospital-clinical-operations"
+title: "National Hospital Network — Clinical Census & Bed Occupancy"
+description: "Live BigQuery analytics for hospital census, emergency department triage wait times, and clinical quality ratings"
+theme: "corporate-navy"
+currency:
+  symbol: "RM"
+  code: "MYR"
+  position: "prefix"
+  space: true
+layout:
+  columns: 12
+  gap: 16
+
+data_sources:
+  - id: "bq_health"
+    type: "bigquery"
+    project_id: "the-eye-bi-platform"
+    dataset: "healthcare_operations"
+    table: "fct_hospital_census"
+    location: "asia-southeast1"
+
+filters:
+  - id: "time_range"
+    label: "Reporting Period"
+    type: "daterange"
+    default_value: "today"
+    options:
+      - label: "Today (Live Shift)"
+        value: "today"
+      - label: "Last 7 Days"
+        value: "7d"
+      - label: "Year to Date (YTD)"
+        value: "ytd"
+
+widgets:
+  - id: health_kpi_inpatients
+    title: "Total Inpatients Admitted"
+    type: kpi_card
+    source: bq_health
+    position: { x: 0, y: 0, w: 3, h: 2 }
+    value: "active_inpatients"
+    format: "0,0"
+    comparison_label: "+4.2% vs yesterday"
+
+  - id: health_kpi_beds
+    title: "Total Operational Beds"
+    type: kpi_card
+    source: bq_health
+    position: { x: 3, y: 0, w: 3, h: 2 }
+    value: "total_bed_capacity"
+    format: "0,0"
+    comparison_label: "1,430 Network Total"
+
+  - id: health_kpi_occupancy
+    title: "Network Bed Occupancy Rate"
+    type: kpi_card
+    source: bq_health
+    position: { x: 6, y: 0, w: 3, h: 2 }
+    value: "occupancy_rate_pct"
+    format: "0.0%"
+    comparison_label: "Target 85.0%"
+
+  - id: health_kpi_ed_wait
+    title: "Emergency Triage Wait Time"
+    type: kpi_card
+    source: bq_health
+    position: { x: 9, y: 0, w: 3, h: 2 }
+    value: "emergency_wait_time_min"
+    format: "0,0"
+    comparison_label: "Minutes (Under SLA)"
+
+  - id: health_gauge_occupancy
+    title: "Clinical Bed Utilization Gauge"
+    type: gauge
+    source: bq_health
+    position: { x: 0, y: 2, w: 4, h: 4 }
+    value: "occupancy_rate_pct"
+    format: "0.0%"
+
+  - id: health_dept_bar
+    title: "Inpatient Volume by Clinical Department"
+    type: bar_chart
+    source: bq_health
+    position: { x: 4, y: 2, w: 8, h: 4 }
+    dimension: "clinical_department"
+    measures: ["active_inpatients", "total_bed_capacity"]
+    labels:
+      active_inpatients: "Occupied Beds"
+      total_bed_capacity: "Department Capacity"
+
+  - id: health_gis_network
+    title: "National Tertiary Hospital Network GIS"
+    type: google_map
+    source: bq_health
+    position: { x: 0, y: 6, w: 12, h: 6 }
+    latitude_col: "latitude"
+    longitude_col: "longitude"
+    name_col: "hospital_name"
+    value_col: "active_inpatients"
+    labels:
+      id: "Hospital Code"
+      name: "Medical Centre"
+      region: "State / City"
+      volume: "Active Inpatients"
+      nps: "Quality Score"
+      manager: "Lead Medical Director"
+`;
+
+export const SUPPLY_CHAIN_LOGISTICS_BQ_YAML = `version: "1.0"
+id: "supply-chain-logistics-fleet-telemetry"
+title: "Asia-Pacific Logistics & Freight Fleet Telemetry"
+description: "Live BigQuery analytics for freight terminals, on-time delivery SLA compliance, transit velocity, and fuel costs"
+theme: "emerald-slate"
+currency:
+  symbol: "RM"
+  code: "MYR"
+  position: "prefix"
+  space: true
+layout:
+  columns: 12
+  gap: 16
+
+data_sources:
+  - id: "bq_supply"
+    type: "bigquery"
+    project_id: "the-eye-bi-platform"
+    dataset: "supply_chain_logistics"
+    table: "fct_fleet_shipments"
+    location: "asia-southeast1"
+
+filters:
+  - id: "time_range"
+    label: "Shipment Window"
+    type: "daterange"
+    default_value: "30d"
+    options:
+      - label: "Today (Live Dispatch)"
+        value: "today"
+      - label: "Last 30 Days"
+        value: "30d"
+      - label: "Year to Date (YTD)"
+        value: "ytd"
+
+widgets:
+  - id: supply_kpi_volume
+    title: "Daily Freight Shipments"
+    type: kpi_card
+    source: bq_supply
+    position: { x: 0, y: 0, w: 3, h: 2 }
+    value: "daily_shipment_volume"
+    format: "0,0"
+    comparison_label: "+11.2% Month-over-Month"
+
+  - id: supply_kpi_otd
+    title: "On-Time Delivery SLA Rate"
+    type: kpi_card
+    source: bq_supply
+    position: { x: 3, y: 0, w: 3, h: 2 }
+    value: "on_time_delivery_pct"
+    format: "0.0%"
+    comparison_label: "SLA Benchmark 95.0%"
+
+  - id: supply_kpi_transit
+    title: "Average Transit Duration"
+    type: kpi_card
+    source: bq_supply
+    position: { x: 6, y: 0, w: 3, h: 2 }
+    value: "transit_hours_avg"
+    format: "0.0"
+    comparison_label: "Hours per Consignment"
+
+  - id: supply_kpi_fuel
+    title: "Fleet Fuel & Operating Cost"
+    type: kpi_card
+    source: bq_supply
+    position: { x: 9, y: 0, w: 3, h: 2 }
+    value: "fuel_cost_myr"
+    format: "RM 0.0a"
+    comparison_label: "-3.4% Optimization"
+
+  - id: supply_radar_quality
+    title: "Fleet Operations SLA Maturity Index"
+    type: radar
+    source: bq_supply
+    position: { x: 0, y: 2, w: 6, h: 4 }
+    radar_indicators:
+      - { name: "On-Time Delivery", max: 100 }
+      - { name: "Warehouse Utilization", max: 100 }
+      - { name: "Transit Velocity", max: 100 }
+      - { name: "Fuel Efficiency", max: 100 }
+      - { name: "Cargo Safety & Audit", max: 100 }
+
+  - id: supply_bar_transport
+    title: "Shipment Volume by Multimodal Transport"
+    type: bar_chart
+    source: bq_supply
+    position: { x: 6, y: 2, w: 6, h: 4 }
+    dimension: "transport_mode"
+    measures: ["daily_shipment_volume", "fuel_cost_myr"]
+    labels:
+      daily_shipment_volume: "Consignment Volume"
+      fuel_cost_myr: "Fuel Spend (RM)"
+    dual_axis: true
+
+  - id: supply_gis_hubs
+    title: "Regional Distribution Gateway & Container Hubs"
+    type: google_map
+    source: bq_supply
+    position: { x: 0, y: 6, w: 12, h: 6 }
+    latitude_col: "latitude"
+    longitude_col: "longitude"
+    name_col: "hub_name"
+    value_col: "daily_shipment_volume"
+    labels:
+      id: "Hub Code"
+      name: "Gateway Hub"
+      region: "State"
+      volume: "Daily Shipments"
+      nps: "On-Time SLA %"
+      manager: "Terminal Lead"
+`;
+
