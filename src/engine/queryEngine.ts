@@ -5,7 +5,6 @@ export interface FilterState {
 }
 
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
-  // Normalize filter inputs
   const rawRegion = activeFilters['store_region'] || activeFilters['region'] || 'All Regions';
   const selectedRegions = Array.isArray(rawRegion) ? rawRegion : [rawRegion];
   const isAllRegions = selectedRegions.includes('All Regions') || selectedRegions.length === 0;
@@ -20,9 +19,6 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const selectedChannels = Array.isArray(rawChannel) ? rawChannel : [rawChannel];
   const isAllChannels = selectedChannels.includes('All Channels') || selectedChannels.length === 0;
 
-  const rawCategory = activeFilters['category'] || 'All Categories';
-  const isAllCategories = rawCategory === 'All Categories';
-
   const timeRange = activeFilters['time_range'] || '2026-YTD';
   
   // Adaptive time hierarchy / grain
@@ -36,18 +32,19 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
 
   let timeMultiplier = 1.0;
   let dynamicComparison = '+14.2% vs last month';
+  let timeLabel = '2026 YTD';
   if (timeRange === 'last_30_days') {
     timeMultiplier = 0.28;
     dynamicComparison = '+8.4% vs prev 30 days';
+    timeLabel = 'Last 30 Days';
   } else if (timeRange === 'last_90_days') {
     timeMultiplier = 0.65;
     dynamicComparison = '+16.2% vs Q1 2026';
+    timeLabel = 'Last Quarter';
   } else if (timeRange === 'all_time') {
     timeMultiplier = 1.45;
     dynamicComparison = '+82.5% lifetime';
-  } else {
-    timeMultiplier = 1.0;
-    dynamicComparison = '+24.8% YoY';
+    timeLabel = 'All Time';
   }
 
   // Region multiplier
@@ -132,54 +129,58 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     };
   }
 
-  // 🏪 Time-series chart with adaptive time grains (Day vs Week vs Month vs Hour)
+  // 🏪 Time-series chart with dual Y-axis & dynamic grain
   if (widget.id === 'hourly_pos_velocity') {
     if (effectiveGrain === 'day') {
-      // 30 Daily data points
       const days = ['Aug 01', 'Aug 04', 'Aug 07', 'Aug 10', 'Aug 13', 'Aug 16', 'Aug 19', 'Aug 22', 'Aug 24'];
       return {
         grain: 'day',
         activeGrain: 'Daily',
+        dynamicSubtitle: `Showing Daily aggregation for ${timeLabel} from BigQuery (seven-eleven-qlik-bq)`,
+        useDualAxis: true,
         categories: days,
         series: [
-          { name: 'Store Sales ($)', data: [2100, 2450, 2300, 2850, 2650, 3100, 2950, 3400, 3650].map(v => +(v * 1000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
-          { name: 'Customer Count', data: [18000, 21000, 19500, 24000, 22500, 26000, 25000, 29000, 31500].map(v => Math.round(v * regionMultiplier)) }
+          { name: 'Store Sales ($)', yAxisIndex: 0, data: [2100, 2450, 2300, 2850, 2650, 3100, 2950, 3400, 3650].map(v => +(v * 1000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
+          { name: 'Customer Count', yAxisIndex: 1, data: [18000, 21000, 19500, 24000, 22500, 26000, 25000, 29000, 31500].map(v => Math.round(v * regionMultiplier)) }
         ]
       };
     } else if (effectiveGrain === 'week') {
-      // 12 Weekly points
       const weeks = ['W1 Jun', 'W2 Jun', 'W3 Jun', 'W4 Jun', 'W1 Jul', 'W2 Jul', 'W3 Jul', 'W4 Jul', 'W1 Aug', 'W2 Aug', 'W3 Aug', 'W4 Aug'];
       return {
         grain: 'week',
         activeGrain: 'Weekly',
+        dynamicSubtitle: `Showing Weekly aggregation for ${timeLabel} from BigQuery (seven-eleven-qlik-bq)`,
+        useDualAxis: true,
         categories: weeks,
         series: [
-          { name: 'Store Sales ($)', data: [14.2, 15.1, 14.8, 16.5, 17.2, 16.9, 18.4, 19.1, 18.8, 20.2, 21.5, 22.8].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
-          { name: 'Customer Count', data: [120, 128, 124, 139, 145, 142, 155, 161, 158, 170, 181, 192].map(v => Math.round(v * 1000 * regionMultiplier)) }
+          { name: 'Store Sales ($)', yAxisIndex: 0, data: [14.2, 15.1, 14.8, 16.5, 17.2, 16.9, 18.4, 19.1, 18.8, 20.2, 21.5, 22.8].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
+          { name: 'Customer Count', yAxisIndex: 1, data: [120, 128, 124, 139, 145, 142, 155, 161, 158, 170, 181, 192].map(v => Math.round(v * 1000 * regionMultiplier)) }
         ]
       };
     } else if (effectiveGrain === 'quarter' || effectiveGrain === 'month') {
-      // Monthly points
       const months = ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26'];
       return {
         grain: 'month',
         activeGrain: 'Monthly',
+        dynamicSubtitle: `Showing Monthly aggregation for ${timeLabel} from BigQuery (seven-eleven-qlik-bq)`,
+        useDualAxis: true,
         categories: months,
         series: [
-          { name: 'Store Sales ($)', data: [58.2, 62.4, 65.1, 71.0, 74.3, 76.5, 78.45, 81.2].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier * timeMultiplier).toFixed(0)) },
-          { name: 'Customer Count', data: [480, 510, 535, 580, 610, 630, 645, 670].map(v => Math.round(v * 1000 * regionMultiplier)) }
+          { name: 'Store Sales ($)', yAxisIndex: 0, data: [58.2, 62.4, 65.1, 71.0, 74.3, 76.5, 78.45, 81.2].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier * timeMultiplier).toFixed(0)) },
+          { name: 'Customer Count', yAxisIndex: 1, data: [480, 510, 535, 580, 610, 630, 645, 670].map(v => Math.round(v * 1000 * regionMultiplier)) }
         ]
       };
     } else {
-      // Intraday Hourly
       const hours = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
       return {
         grain: 'hour',
         activeGrain: 'Hourly',
+        dynamicSubtitle: `Showing Intraday Hourly stream from BigQuery (seven-eleven-qlik-bq)`,
+        useDualAxis: true,
         categories: hours,
         series: [
-          { name: 'Store Sales ($)', data: [42, 115, 168, 280, 210, 195, 310, 290, 185, 95].map(v => +(v * 1000 * compositeMultiplier).toFixed(0)) },
-          { name: 'Customer Count', data: [320, 890, 1250, 2100, 1650, 1540, 2450, 2200, 1400, 750].map(v => Math.round(v * compositeMultiplier)) }
+          { name: 'Store Sales ($)', yAxisIndex: 0, data: [42, 115, 168, 280, 210, 195, 310, 290, 185, 95].map(v => +(v * 1000 * compositeMultiplier).toFixed(0)) },
+          { name: 'Customer Count', yAxisIndex: 1, data: [320, 890, 1250, 2100, 1650, 1540, 2450, 2200, 1400, 750].map(v => Math.round(v * compositeMultiplier)) }
         ]
       };
     }
@@ -199,7 +200,10 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
         slices = [{ name: rawDivision, value: Math.round(25000000 * compositeMultiplier) }];
       }
     }
-    return { data: slices };
+    return { 
+      data: slices,
+      dynamicSubtitle: isAllDivisions ? 'Category revenue share across all product lines' : `Filtered to ${rawDivision}`
+    };
   }
 
   if (widget.id === 'regional_sales_bar') {
@@ -218,6 +222,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
 
     return {
       categories: clusters.map(c => c.name),
+      dynamicSubtitle: isAllRegions ? 'Actual POS Revenue vs Target across Store Clusters' : `Store performance for ${selectedRegions.join(', ')}`,
       series: [
         { name: 'Actual Revenue', data: clusters.map(c => +(c.actual * 1000000 * divisionMultiplier * timeMultiplier).toFixed(0)) },
         { name: 'Target Revenue', data: clusters.map(c => +(c.target * 1000000 * divisionMultiplier * timeMultiplier).toFixed(0)) }
@@ -306,6 +311,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       return {
         grain: 'day',
         activeGrain: 'Daily',
+        dynamicSubtitle: `Showing Daily ARR trajectory for ${timeLabel}`,
         categories: days,
         series: [
           { name: 'Actual ARR', data: [45.2, 46.1, 46.8, 47.4, 47.9, 48.2].map(v => +(v * compositeMultiplier).toFixed(1)) },
@@ -317,6 +323,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       return {
         grain: 'week',
         activeGrain: 'Weekly',
+        dynamicSubtitle: `Showing Weekly ARR trajectory for ${timeLabel}`,
         categories: weeks,
         series: [
           { name: 'Actual ARR', data: [38.2, 39.5, 40.8, 41.6, 42.8, 44.0, 45.2, 46.1, 46.8, 47.2, 47.8, 48.2].map(v => +(v * compositeMultiplier).toFixed(1)) },
@@ -328,6 +335,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       return {
         grain: 'month',
         activeGrain: 'Monthly',
+        dynamicSubtitle: `Showing Monthly ARR trajectory & forecast for ${timeLabel}`,
         categories: months,
         series: [
           { name: 'Actual ARR', data: [34, 36, 38.5, 41.2, 44.0, 46.8, 48.2, null, null].map(v => v ? +(v * compositeMultiplier).toFixed(1) : null) },

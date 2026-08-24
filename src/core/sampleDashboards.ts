@@ -109,7 +109,7 @@ widgets:
 
   # Row 2: Charts
   - id: hourly_pos_velocity
-    title: "Hourly POS Transaction Velocity & Footfall"
+    title: "POS Transaction Velocity & Footfall"
     subtitle: "Real-time stream from BigQuery (seven-eleven-qlik-bq)"
     type: line_chart
     source: bq_seven_eleven
@@ -408,7 +408,7 @@ widgets:
     sparkline: true
 
   - id: hourly_sales_trend
-    title: "Intraday Sales Velocity (Orders & Revenue)"
+    title: "Sales Velocity & Order Volume"
     type: line_chart
     source: bq_store
     position: { x: 0, y: 2, w: 8, h: 4 }

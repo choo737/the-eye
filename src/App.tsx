@@ -20,12 +20,10 @@ export function App() {
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
 
-  // Parse YAML in real-time
   const parseResult = useMemo(() => {
     return parseDashboardYaml(yamlCode);
   }, [yamlCode]);
 
-  // Handle Dashboard Preset change
   const handleSelectDashboard = (key: string) => {
     const found = SAMPLE_DASHBOARDS[key];
     if (found) {
@@ -53,7 +51,6 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* Top Header */}
       <Header
         spec={parseResult.spec}
         currentDashboardKey={currentDashboardKey}
@@ -72,9 +69,7 @@ export function App() {
         onReset={handleReset}
       />
 
-      {/* Main Workspace Area */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Monaco YAML Editor (Collapsible) */}
         {showEditor && (
           <YamlEditor
             yamlCode={yamlCode}
@@ -88,7 +83,6 @@ export function App() {
           />
         )}
 
-        {/* Live Rendered Canvas */}
         {parseResult.spec ? (
           <DashboardCanvas
             spec={parseResult.spec}
@@ -106,7 +100,6 @@ export function App() {
           </div>
         )}
 
-        {/* AI Copilot Drawer (Collapsible) */}
         {showCopilot && (
           <CopilotDrawer
             spec={parseResult.spec}
@@ -116,7 +109,6 @@ export function App() {
         )}
       </div>
 
-      {/* Modals */}
       {showDataSources && (
         <DataSourceModal
           sources={parseResult.spec?.data_sources || []}
