@@ -20,7 +20,7 @@ export function parseDashboardYaml(yamlString: string): ParseResult {
         parseError: 'Root content is not a valid YAML object'
       };
     }
-    const validation = validateDashboardSpec(parsed);
+    const validation = validateDashboardSpec(parsed, yamlString);
     return {
       spec: parsed,
       rawYaml: yamlString,

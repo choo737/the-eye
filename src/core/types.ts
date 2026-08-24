@@ -161,13 +161,23 @@ export interface DashboardSpec {
   widgets: WidgetSpec[];
 }
 
+export interface LintDiagnostic {
+  path: string;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+  line?: number;
+  column?: number;
+  suggestion?: string;
+  fixAction?: {
+    label: string;
+    replacement: string;
+    targetString?: string;
+  };
+}
+
 export interface ValidationResult {
   valid: boolean;
-  errors: Array<{
-    path: string;
-    message: string;
-    severity: 'error' | 'warning';
-  }>;
+  errors: LintDiagnostic[];
 }
 
 export interface QueryResult {
