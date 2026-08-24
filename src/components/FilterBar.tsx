@@ -82,7 +82,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 </div>
                 <DateRangePicker
                   value={val}
-                  onChange={(newRange) => onFilterChange(filter.id, typeof newRange === 'object' ? newRange.preset || newRange.startDate : newRange)}
+                  onChange={(newRange) => onFilterChange(filter.id, newRange)}
                   label={filter.label}
                   minDate={filter.min_date}
                   maxDate={filter.max_date}

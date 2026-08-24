@@ -34,26 +34,54 @@ function seededNoise(seed: number): number {
 }
 
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
-  const timeRange = activeFilters['time_range'] || activeFilters['date_range'] || '2026-YTD';
+  const rawTime = activeFilters['time_range'] || activeFilters['date_range'] || '2026-YTD';
   
-  let effectiveGrain = overrideGrain;
-  if (!effectiveGrain) {
-    if (timeRange === 'last_30_days' || timeRange === '30d') effectiveGrain = 'day';
-    else if (timeRange === 'last_90_days' || timeRange === '90d' || timeRange === 'quarter') effectiveGrain = 'week';
-    else if (timeRange === 'all_time' || timeRange === 'lifetime') effectiveGrain = 'quarter';
-    else effectiveGrain = 'month';
+  // Extract clean preset string & human label
+  let timePreset = '2026-YTD';
+  let timeLabel = '2026 YTD';
+
+  if (typeof rawTime === 'object' && rawTime !== null) {
+    timePreset = rawTime.preset || rawTime.id || 'custom';
+    const timeRange = timePreset;
+    timeLabel = rawTime.label || `${rawTime.startDate} – ${rawTime.endDate}`;
+  } else if (typeof rawTime === 'string') {
+    timePreset = rawTime;
+    timeLabel = 
+      timePreset === 'today' ? 'Today (Aug 24, 2026)' :
+      timePreset === 'yesterday' ? 'Yesterday (Aug 23, 2026)' :
+      timePreset === 'last_7_days' ? 'Last 7 Days' :
+      timePreset === 'last_15_days' ? 'Last 15 Days' :
+      timePreset === 'last_30_days' ? 'Last 30 Days' :
+      timePreset === 'this_month' ? 'This Month (August 2026)' :
+      timePreset === 'last_month' ? 'Last Month (July 2026)' :
+      timePreset === 'last_3_months' ? 'Last Quarter (90 Days)' :
+      timePreset === 'last_6_months' ? 'Last 6 Months' :
+      timePreset === 'all_time' ? 'All-Time Historical' : '2026 YTD';
   }
 
-  const timeLabel = 
-    timeRange === 'last_30_days' ? 'Last 30 Days' :
-    timeRange === 'last_90_days' ? 'Last Quarter' :
-    timeRange === 'all_time' ? 'All Time' : '2026 YTD';
+  const timeRange = timePreset;
+
+  // Determine effective aggregation grain dynamically
+  let effectiveGrain = overrideGrain;
+  if (!effectiveGrain) {
+    if (timePreset === 'today' || timePreset === 'yesterday' || timePreset.includes('today') || timePreset.includes('yesterday')) {
+      effectiveGrain = 'hour';
+    } else if (timePreset === 'last_7_days' || timePreset === 'last_15_days' || timePreset === 'last_30_days' || timePreset === '30d' || timePreset === 'this_month') {
+      effectiveGrain = 'day';
+    } else if (timePreset === 'last_90_days' || timePreset === '90d' || timePreset === 'quarter' || timePreset === 'last_3_months' || timePreset === 'last_month') {
+      effectiveGrain = 'week';
+    } else if (timePreset === 'all_time' || timePreset === 'lifetime') {
+      effectiveGrain = 'quarter';
+    } else {
+      effectiveGrain = 'month';
+    }
+  }
 
   const grainLabel = 
+    effectiveGrain === 'hour' ? 'Hourly' :
     effectiveGrain === 'day' ? 'Daily' :
     effectiveGrain === 'week' ? 'Weekly' :
-    effectiveGrain === 'quarter' ? 'Quarterly' :
-    effectiveGrain === 'hour' ? 'Hourly' : 'Monthly';
+    effectiveGrain === 'quarter' ? 'Quarterly' : 'Monthly';
 
   // Division Filter Extraction
   const rawDivision = activeFilters['product_division'] || activeFilters['category'] || activeFilters['division'] || 'All Divisions';
@@ -90,9 +118,9 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
 
   // Time volume multiplier (flow measures)
   let timeFlowMultiplier = 1.0;
-  if (timeRange === 'last_30_days') timeFlowMultiplier = 0.28;
-  else if (timeRange === 'last_90_days') timeFlowMultiplier = 0.65;
-  else if (timeRange === 'all_time') timeFlowMultiplier = 1.45;
+  if (timePreset === 'last_30_days' || timePreset === 'this_month') timeFlowMultiplier = 0.28;
+  else if (timePreset === 'last_90_days' || timePreset === 'last_3_months') timeFlowMultiplier = 0.65;
+  else if (timePreset === 'all_time') timeFlowMultiplier = 1.45;
 
   // Region / Cluster dimension scale
   const activeTokens: string[] = [];
@@ -337,44 +365,58 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const isDualAxis = widget.dual_axis || (yMeasures.length > 1 && yMeasures.some(m => String(m).toLowerCase().includes('count') || String(m).toLowerCase().includes('rate')));
   const isTimeSeries = widget.x === 'hour' || widget.x === 'date' || widget.x === 'month' || widget.x === 'time' || widget.auto_grain;
 
-  if (isTimeSeries) {
+    if (isTimeSeries) {
     let categories: string[] = [];
+    let baseSales = 8800000 * regionDimensionScale * divisionScale;
+    let baseFootfall = 480000 * regionDimensionScale;
 
-    if (effectiveGrain === 'day') {
-      categories = ['Day 01', 'Day 04', 'Day 07', 'Day 10', 'Day 13', 'Day 16', 'Day 19', 'Day 22', 'Day 24'];
+    if (effectiveGrain === 'hour') {
+      categories = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
+      baseSales = Math.round(320000 * regionDimensionScale * divisionScale);
+      baseFootfall = Math.round(18500 * regionDimensionScale);
+    } else if (effectiveGrain === 'day') {
+      if (timePreset === 'last_7_days') {
+        categories = ['18 Aug', '19 Aug', '20 Aug', '21 Aug', '22 Aug', '23 Aug', '24 Aug'];
+      } else {
+        categories = ['Day 01', 'Day 04', 'Day 07', 'Day 10', 'Day 13', 'Day 16', 'Day 19', 'Day 22', 'Day 24'];
+      }
+      baseSales = Math.round(2400000 * regionDimensionScale * divisionScale);
+      baseFootfall = Math.round(140000 * regionDimensionScale);
     } else if (effectiveGrain === 'week') {
-      categories = ['Week 23', 'Week 24', 'Week 25', 'Week 26', 'Week 27', 'Week 28', 'Week 29', 'Week 30', 'Week 31', 'Week 32', 'Week 33', 'Week 34'];
-    } else if (effectiveGrain === 'hour') {
-      categories = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+      categories = ['Week 24 (Jun)', 'Week 26 (Jun)', 'Week 28 (Jul)', 'Week 30 (Jul)', 'Week 32 (Aug)', 'Week 34 (Aug)'];
+      baseSales = Math.round(4200000 * regionDimensionScale * divisionScale);
+      baseFootfall = Math.round(260000 * regionDimensionScale);
+    } else if (effectiveGrain === 'quarter') {
+      categories = ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026', 'Q3 2026'];
+      baseSales = Math.round(26000000 * regionDimensionScale * divisionScale);
+      baseFootfall = Math.round(1500000 * regionDimensionScale);
     } else {
       categories = ['Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026'];
+      baseSales = Math.round(8800000 * regionDimensionScale * divisionScale);
+      baseFootfall = Math.round(480000 * regionDimensionScale);
     }
 
     const n = categories.length;
-    // Sales scales directly with Division volume multiplier
-    const baseMonthlySales = 8800000 * regionDimensionScale * divisionScale;
-    const baseMonthlyFootfall = 480000 * regionDimensionScale;
 
     const series = yMeasures.map((measure, idx) => {
       let measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
       const isSecondary = isDualAxis && idx > 0 && (measureName.toLowerCase().includes('count') || measureName.toLowerCase().includes('rate'));
 
-      // If division filter is active, customize primary series name to reflect division
       if (!isSecondary && hasDivisionFilter) {
         const shortDiv = String(rawDivision).split('&')[0].trim();
         measureName = `${shortDiv} Sales ($)`;
       }
 
       const dataPoints = categories.map((_, i) => {
-        const t = (i / (n - 1)) * Math.PI * 2;
+        const t = (i / Math.max(1, n - 1)) * Math.PI * 2;
         const harmonic = 1.0 + 0.22 * Math.sin(t * 1.5) + 0.12 * Math.cos(t * 3.0);
         const noise = 0.95 + seededNoise(i * 13 + idx * 7 + (hasDivisionFilter ? 42 : 0)) * 0.10;
         const organicFactor = harmonic * noise;
 
         if (isSecondary) {
-          return Math.round(baseMonthlyFootfall * organicFactor);
+          return Math.round(baseFootfall * organicFactor);
         }
-        return Math.round(baseMonthlySales * organicFactor);
+        return Math.round(baseSales * organicFactor);
       });
 
       return {
