@@ -261,14 +261,15 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       },
       legend: {
         top: 0,
-        right: '2%',
+        left: 'center',
+        itemGap: 16,
         textStyle: { color: textColor, fontSize: 11 },
         icon: 'roundRect'
       },
       grid: {
-        top: 35,
-        left: '3%',
-        right: useDualAxis ? '4%' : '3%',
+        top: 40,
+        left: '2%',
+        right: useDualAxis ? '3%' : '2%',
         bottom: '3%',
         containLabel: true
       },
