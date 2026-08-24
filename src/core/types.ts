@@ -11,6 +11,12 @@ export type DataSourceType =
   | 'rest_api'
   | 'mock';
 
+export interface JoinSpec {
+  type?: 'inner' | 'left' | 'right' | 'full';
+  target_source: string;
+  on: string; // e.g. "store_id = target.store_id"
+}
+
 export interface DataSourceSpec {
   id: string;
   name?: string;
@@ -19,6 +25,11 @@ export interface DataSourceSpec {
   connection_string?: string;
   project?: string;
   dataset?: string;
+  table?: string;
+  query?: string;             // Custom BigQuery / SQL query or virtual dataset
+  dimensions?: string[];
+  metrics?: string[];
+  joins?: JoinSpec[];
   database?: string;
   warehouse?: string;
   host?: string;
