@@ -54,7 +54,7 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should execute google_map query and return all master stores with revenue target attainment', () => {
+  it('should execute google_map query and guarantee NO fields are undefined across all map points', () => {
     const mapWidget: WidgetSpec = {
       id: 'map_stores',
       title: 'Store Map',
@@ -64,8 +64,50 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
     };
 
     const res = executeWidgetQuery(mapWidget, {});
+    expect(res.mapPoints).toBeDefined();
     expect(res.mapPoints.length).toBeGreaterThanOrEqual(8);
-    expect(res.mapPoints[0].target_achievement_pct).toBeDefined();
-    expect(res.mapPoints[0].target).toBeDefined();
+
+    // Verify every single store point has valid non-undefined name and attributes
+    res.mapPoints.forEach((point: any, idx: number) => {
+      expect(point.name).toBeDefined();
+      expect(typeof point.name).toBe('string');
+      expect(point.name).not.toBe('undefined');
+      expect(point.name.length).toBeGreaterThan(0);
+
+      expect(point.id).toBeDefined();
+      expect(typeof point.id).toBe('string');
+      expect(point.id).not.toBe('undefined');
+
+      expect(point.manager).toBeDefined();
+      expect(typeof point.manager).toBe('string');
+      expect(point.manager).not.toBe('undefined');
+
+      expect(point.region).toBeDefined();
+      expect(typeof point.region).toBe('string');
+      expect(point.region).not.toBe('undefined');
+
+      expect(typeof point.sales).toBe('number');
+      expect(typeof point.target).toBe('number');
+      expect(typeof point.target_achievement_pct).toBe('number');
+      expect(typeof point.lat).toBe('number');
+      expect(typeof point.lng).toBe('number');
+    });
+  });
+
+  it('should guarantee valid store names when filtered by region or merchandise division', () => {
+    const mapWidget: WidgetSpec = {
+      id: 'map_stores',
+      title: 'Store Map',
+      type: 'google_map',
+      source: 'bq_gsheet_store_mesh',
+      position: { w: 12, h: 4 }
+    };
+
+    const filteredRes = executeWidgetQuery(mapWidget, { region: 'Northern Region' });
+    expect(filteredRes.mapPoints.length).toBeGreaterThan(0);
+    filteredRes.mapPoints.forEach((point: any) => {
+      expect(point.name).not.toBe('undefined');
+      expect(point.name.length).toBeGreaterThan(0);
+    });
   });
 });

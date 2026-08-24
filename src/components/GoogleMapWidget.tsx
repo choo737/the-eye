@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { WidgetSpec, ColorScaleSpec } from '../core/types';
@@ -27,31 +27,54 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
-  // Master Store Dataset
-  const allMasterStores = [
-    { id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: 38400, target: 35000, manager: 'Ahmad Zaki', nps: 96, pos_count: 8 },
-    { id: '7E-2041', store_name: 'Mid Valley Megamall North Court', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: 31200, target: 32000, manager: 'Michelle Tan', nps: 88, pos_count: 6 },
-    { id: '7E-0492', store_name: 'Gurney Plaza Waterfront', name: 'Gurney Plaza Waterfront', lat: 5.4377, lng: 100.3098, region: 'Northern Region', sales: 24500, target: 25000, manager: 'Rajeswary S.', nps: 84, pos_count: 5 },
-    { id: '7E-3118', store_name: 'JB City Square Customs Hub', lat: 1.4619, lng: 103.7638, region: 'Southern Region', sales: 28900, target: 30000, manager: 'Kevin Wong', nps: 78, pos_count: 6 },
-    { id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', lat: 2.7456, lng: 101.6841, region: 'Klang Valley / Central', sales: 42100, target: 38000, manager: 'Noraini Mohd', nps: 98, pos_count: 10 },
-    { id: '7E-1934', store_name: 'Ipoh Old Town Heritage', lat: 4.5975, lng: 101.0772, region: 'Northern Region', sales: 16800, target: 22000, manager: 'Chong Wei Lun', nps: 42, pos_count: 4 },
-    { id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', lat: 3.8168, lng: 103.3654, region: 'East Coast & Islands', sales: 19500, target: 20000, manager: 'Fatimah Ali', nps: 68, pos_count: 4 },
-    { id: '7E-5512', store_name: 'Kuching Waterfront Heritage', lat: 1.5583, lng: 110.3444, region: 'Sabah & Sarawak', sales: 21400, target: 22000, manager: 'Leonard Jabu', nps: 74, pos_count: 5 }
-  ].map(p => {
-    const attainmentPct = Math.round((p.sales / p.target) * 1000) / 10;
-    return {
-      ...p,
-      target_achievement_pct: attainmentPct
-    };
-  });
+  // Fallback dataset if data.mapPoints is empty
+  const defaultMasterStores = [
+    { id: '7E-1082', store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: 38400, target: 35000, manager: 'Ahmad Zaki', nps: 96, pos_count: 8 },
+    { id: '7E-2041', store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: 31200, target: 32000, manager: 'Michelle Tan', nps: 88, pos_count: 6 },
+    { id: '7E-0492', store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', name: 'Gurney Plaza Waterfront', lat: 5.4377, lng: 100.3098, region: 'Northern Region', sales: 24500, target: 25000, manager: 'Rajeswary S.', nps: 84, pos_count: 5 },
+    { id: '7E-3118', store_id: '7E-3118', store_name: 'JB City Square Customs Hub', name: 'JB City Square Customs Hub', lat: 1.4619, lng: 103.7638, region: 'Southern Region', sales: 28900, target: 30000, manager: 'Kevin Wong', nps: 78, pos_count: 6 },
+    { id: '7E-0842', store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', name: 'KLIA2 Departure Hall Terminal', lat: 2.7456, lng: 101.6841, region: 'Klang Valley / Central', sales: 42100, target: 38000, manager: 'Noraini Mohd', nps: 98, pos_count: 10 },
+    { id: '7E-1934', store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', name: 'Ipoh Old Town Heritage', lat: 4.5975, lng: 101.0772, region: 'Northern Region', sales: 16800, target: 22000, manager: 'Chong Wei Lun', nps: 42, pos_count: 4 },
+    { id: '7E-4421', store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', name: 'Kuantan Teluk Cempedak Beach', lat: 3.8168, lng: 103.3654, region: 'East Coast & Islands', sales: 19500, target: 20000, manager: 'Fatimah Ali', nps: 68, pos_count: 4 },
+    { id: '7E-5512', store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', name: 'Kuching Waterfront Heritage', lat: 1.5583, lng: 110.3444, region: 'Sabah & Sarawak', sales: 21400, target: 22000, manager: 'Leonard Jabu', nps: 74, pos_count: 5 }
+  ];
+
+  // Dynamically resolve map points from Query Engine with strict property sanitation
+  const storePoints = useMemo(() => {
+    const rawList = (data?.mapPoints && data.mapPoints.length > 0) ? data.mapPoints : defaultMasterStores;
+    return rawList.map((p: any) => {
+      const storeName = p.name || p.store_name || p.store || p.title || p.id || '7-Eleven Store';
+      const storeId = p.id || p.store_id || '7E-0000';
+      const sales = typeof p.sales === 'number' ? p.sales : 30000;
+      const target = typeof p.target === 'number' ? p.target : 30000;
+      const attainmentPct = p.target_achievement_pct ?? (Math.round((sales / target) * 1000) / 10);
+      const manager = p.manager || p.store_manager || 'Store Manager';
+      const region = p.region || 'Malaysia';
+      const nps = p.nps ?? 85;
+      const posCount = p.pos_count ?? 6;
+
+      return {
+        ...p,
+        id: storeId,
+        store_id: storeId,
+        name: storeName,
+        store_name: storeName,
+        sales,
+        target,
+        target_achievement_pct: attainmentPct,
+        manager,
+        region,
+        nps,
+        pos_count: posCount
+      };
+    });
+  }, [data?.mapPoints]);
 
   const [selectedPin, setSelectedPin] = useState<any | null>(null);
   const [mapStyle, setMapStyle] = useState<'google_streets' | 'google_satellite' | 'google_terrain'>('google_streets');
 
-  // Configurable Table View Setting from YAML: defaults to true unless explicitly configured false
   const showTable = widget.map_config?.show_table !== false;
 
-  // Extract declarative color scale from YAML configuration
   const colorScale: ColorScaleSpec = widget.map_config?.color_scale || {
     metric_field: 'target_achievement_pct',
     min: 80,
@@ -71,13 +94,12 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     }
   };
 
-  // Helper to interpolate template variables declared in YAML (e.g. {{store_name}}, {{store_id}}, {{manager}})
   const renderTemplateString = (templateStr?: string, store?: any): string => {
     if (!templateStr || !store) return templateStr || '';
     return templateStr
       .replace(/\{\{\s*store_name\s*\}\}/g, store.store_name || store.name || '')
       .replace(/\{\{\s*selected_store_name\s*\}\}/g, store.store_name || store.name || '')
-      .replace(/\{\{\s*store_id\s*\}\}/g, store.id || '')
+      .replace(/\{\{\s*store_id\s*\}\}/g, store.id || store.store_id || '')
       .replace(/\{\{\s*manager\s*\}\}/g, store.manager || '')
       .replace(/\{\{\s*region\s*\}\}/g, store.region || '');
   };
@@ -140,17 +162,18 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     }
   }, [mapStyle]);
 
-  // 3. Render Markers
+  // 3. Render Markers with guaranteed non-undefined label
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
     try {
       markersLayerRef.current.clearLayers();
 
-      allMasterStores.forEach((pin) => {
+      storePoints.forEach((pin: any) => {
         const isSelected = selectedPin?.id === pin.id;
         const attainmentPct = pin.target_achievement_pct ?? 100;
         const { color } = getAttainmentColor(attainmentPct);
+        const displayName = pin.store_name || pin.name || pin.id || 'Store';
 
         const markerHtml = `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
@@ -176,7 +199,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                 border-radius: 6px;
               ">${attainmentPct}%</span>
               <span style="font-size: 11px; font-weight: 800; color: #f8fafc; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
-                ${pin.name}
+                ${displayName}
               </span>
             </div>
 
@@ -217,7 +240,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     } catch (err) {
       console.warn('Marker render:', err);
     }
-  }, [selectedPin, mapStyle, colorScale]);
+  }, [selectedPin, mapStyle, colorScale, storePoints]);
 
   const handleSelectStore = (store: any) => {
     setSelectedPin(store);
@@ -228,7 +251,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     setSelectedPin(null);
   };
 
-  // Generate dynamic hourly velocity chart for the selected store
   const getHourlyChartOption = () => {
     const hours = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
     const scale = (selectedPin?.sales || 30000) / 30000;
@@ -314,7 +336,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     };
   };
 
-  // Generate dynamic category share donut chart for the selected store
   const getCategoryChartOption = () => {
     return {
       backgroundColor: 'transparent',
@@ -343,10 +364,9 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     };
   };
 
-  // Configured Drilldown Header from YAML Spec
   const configuredTitle = widget.drilldown?.title 
     ? renderTemplateString(widget.drilldown.title, selectedPin)
-    : `Store Performance Drill-Down: ${selectedPin?.name || ''}`;
+    : `Store Performance Drill-Down: ${selectedPin?.name || selectedPin?.store_name || ''}`;
 
   const configuredSubtitle = widget.drilldown?.subtitle
     ? renderTemplateString(widget.drilldown.subtitle, selectedPin)
@@ -354,7 +374,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
   return (
     <div className="flex flex-col w-full bg-slate-900/90 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
-      {/* 1. Header Bar with Real Google Maps Layer Switcher */}
+      {/* 1. Header Bar */}
       <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between shrink-0">
         <div>
           <div className="flex items-center gap-2.5">
@@ -365,7 +385,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-100 text-sm tracking-tight">{data?.dynamicTitle || widget.title}</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
-                  Google Maps Live ({allMasterStores.length} Stores Plotted)
+                  Google Maps Live ({storePoints.length} Stores Plotted)
                 </span>
               </div>
               {widget.subtitle && (
@@ -375,7 +395,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           </div>
         </div>
 
-        {/* Real Live Map Layer Switcher */}
+        {/* Map Layer Switcher */}
         <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs">
           <button
             onClick={() => setMapStyle('google_streets')}
@@ -404,11 +424,11 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         </div>
       </div>
 
-      {/* 2. Real Interactive Google Maps Viewport with Synchronized Teardrop Pins */}
+      {/* 2. Interactive Map Viewport */}
       <div className="h-[440px] relative w-full bg-slate-950">
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-10" />
 
-        {/* Custom Zoom Controls (Top Right) */}
+        {/* Zoom Controls */}
         <div className="absolute top-4 right-4 flex flex-col gap-1 z-20 bg-slate-950/90 p-1 rounded-xl border border-slate-800 shadow-xl backdrop-blur-md">
           <button
             onClick={() => mapInstanceRef.current?.zoomIn()}
@@ -435,7 +455,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           </button>
         </div>
 
-        {/* Target Attainment Legend Bar (Bottom Right) */}
+        {/* Legend */}
         <div className="absolute bottom-4 right-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-md z-20 flex flex-col gap-1.5 text-[11px] pointer-events-auto">
           <div className="flex items-center justify-between text-slate-300 font-bold gap-4">
             <span className="flex items-center gap-1.5">
@@ -457,7 +477,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           </div>
         </div>
 
-        {/* Prompt Pill when no store is selected */}
         {!selectedPin && (
           <div className="absolute bottom-4 left-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-xl z-20 flex items-center gap-2.5 text-xs text-slate-300 pointer-events-auto animate-in fade-in">
             <Sparkles className="w-4 h-4 text-cyan-400" />
@@ -466,7 +485,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         )}
       </div>
 
-      {/* 3. STORE OUTLETS DATA TABLE LIST (PLACED DIRECTLY BELOW THE MAP!) */}
+      {/* 3. STORE OUTLETS DATA TABLE LIST */}
       {showTable && (
         <div className="border-t border-slate-800 bg-slate-950 p-4">
           <div className="flex items-center justify-between mb-3 px-1">
@@ -475,7 +494,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
                 Store Outlets Target Attainment & Regional Performance Table
               </h4>
-              <span className="text-[10px] text-slate-500 font-mono">({allMasterStores.length} Stores)</span>
+              <span className="text-[10px] text-slate-500 font-mono">({storePoints.length} Stores)</span>
             </div>
             <span className="text-[10px] text-slate-400">
               💡 Select any store below to focus map and view deep-dive analytics
@@ -498,7 +517,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-medium">
-                {allMasterStores.map((st) => {
+                {storePoints.map((st: any) => {
                   const isSelected = selectedPin?.id === st.id;
                   const { color, label, badgeBg } = getAttainmentColor(st.target_achievement_pct);
 
@@ -513,7 +532,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                       }`}
                     >
                       <td className="py-3 px-4 font-mono text-[11px] font-bold text-cyan-400">{st.id}</td>
-                      <td className="py-3 px-4 font-bold text-slate-100">{st.name}</td>
+                      <td className="py-3 px-4 font-bold text-slate-100">{st.name || st.store_name}</td>
                       <td className="py-3 px-4 text-slate-400">{st.region}</td>
                       <td className="py-3 px-4 text-slate-300">{st.manager}</td>
                       <td className="py-3 px-4 text-right font-bold text-slate-100">{formatValue(st.sales, 'RM 0,0')}</td>
@@ -547,10 +566,9 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         </div>
       )}
 
-      {/* 4. STORE DRILL-DOWN DEEP-DIVE (SHOWN BELOW THE LIST WHEN A STORE IS SELECTED!) */}
+      {/* 4. STORE DRILL-DOWN DEEP-DIVE */}
       {selectedPin && (
         <div className="border-t border-slate-800 bg-slate-950/95 p-5 animate-in slide-in-from-top-4 duration-300">
-          {/* Drilldown Header with Close Button */}
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
@@ -571,7 +589,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
               </div>
             </div>
 
-            {/* Close Button */}
             <button
               onClick={handleCloseDrilldown}
               className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition flex items-center gap-1.5 text-xs font-semibold"
@@ -581,7 +598,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             </button>
           </div>
 
-          {/* Sub-Widget KPI Scorecards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily POS Revenue</span>
@@ -610,7 +626,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             </div>
           </div>
 
-          {/* Sub-Widget Charts: 1 Line Chart (Hourly Velocity) + 1 Donut Chart (Category Share) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className="lg:col-span-8 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
               <div className="flex items-center justify-between mb-2">
