@@ -161,18 +161,18 @@ widgets:
 
   # Row 3: Regional Store Performance & Inventory Radar
   - id: regional_sales_bar
-    title: "Store Cluster Performance & Same-Store-Sales (SSS)"
-    subtitle: "Actual POS Revenue vs Target across Clusters"
+    title: "Regional Store Performance vs Budget Target"
+    subtitle: "Actual POS Revenue vs Target across Regional Store Operating Clusters"
     type: bar_chart
     source: bq_seven_eleven
     position: { x: 0, y: 6, w: 7, h: 4 }
-    x: "cluster"
+    x: "region"
     y: ["Actual Revenue", "Target Revenue"]
     format: "RM 0.0a"
     interaction:
       on_click_filter:
         filter_id: "store_region"
-        field: "cluster"
+        field: "region"
 
   - id: 7eleven_radar
     title: "Store Operations & Supply Chain Health"

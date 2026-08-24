@@ -437,12 +437,22 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     };
   }
 
-  // Category Bar Chart
-  let categories = ['Cluster Zone 1', 'Cluster Zone 2', 'Cluster Zone 3', 'Cluster Zone 4', 'Cluster Zone 5'];
+  // Regional Store Operating Clusters Bar Chart
+  const allRegions = [
+    { name: 'Klang Valley / Central', baseActual: 38.5, baseTarget: 35.0 },
+    { name: 'Northern Region', baseActual: 24.8, baseTarget: 25.0 },
+    { name: 'Southern Region', baseActual: 28.2, baseTarget: 27.5 },
+    { name: 'East Coast & Islands', baseActual: 18.5, baseTarget: 19.0 },
+    { name: 'Sabah & Sarawak', baseActual: 16.2, baseTarget: 15.5 }
+  ];
+
+  let selectedRegions = allRegions;
   if (activeTokens.length > 0) {
-    const matched = categories.filter(c => matchesFilter(c, activeTokens));
-    if (matched.length > 0) categories = matched;
+    const matched = allRegions.filter(r => matchesFilter(r.name, activeTokens));
+    if (matched.length > 0) selectedRegions = matched;
   }
+
+  const categories = selectedRegions.map(r => r.name);
 
   const series = yMeasures.map((measure) => {
     let measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
@@ -454,8 +464,8 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
 
     return {
       name: measureName,
-      data: categories.map((_, i) => {
-        const base = (32.5 - i * 6.0) * (isTarget ? 1.06 : 1.0);
+      data: selectedRegions.map((r) => {
+        const base = isTarget ? r.baseTarget : r.baseActual;
         return Math.round(base * 1000000 * overallVolumeScale);
       })
     };
