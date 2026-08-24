@@ -44,7 +44,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         color: cyanPalette,
         series: [
           {
-            name: widget.title,
+            name: data?.dynamicTitle || widget.title,
             type: 'pie',
             radius: effectiveType === 'donut_chart' ? ['45%', '72%'] : '68%',
             avoidLabelOverlap: false,
@@ -84,7 +84,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         color: cyanPalette,
         series: [
           {
-            name: widget.title,
+            name: data?.dynamicTitle || widget.title,
             type: 'funnel',
             left: '10%',
             top: 20,
@@ -288,7 +288,8 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
   }), [onChartClick]);
 
   const isCartesian = ['line_chart', 'area_chart', 'bar_chart', 'stacked_bar'].includes(widget.type);
-  const subtitleDisplay = data?.dynamicSubtitle || widget.subtitle;
+  const displayTitle = data?.dynamicTitle || widget.title;
+  const displaySubtitle = data?.dynamicSubtitle || widget.subtitle;
 
   return (
     <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-sm h-full group">
@@ -296,17 +297,17 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-100 tracking-tight">{widget.title}</h3>
+            <h3 className="text-sm font-bold text-slate-100 tracking-tight">{displayTitle}</h3>
             {data?.activeGrain && (
               <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                 {data.activeGrain} Grain
               </span>
             )}
           </div>
-          {subtitleDisplay && <p className="text-xs text-slate-400 mt-0.5">{subtitleDisplay}</p>}
+          {displaySubtitle && <p className="text-xs text-slate-400 mt-0.5">{displaySubtitle}</p>}
         </div>
 
-        {/* Quick Granularity / Chart Morphing Switcher */}
+        {/* Quick Chart Morphing Switcher */}
         {isCartesian && (
           <div className="flex items-center gap-1 self-end sm:self-auto bg-slate-950/80 border border-slate-800 rounded-lg p-0.5">
             <button

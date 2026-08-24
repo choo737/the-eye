@@ -36,18 +36,19 @@ export const KpiWidget: React.FC<KpiWidgetProps> = ({ widget, data }) => {
   const comparisonText = data?.comparison_label || widget.comparison_label;
   const isPositive = comparisonText?.includes('+') || comparisonText?.includes('uplift');
   const isNegative = comparisonText?.includes('-');
+  const displayTitle = data?.dynamicTitle || widget.title;
 
   return (
     <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-sm group">
       <div>
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">
-            {widget.title}
+            {displayTitle}
           </h3>
           {widget.target && (
             <span className="flex items-center gap-1 text-[11px] text-slate-500" title={`Target: ${widget.target}`}>
               <Target className="w-3 h-3 text-cyan-400/70" />
-              <span className="font-mono text-slate-400">{widget.target}</span>
+              <span className="font-mono text-slate-400">{data?.target || widget.target}</span>
             </span>
           )}
         </div>

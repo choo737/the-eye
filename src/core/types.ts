@@ -88,6 +88,14 @@ export interface WidgetInteraction {
   };
 }
 
+export interface MeasureConfig {
+  field: string;
+  name?: string;
+  axis?: 'left' | 'right';
+  format?: string;
+  color?: string;
+}
+
 export interface WidgetSpec {
   id: string;
   title: string;
@@ -97,9 +105,9 @@ export interface WidgetSpec {
   query?: string;
   position: WidgetPosition;
   
-  // Visual mapping
+  // Visual & Schema Mapping (100% Declarative)
   x?: string;
-  y?: string | string[];
+  y?: string | string[] | MeasureConfig[];
   group_by?: string;
   category?: string;
   value?: string;
@@ -108,11 +116,14 @@ export interface WidgetSpec {
   color_scheme?: string | string[];
   sparkline?: boolean;
   comparison_label?: string;
+  dual_axis?: boolean;
+  auto_grain?: boolean;
   
   // Customization
   smooth?: boolean;
   stacked?: boolean;
   show_values?: boolean;
+  radar_indicators?: Array<{ name: string; max?: number }>;
   table_columns?: Array<{
     key: string;
     label: string;

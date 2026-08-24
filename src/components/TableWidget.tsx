@@ -41,12 +41,15 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, data }) => {
     }
   };
 
+  const displayTitle = data?.dynamicTitle || widget.title;
+  const displaySubtitle = data?.dynamicSubtitle || widget.subtitle;
+
   return (
     <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-sm h-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 tracking-tight">{widget.title}</h3>
-          {widget.subtitle && <p className="text-xs text-slate-400 mt-0.5">{widget.subtitle}</p>}
+          <h3 className="text-sm font-bold text-slate-100 tracking-tight">{displayTitle}</h3>
+          {displaySubtitle && <p className="text-xs text-slate-400 mt-0.5">{displaySubtitle}</p>}
         </div>
 
         <div className="relative">
@@ -110,7 +113,7 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, data }) => {
                       >
                         {col.badge ? (
                           <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
-                            String(rawVal).toLowerCase().includes('healthy') || String(rawVal).toLowerCase().includes('excellent') || String(rawVal).toLowerCase().includes('enterprise')
+                            String(rawVal).toLowerCase().includes('healthy') || String(rawVal).toLowerCase().includes('excellent') || String(rawVal).toLowerCase().includes('audited')
                               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                               : String(rawVal).toLowerCase().includes('warning') || String(rawVal).toLowerCase().includes('low stock')
                               ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'

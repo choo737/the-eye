@@ -4,416 +4,271 @@ export interface FilterState {
   [filterId: string]: any;
 }
 
+/**
+ * Template variable interpolator for titles, subtitles, and query strings.
+ * Supports: {{filter_id}}, {{grain}}, {{time_label}}, {{region}}, etc.
+ */
+export function interpolateString(template: string, context: Record<string, any>): string {
+  if (!template) return '';
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) => {
+    const val = context[key];
+    if (val === undefined || val === null) return '';
+    if (Array.isArray(val)) return val.join(', ');
+    return String(val);
+  });
+}
+
+/**
+ * Pure Schema-Driven Generic Query Engine.
+ * Operates strictly on widget declarations (x, y, category, value, format, query)
+ * without hardcoding any widget IDs or widget names.
+ */
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
-  const rawRegion = activeFilters['store_region'] || activeFilters['region'] || 'All Regions';
-  const selectedRegions = Array.isArray(rawRegion) ? rawRegion : [rawRegion];
-  const isAllRegions = selectedRegions.includes('All Regions') || selectedRegions.length === 0;
-
-  const rawDivision = activeFilters['product_division'] || activeFilters['division'] || 'All Divisions';
-  const isAllDivisions = rawDivision === 'All Divisions';
-
-  const rawTier = activeFilters['customer_tier'] || 'All Tiers';
-  const isAllTiers = rawTier === 'All Tiers';
-
-  const rawChannel = activeFilters['channel'] || 'All Channels';
-  const selectedChannels = Array.isArray(rawChannel) ? rawChannel : [rawChannel];
-  const isAllChannels = selectedChannels.includes('All Channels') || selectedChannels.length === 0;
-
+  // Extract active filter dimensions
   const timeRange = activeFilters['time_range'] || '2026-YTD';
   
-  // Adaptive time hierarchy / grain
+  // Calculate dynamic grain
   let effectiveGrain = overrideGrain;
   if (!effectiveGrain) {
     if (timeRange === 'last_30_days') effectiveGrain = 'day';
     else if (timeRange === 'last_90_days') effectiveGrain = 'week';
     else if (timeRange === 'all_time') effectiveGrain = 'quarter';
-    else effectiveGrain = 'month'; // default 2026-YTD
+    else effectiveGrain = 'month';
   }
 
-  let timeMultiplier = 1.0;
-  let dynamicComparison = '+14.2% vs last month';
-  let timeLabel = '2026 YTD';
-  if (timeRange === 'last_30_days') {
-    timeMultiplier = 0.28;
-    dynamicComparison = '+8.4% vs prev 30 days';
-    timeLabel = 'Last 30 Days';
-  } else if (timeRange === 'last_90_days') {
-    timeMultiplier = 0.65;
-    dynamicComparison = '+16.2% vs Q1 2026';
-    timeLabel = 'Last Quarter';
-  } else if (timeRange === 'all_time') {
-    timeMultiplier = 1.45;
-    dynamicComparison = '+82.5% lifetime';
-    timeLabel = 'All Time';
-  }
+  const timeLabel = 
+    timeRange === 'last_30_days' ? 'Last 30 Days' :
+    timeRange === 'last_90_days' ? 'Last Quarter' :
+    timeRange === 'all_time' ? 'All Time' : '2026 YTD';
 
-  // Region multiplier
-  let regionMultiplier = 1.0;
-  if (!isAllRegions) {
-    let sum = 0;
-    selectedRegions.forEach(r => {
-      const regStr = String(r).toLowerCase();
-      if (regStr.includes('klang') || regStr.includes('north america')) sum += 0.48;
-      else if (regStr.includes('northern') || regStr.includes('emea')) sum += 0.26;
-      else if (regStr.includes('southern') || regStr.includes('apac')) sum += 0.18;
-      else if (regStr.includes('east') || regStr.includes('latam')) sum += 0.08;
-      else sum += 0.25;
-    });
-    regionMultiplier = Math.min(1.0, Math.max(0.1, sum));
-  }
+  const grainLabel = 
+    effectiveGrain === 'day' ? 'Daily' :
+    effectiveGrain === 'week' ? 'Weekly' :
+    effectiveGrain === 'quarter' ? 'Quarterly' :
+    effectiveGrain === 'hour' ? 'Hourly' : 'Monthly';
 
-  // Division multiplier
-  let divisionMultiplier = 1.0;
-  if (!isAllDivisions) {
-    const divStr = String(rawDivision).toLowerCase();
-    if (divStr.includes('fresh') || divStr.includes('rte')) divisionMultiplier = 0.32;
-    else if (divStr.includes('beverage') || divStr.includes('slurpee')) divisionMultiplier = 0.28;
-    else if (divStr.includes('snack')) divisionMultiplier = 0.22;
-    else if (divStr.includes('tobacco')) divisionMultiplier = 0.18;
-    else divisionMultiplier = 0.4;
-  }
+  // Build interpolation context for dynamic titles/subtitles
+  const context: Record<string, any> = {
+    ...activeFilters,
+    time_range: timeLabel,
+    grain: grainLabel,
+    active_grain: grainLabel
+  };
 
-  // Tier multiplier
-  let tierMultiplier = 1.0;
-  if (!isAllTiers) {
-    if (rawTier === 'Enterprise') tierMultiplier = 0.65;
-    else if (rawTier === 'Mid-Market') tierMultiplier = 0.25;
-    else if (rawTier === 'Startup / Pro') tierMultiplier = 0.10;
-  }
+  const dynamicTitle = interpolateString(widget.title, context);
+  const dynamicSubtitle = widget.subtitle ? interpolateString(widget.subtitle, context) : `Showing ${grainLabel} rollup for ${timeLabel}`;
 
-  // Channel multiplier
-  let channelMultiplier = 1.0;
-  if (!isAllChannels) {
-    channelMultiplier = Math.max(0.2, selectedChannels.length * 0.25);
-  }
-
-  const compositeMultiplier = regionMultiplier * divisionMultiplier * tierMultiplier * channelMultiplier * timeMultiplier;
-
-  // -------------------------------------------------------------
-  // 🏪 7-ELEVEN BIGQUERY WIDGETS
-  // -------------------------------------------------------------
-  if (widget.id === 'kpi_pos_sales') {
-    return {
-      value: 78450000 * compositeMultiplier,
-      target: `$${(85.0 * compositeMultiplier).toFixed(1)}M`,
-      comparison_label: dynamicComparison,
-      sparklineData: [58, 62, 65, 71, 74, 76.5, 78.45].map(v => +(v * compositeMultiplier).toFixed(2))
-    };
-  }
-
-  if (widget.id === 'kpi_basket_size') {
-    const abv = 16.48 * (divisionMultiplier > 0.8 ? 1 : 1.15) * (isAllRegions ? 1 : 1.05);
-    return {
-      value: abv,
-      comparison_label: timeRange === 'last_30_days' ? '+$0.65 / basket' : '+$1.85 / basket',
-      sparklineData: [13.2, 13.8, 14.5, 15.1, 15.8, +(abv).toFixed(2)]
-    };
-  }
-
-  if (widget.id === 'kpi_store_count') {
-    let count = 2580;
-    if (!isAllRegions) count = Math.round(2580 * regionMultiplier);
-    return {
-      value: count,
-      comparison_label: '+28 new store openings',
-      sparklineData: [Math.round(count * 0.9), Math.round(count * 0.94), Math.round(count * 0.97), count]
-    };
-  }
-
-  if (widget.id === 'kpi_rte_share') {
-    const rtePct = isAllDivisions ? 28.6 : (rawDivision.includes('Fresh') ? 100 : 8.4);
-    return {
-      value: rtePct,
-      comparison_label: '+3.8% mix shift',
-      sparklineData: [21.0, 22.8, 24.5, 26.0, 27.4, rtePct]
-    };
-  }
-
-  // 🏪 Time-series chart with dual Y-axis & dynamic grain
-  if (widget.id === 'hourly_pos_velocity') {
-    if (effectiveGrain === 'day') {
-      const days = ['Aug 01', 'Aug 04', 'Aug 07', 'Aug 10', 'Aug 13', 'Aug 16', 'Aug 19', 'Aug 22', 'Aug 24'];
-      return {
-        grain: 'day',
-        activeGrain: 'Daily',
-        dynamicSubtitle: `Showing Daily aggregation for ${timeLabel} from BigQuery (seven-eleven-qlik-bq)`,
-        useDualAxis: true,
-        categories: days,
-        series: [
-          { name: 'Store Sales ($)', yAxisIndex: 0, data: [2100, 2450, 2300, 2850, 2650, 3100, 2950, 3400, 3650].map(v => +(v * 1000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
-          { name: 'Customer Count', yAxisIndex: 1, data: [18000, 21000, 19500, 24000, 22500, 26000, 25000, 29000, 31500].map(v => Math.round(v * regionMultiplier)) }
-        ]
-      };
-    } else if (effectiveGrain === 'week') {
-      const weeks = ['W1 Jun', 'W2 Jun', 'W3 Jun', 'W4 Jun', 'W1 Jul', 'W2 Jul', 'W3 Jul', 'W4 Jul', 'W1 Aug', 'W2 Aug', 'W3 Aug', 'W4 Aug'];
-      return {
-        grain: 'week',
-        activeGrain: 'Weekly',
-        dynamicSubtitle: `Showing Weekly aggregation for ${timeLabel} from BigQuery (seven-eleven-qlik-bq)`,
-        useDualAxis: true,
-        categories: weeks,
-        series: [
-          { name: 'Store Sales ($)', yAxisIndex: 0, data: [14.2, 15.1, 14.8, 16.5, 17.2, 16.9, 18.4, 19.1, 18.8, 20.2, 21.5, 22.8].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
-          { name: 'Customer Count', yAxisIndex: 1, data: [120, 128, 124, 139, 145, 142, 155, 161, 158, 170, 181, 192].map(v => Math.round(v * 1000 * regionMultiplier)) }
-        ]
-      };
-    } else if (effectiveGrain === 'quarter' || effectiveGrain === 'month') {
-      const months = ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26'];
-      return {
-        grain: 'month',
-        activeGrain: 'Monthly',
-        dynamicSubtitle: `Showing Monthly aggregation for ${timeLabel} from BigQuery (seven-eleven-qlik-bq)`,
-        useDualAxis: true,
-        categories: months,
-        series: [
-          { name: 'Store Sales ($)', yAxisIndex: 0, data: [58.2, 62.4, 65.1, 71.0, 74.3, 76.5, 78.45, 81.2].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier * timeMultiplier).toFixed(0)) },
-          { name: 'Customer Count', yAxisIndex: 1, data: [480, 510, 535, 580, 610, 630, 645, 670].map(v => Math.round(v * 1000 * regionMultiplier)) }
-        ]
-      };
-    } else {
-      const hours = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
-      return {
-        grain: 'hour',
-        activeGrain: 'Hourly',
-        dynamicSubtitle: `Showing Intraday Hourly stream from BigQuery (seven-eleven-qlik-bq)`,
-        useDualAxis: true,
-        categories: hours,
-        series: [
-          { name: 'Store Sales ($)', yAxisIndex: 0, data: [42, 115, 168, 280, 210, 195, 310, 290, 185, 95].map(v => +(v * 1000 * compositeMultiplier).toFixed(0)) },
-          { name: 'Customer Count', yAxisIndex: 1, data: [320, 890, 1250, 2100, 1650, 1540, 2450, 2200, 1400, 750].map(v => Math.round(v * compositeMultiplier)) }
-        ]
-      };
+  // Filter multipliers for synthetic OLAP generation based on dimensions
+  let scale = 1.0;
+  Object.entries(activeFilters).forEach(([key, val]) => {
+    if (Array.isArray(val) && !val.includes('All Regions') && !val.includes('All Channels') && val.length > 0) {
+      scale *= Math.min(1.0, val.length * 0.38);
+    } else if (typeof val === 'string' && !val.startsWith('All')) {
+      scale *= 0.55;
     }
+  });
+
+  if (timeRange === 'last_30_days') scale *= 0.28;
+  else if (timeRange === 'last_90_days') scale *= 0.65;
+  else if (timeRange === 'all_time') scale *= 1.45;
+
+  // -------------------------------------------------------------
+  // 1. KPI WIDGET EXECUTION (Declarative value, target, sparkline)
+  // -------------------------------------------------------------
+  if (widget.type === 'kpi_card') {
+    let baseVal = 78450000;
+    if (widget.format?.includes('%')) baseVal = 28.6;
+    else if (widget.format?.includes('$0.00') && !widget.format?.includes('a')) baseVal = 16.48;
+    else if (widget.format === '0,0') baseVal = 2580;
+    else if (widget.format?.includes('mos')) baseVal = 11.4;
+
+    const computedVal = widget.format?.includes('%') 
+      ? +(baseVal * (scale > 0.6 ? 1 : 0.95)).toFixed(1)
+      : widget.format?.includes('$0.00') && !widget.format?.includes('a')
+      ? +(baseVal * (scale > 0.6 ? 1 : 1.08)).toFixed(2)
+      : Math.round(baseVal * scale);
+
+    const comparisonText = timeRange === 'last_30_days' 
+      ? '+8.4% vs prev 30 days' 
+      : timeRange === 'last_90_days' 
+      ? '+16.2% vs Q1' 
+      : widget.comparison_label || '+14.2% YoY';
+
+    return {
+      dynamicTitle,
+      dynamicSubtitle,
+      value: computedVal,
+      target: widget.target ? interpolateString(widget.target, context) : undefined,
+      comparison_label: comparisonText,
+      sparklineData: [0.75, 0.82, 0.88, 0.93, 0.97, 1.0].map(m => +(computedVal * m).toFixed(1))
+    };
   }
 
-  if (widget.id === 'division_share_donut') {
+  // -------------------------------------------------------------
+  // 2. PIE / DONUT WIDGET EXECUTION (Declarative category & value)
+  // -------------------------------------------------------------
+  if (widget.type === 'donut_chart' || widget.type === 'pie_chart') {
+    const rawCategoryFilter = activeFilters['product_division'] || activeFilters['customer_tier'] || activeFilters['category'] || 'All';
     let slices = [
-      { name: 'Fresh Food & RTE (Onigiri/Sandwiches)', value: Math.round(22400000 * regionMultiplier * timeMultiplier) },
-      { name: 'Beverages & Slurpee', value: Math.round(19800000 * regionMultiplier * timeMultiplier) },
-      { name: 'Snacks & Confectionery', value: Math.round(15600000 * regionMultiplier * timeMultiplier) },
-      { name: 'Tobacco & Core Services', value: Math.round(12800000 * regionMultiplier * timeMultiplier) },
-      { name: 'Personal Care & General', value: Math.round(7850000 * regionMultiplier * timeMultiplier) }
-    ];
-    if (!isAllDivisions) {
-      slices = slices.filter(s => s.name.toLowerCase().includes(rawDivision.toLowerCase().slice(0, 5)));
-      if (slices.length === 0) {
-        slices = [{ name: rawDivision, value: Math.round(25000000 * compositeMultiplier) }];
-      }
-    }
-    return { 
-      data: slices,
-      dynamicSubtitle: isAllDivisions ? 'Category revenue share across all product lines' : `Filtered to ${rawDivision}`
-    };
-  }
-
-  if (widget.id === 'regional_sales_bar') {
-    let clusters = [
-      { name: 'Klang Valley / Central', actual: 32.5, target: 34.0 },
-      { name: 'Northern Region', actual: 18.2, target: 19.0 },
-      { name: 'Southern Region', actual: 14.6, target: 15.0 },
-      { name: 'East Coast & Islands', actual: 8.4, target: 9.0 },
-      { name: 'Sabah & Sarawak', actual: 4.75, target: 5.0 }
+      { name: 'Fresh Food & Ready-to-Eat (RTE)', value: Math.round(24500000 * scale) },
+      { name: 'Beverages & Slurpee', value: Math.round(19800000 * scale) },
+      { name: 'Snacks & Confectionery', value: Math.round(15600000 * scale) },
+      { name: 'Tobacco & Core Services', value: Math.round(12800000 * scale) },
+      { name: 'General & Personal Care', value: Math.round(7850000 * scale) }
     ];
 
-    if (!isAllRegions) {
-      clusters = clusters.filter(c => selectedRegions.some(sr => c.name.toLowerCase().includes(String(sr).toLowerCase().slice(0, 5))));
-      if (clusters.length === 0) clusters = [{ name: selectedRegions[0], actual: 20 * compositeMultiplier, target: 22 * compositeMultiplier }];
+    if (rawCategoryFilter && !String(rawCategoryFilter).startsWith('All')) {
+      const match = slices.filter(s => s.name.toLowerCase().includes(String(rawCategoryFilter).toLowerCase().slice(0, 5)));
+      if (match.length > 0) slices = match;
     }
 
     return {
-      categories: clusters.map(c => c.name),
-      dynamicSubtitle: isAllRegions ? 'Actual POS Revenue vs Target across Store Clusters' : `Store performance for ${selectedRegions.join(', ')}`,
-      series: [
-        { name: 'Actual Revenue', data: clusters.map(c => +(c.actual * 1000000 * divisionMultiplier * timeMultiplier).toFixed(0)) },
-        { name: 'Target Revenue', data: clusters.map(c => +(c.target * 1000000 * divisionMultiplier * timeMultiplier).toFixed(0)) }
-      ]
+      dynamicTitle,
+      dynamicSubtitle,
+      data: slices
     };
-  }
-
-  if (widget.id === '7eleven_radar') {
-    return {
-      indicators: [
-        { name: 'On-Shelf Availability', max: 100 },
-        { name: 'Fresh Food Wastage Control', max: 100 },
-        { name: 'POS Transaction Speed', max: 100 },
-        { name: 'Cold Chain Compliance', max: 100 },
-        { name: 'Store Audit Score', max: 100 }
-      ],
-      series: [
-        { name: '7-Eleven Benchmark', value: [94, 86, 96, 98, 92] }
-      ]
-    };
-  }
-
-  if (widget.id === 'store_performance_table') {
-    const allStoreRows = [
-      { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region: 'Klang Valley / Central', daily_sales: Math.round(38400 * divisionMultiplier * timeMultiplier), avg_basket: 24.50, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
-      { store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', region: 'Klang Valley / Central', daily_sales: Math.round(31200 * divisionMultiplier * timeMultiplier), avg_basket: 21.80, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
-      { store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', region: 'Northern Region', daily_sales: Math.round(24500 * divisionMultiplier * timeMultiplier), avg_basket: 19.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
-      { store_id: '7E-3118', store_name: 'JB City Square Customs Hub', region: 'Southern Region', daily_sales: Math.round(28900 * divisionMultiplier * timeMultiplier), avg_basket: 22.40, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
-      { store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', region: 'Klang Valley / Central', daily_sales: Math.round(42100 * divisionMultiplier * timeMultiplier), avg_basket: 29.80, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
-      { store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', region: 'Northern Region', daily_sales: Math.round(16800 * divisionMultiplier * timeMultiplier), avg_basket: 15.60, compliance: 'Low Stock Alert', pos_terminal_count: 2 },
-      { store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', region: 'East Coast & Islands', daily_sales: Math.round(19500 * divisionMultiplier * timeMultiplier), avg_basket: 18.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
-      { store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', region: 'East Coast & Islands', daily_sales: Math.round(21400 * divisionMultiplier * timeMultiplier), avg_basket: 20.10, compliance: 'Healthy / Audited', pos_terminal_count: 3 }
-    ];
-
-    let filteredRows = allStoreRows;
-    if (!isAllRegions) {
-      filteredRows = filteredRows.filter(row => 
-        selectedRegions.some(sr => row.region.toLowerCase().includes(String(sr).toLowerCase().slice(0, 5)))
-      );
-    }
-
-    return { rows: filteredRows };
   }
 
   // -------------------------------------------------------------
-  // 📈 SAAS EXECUTIVE DASHBOARD WIDGETS
+  // 3. RADAR WIDGET EXECUTION (Declarative indicators)
   // -------------------------------------------------------------
-  if (widget.id === 'kpi_arr') {
-    return {
-      value: 48200000 * compositeMultiplier,
-      target: `$${(52.0 * compositeMultiplier).toFixed(1)}M`,
-      comparison_label: dynamicComparison,
-      sparklineData: [32, 35, 38, 41, 44, 46.5, 48.2].map(v => +(v * compositeMultiplier).toFixed(1))
-    };
-  }
-
-  if (widget.id === 'kpi_nrr') {
-    return {
-      value: +(124.5 * (tierMultiplier > 0.8 ? 1 : 0.95)).toFixed(1),
-      target: '120.0%',
-      comparison_label: '+3.2% vs target',
-      sparklineData: [118, 119.5, 121, 122, 123.8, 124.5]
-    };
-  }
-
-  if (widget.id === 'kpi_cac_payback') {
-    return {
-      value: 11.4,
-      target: '12.0 mos',
-      comparison_label: '-2.1 mos QoQ',
-      sparklineData: [15.2, 14.1, 13.5, 12.8, 12.0, 11.4]
-    };
-  }
-
-  if (widget.id === 'kpi_active_accounts') {
-    return {
-      value: Math.round(1480 * compositeMultiplier),
-      comparison_label: '+142 new logos',
-      sparklineData: [920, 1040, 1180, 1290, 1390, 1480].map(v => Math.round(v * compositeMultiplier))
-    };
-  }
-
-  if (widget.id === 'arr_trend_chart') {
-    if (effectiveGrain === 'day') {
-      const days = ['Aug 01', 'Aug 05', 'Aug 10', 'Aug 15', 'Aug 20', 'Aug 24'];
-      return {
-        grain: 'day',
-        activeGrain: 'Daily',
-        dynamicSubtitle: `Showing Daily ARR trajectory for ${timeLabel}`,
-        categories: days,
-        series: [
-          { name: 'Actual ARR', data: [45.2, 46.1, 46.8, 47.4, 47.9, 48.2].map(v => +(v * compositeMultiplier).toFixed(1)) },
-          { name: 'Target', data: [46.0, 46.5, 47.0, 47.5, 48.0, 48.5].map(v => +(v * compositeMultiplier).toFixed(1)) }
-        ]
-      };
-    } else if (effectiveGrain === 'week') {
-      const weeks = ['W1 Jun', 'W2 Jun', 'W3 Jun', 'W4 Jun', 'W1 Jul', 'W2 Jul', 'W3 Jul', 'W4 Jul', 'W1 Aug', 'W2 Aug', 'W3 Aug', 'W4 Aug'];
-      return {
-        grain: 'week',
-        activeGrain: 'Weekly',
-        dynamicSubtitle: `Showing Weekly ARR trajectory for ${timeLabel}`,
-        categories: weeks,
-        series: [
-          { name: 'Actual ARR', data: [38.2, 39.5, 40.8, 41.6, 42.8, 44.0, 45.2, 46.1, 46.8, 47.2, 47.8, 48.2].map(v => +(v * compositeMultiplier).toFixed(1)) },
-          { name: 'Target', data: [39.0, 40.0, 41.0, 42.0, 43.0, 44.0, 45.0, 46.0, 47.0, 48.0, 49.0, 50.0].map(v => +(v * compositeMultiplier).toFixed(1)) }
-        ]
-      };
-    } else {
-      const months = ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26 (F)', 'Sep 26 (F)'];
-      return {
-        grain: 'month',
-        activeGrain: 'Monthly',
-        dynamicSubtitle: `Showing Monthly ARR trajectory & forecast for ${timeLabel}`,
-        categories: months,
-        series: [
-          { name: 'Actual ARR', data: [34, 36, 38.5, 41.2, 44.0, 46.8, 48.2, null, null].map(v => v ? +(v * compositeMultiplier).toFixed(1) : null) },
-          { name: 'Forecast ARR', data: [null, null, null, null, null, null, 48.2, 50.8, 53.5].map(v => v ? +(v * compositeMultiplier).toFixed(1) : null) },
-          { name: 'Target', data: [35, 37, 39, 41.5, 44, 46.5, 49, 51.5, 54].map(v => +(v * compositeMultiplier).toFixed(1)) }
-        ]
-      };
-    }
-  }
-
-  if (widget.id === 'tier_donut') {
-    let tiers = [
-      { name: 'Enterprise ($100k+)', value: Math.round(28400000 * regionMultiplier * timeMultiplier) },
-      { name: 'Mid-Market ($25k-$100k)', value: Math.round(14600000 * regionMultiplier * timeMultiplier) },
-      { name: 'Startup / Pro ($5k-$25k)', value: Math.round(5200000 * regionMultiplier * timeMultiplier) }
+  if (widget.type === 'radar') {
+    const indicators = widget.radar_indicators || [
+      { name: 'On-Shelf Availability', max: 100 },
+      { name: 'Fresh Food Wastage Control', max: 100 },
+      { name: 'POS Transaction Speed', max: 100 },
+      { name: 'Cold Chain Compliance', max: 100 },
+      { name: 'Store Audit Score', max: 100 }
     ];
-    if (!isAllTiers) {
-      tiers = tiers.filter(t => t.name.toLowerCase().includes(rawTier.toLowerCase().slice(0, 5)));
-    }
-    return { data: tiers };
-  }
 
-  if (widget.id === 'regional_bar') {
-    let regions = [
-      { name: 'North America', newArr: 14.2, expArr: 11.8 },
-      { name: 'EMEA', newArr: 7.8, expArr: 5.2 },
-      { name: 'APAC', newArr: 4.5, expArr: 2.1 },
-      { name: 'LATAM', newArr: 2.1, expArr: 0.5 }
-    ];
-    if (!isAllRegions) {
-      regions = regions.filter(r => selectedRegions.some(sr => r.name.toLowerCase().includes(String(sr).toLowerCase().slice(0, 4))));
-    }
     return {
-      categories: regions.map(r => r.name),
+      dynamicTitle,
+      dynamicSubtitle,
+      indicators,
       series: [
-        { name: 'New ARR', data: regions.map(r => +(r.newArr * tierMultiplier * timeMultiplier).toFixed(1)) },
-        { name: 'Expansion ARR', data: regions.map(r => +(r.expArr * tierMultiplier * timeMultiplier).toFixed(1)) }
+        { name: widget.title, value: [94, 86, 96, 98, 92] }
       ]
     };
   }
 
-  if (widget.id === 'acquisition_funnel') {
+  // -------------------------------------------------------------
+  // 4. FUNNEL WIDGET EXECUTION
+  // -------------------------------------------------------------
+  if (widget.type === 'funnel') {
     return {
+      dynamicTitle,
+      dynamicSubtitle,
       data: [
-        { name: 'Website Visitors (MQL)', value: Math.round(450000 * compositeMultiplier) },
-        { name: 'Product Signups (PQL)', value: Math.round(48000 * compositeMultiplier) },
-        { name: 'Sales Qualified (SQL)', value: Math.round(8400 * compositeMultiplier) },
-        { name: 'Executive Demo Done', value: Math.round(3200 * compositeMultiplier) },
-        { name: 'Proposal Sent', value: Math.round(1450 * compositeMultiplier) },
-        { name: 'Closed Won Contract', value: Math.round(620 * compositeMultiplier) }
+        { name: 'MQL Website Traffic', value: Math.round(450000 * scale) },
+        { name: 'PQL App Signups', value: Math.round(48000 * scale) },
+        { name: 'SQL Store Leads', value: Math.round(8400 * scale) },
+        { name: 'Demo / Proposal', value: Math.round(3200 * scale) },
+        { name: 'Closed Contract', value: Math.round(620 * scale) }
       ]
     };
   }
 
-  if (widget.id === 'top_accounts_table') {
-    const allAccounts = [
-      { account_name: 'Acme Global Corp', region: 'North America', tier: 'Enterprise', arr: Math.round(1250000 * timeMultiplier), nrr: 135.2, health_score: 'Excellent', renewal_date: '2026-11-15' },
-      { account_name: 'Nexis Financial Group', region: 'EMEA', tier: 'Enterprise', arr: Math.round(980000 * timeMultiplier), nrr: 128.0, health_score: 'Good', renewal_date: '2026-12-01' },
-      { account_name: 'Starlight Retail Inc', region: 'North America', tier: 'Enterprise', arr: Math.round(840000 * timeMultiplier), nrr: 142.5, health_score: 'Excellent', renewal_date: '2027-01-20' },
-      { account_name: 'Vertex Cloud Tech', region: 'APAC', tier: 'Enterprise', arr: Math.round(650000 * timeMultiplier), nrr: 118.4, health_score: 'Good', renewal_date: '2026-10-10' },
-      { account_name: 'Apex Mobility', region: 'EMEA', tier: 'Mid-Market', arr: Math.round(320000 * timeMultiplier), nrr: 112.0, health_score: 'Warning', renewal_date: '2026-09-30' }
+  // -------------------------------------------------------------
+  // 5. TABLE WIDGET EXECUTION (Declarative table_columns)
+  // -------------------------------------------------------------
+  if (widget.type === 'table') {
+    const storeRegionFilter = activeFilters['store_region'] || activeFilters['region'];
+    const allRows = [
+      { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region: 'Klang Valley / Central', daily_sales: Math.round(38400 * scale), avg_basket: 24.50, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
+      { store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', region: 'Klang Valley / Central', daily_sales: Math.round(31200 * scale), avg_basket: 21.80, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
+      { store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', region: 'Northern Region', daily_sales: Math.round(24500 * scale), avg_basket: 19.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
+      { store_id: '7E-3118', store_name: 'JB City Square Customs Hub', region: 'Southern Region', daily_sales: Math.round(28900 * scale), avg_basket: 22.40, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
+      { store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', region: 'Klang Valley / Central', daily_sales: Math.round(42100 * scale), avg_basket: 29.80, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
+      { store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', region: 'Northern Region', daily_sales: Math.round(16800 * scale), avg_basket: 15.60, compliance: 'Low Stock Alert', pos_terminal_count: 2 },
+      { store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', region: 'East Coast & Islands', daily_sales: Math.round(19500 * scale), avg_basket: 18.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
+      { store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', region: 'East Coast & Islands', daily_sales: Math.round(21400 * scale), avg_basket: 20.10, compliance: 'Healthy / Audited', pos_terminal_count: 3 }
     ];
 
-    let filtered = allAccounts;
-    if (!isAllRegions) {
-      filtered = filtered.filter(a => selectedRegions.some(sr => a.region.toLowerCase().includes(String(sr).toLowerCase().slice(0, 4))));
-    }
-    if (!isAllTiers) {
-      filtered = filtered.filter(a => a.tier.toLowerCase() === rawTier.toLowerCase());
+    let filteredRows = allRows;
+    if (storeRegionFilter && !storeRegionFilter.includes('All Regions') && storeRegionFilter.length > 0) {
+      const selected = Array.isArray(storeRegionFilter) ? storeRegionFilter : [storeRegionFilter];
+      filteredRows = filteredRows.filter(r => selected.some(s => r.region.toLowerCase().includes(String(s).toLowerCase().slice(0, 5))));
     }
 
-    return { rows: filtered };
+    return {
+      dynamicTitle,
+      dynamicSubtitle,
+      rows: filteredRows
+    };
   }
 
-  // Fallback
+  // -------------------------------------------------------------
+  // 6. CARTESIAN TIME-SERIES & CATEGORY CHARTS (Line, Bar, Area)
+  // -------------------------------------------------------------
+  // Determine series names from declarative YAML `y` array
+  const yMeasures = Array.isArray(widget.y) ? widget.y : (widget.y ? [widget.y] : ['Sales Volume']);
+  const isDualAxis = widget.dual_axis || (yMeasures.length > 1 && yMeasures.some(m => String(m).toLowerCase().includes('count') || String(m).toLowerCase().includes('rate')));
+
+  // Category vs Time-series detection
+  const isTimeSeries = widget.x === 'hour' || widget.x === 'date' || widget.x === 'month' || widget.x === 'time' || widget.auto_grain;
+
+  if (isTimeSeries) {
+    let categories: string[] = [];
+    if (effectiveGrain === 'day') {
+      categories = ['Aug 01', 'Aug 04', 'Aug 07', 'Aug 10', 'Aug 13', 'Aug 16', 'Aug 19', 'Aug 22', 'Aug 24'];
+    } else if (effectiveGrain === 'week') {
+      categories = ['W1 Jun', 'W2 Jun', 'W3 Jun', 'W4 Jun', 'W1 Jul', 'W2 Jul', 'W3 Jul', 'W4 Jul', 'W1 Aug', 'W2 Aug', 'W3 Aug', 'W4 Aug'];
+    } else if (effectiveGrain === 'hour') {
+      categories = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
+    } else {
+      categories = ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26'];
+    }
+
+    const series = yMeasures.map((measure, idx) => {
+      const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
+      const isSecondary = isDualAxis && idx > 0 && (measureName.toLowerCase().includes('count') || measureName.toLowerCase().includes('rate'));
+
+      const baseNumbers = categories.map((_, i) => {
+        const trend = (i + 1) / categories.length;
+        if (isSecondary) return Math.round((18000 + trend * 12000) * (scale > 0.5 ? 1 : scale * 1.5));
+        return Math.round((2400 + trend * 1600) * 1000 * scale);
+      });
+
+      return {
+        name: measureName,
+        yAxisIndex: isSecondary ? 1 : 0,
+        data: baseNumbers
+      };
+    });
+
+    return {
+      dynamicTitle,
+      dynamicSubtitle,
+      grain: effectiveGrain,
+      activeGrain: grainLabel,
+      useDualAxis: isDualAxis,
+      categories,
+      series
+    };
+  }
+
+  // Category Bar Chart (e.g. Regions or Clusters)
+  let categories = ['Klang Valley / Central', 'Northern Region', 'Southern Region', 'East Coast & Islands', 'Sabah & Sarawak'];
+  const storeRegionFilter = activeFilters['store_region'] || activeFilters['region'];
+  if (storeRegionFilter && !storeRegionFilter.includes('All Regions') && storeRegionFilter.length > 0) {
+    const selected = Array.isArray(storeRegionFilter) ? storeRegionFilter : [storeRegionFilter];
+    categories = categories.filter(c => selected.some(s => c.toLowerCase().includes(String(s).toLowerCase().slice(0, 5))));
+    if (categories.length === 0) categories = selected;
+  }
+
+  const series = yMeasures.map((measure) => {
+    const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
+    return {
+      name: measureName,
+      data: categories.map((_, i) => Math.round((32.5 - i * 6.5) * 1000000 * scale))
+    };
+  });
+
   return {
-    value: 1250000 * compositeMultiplier,
-    categories: ['Q1', 'Q2', 'Q3', 'Q4'],
-    series: [{ name: 'Metric', data: [120, 150, 180, 220].map(v => v * compositeMultiplier) }]
+    dynamicTitle,
+    dynamicSubtitle,
+    useDualAxis: isDualAxis,
+    categories,
+    series
   };
 }

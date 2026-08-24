@@ -58,7 +58,7 @@ layout:
   row_height: 100
 
 widgets:
-  # Row 1: KPI Metrics
+  # Row 1: KPI Metrics (Configurable Titles, Targets, and Formats)
   - id: kpi_pos_sales
     title: "Total POS Gross Sales"
     type: kpi_card
@@ -67,7 +67,7 @@ widgets:
     value: "gross_sales"
     target: "$85.0M"
     format: "$0.00a"
-    comparison_label: "+14.2% vs last month"
+    comparison_label: "+14.2% YoY"
     sparkline: true
     query: |
       SELECT sum(total_amount) as gross_sales 
@@ -107,21 +107,23 @@ widgets:
     comparison_label: "+3.8% mix shift"
     sparkline: true
 
-  # Row 2: Charts
-  - id: hourly_pos_velocity
+  # Row 2: Configurable Time Series & Category Breakdown
+  - id: pos_velocity_chart
     title: "POS Transaction Velocity & Footfall"
-    subtitle: "Real-time stream from BigQuery (seven-eleven-qlik-bq)"
+    subtitle: "Showing {{active_grain}} stream for {{time_range}} from BigQuery (seven-eleven-qlik-bq)"
     type: line_chart
     source: bq_seven_eleven
     position: { x: 0, y: 2, w: 8, h: 4 }
-    x: "hour"
+    x: "date"
     y: ["Store Sales ($)", "Customer Count"]
+    dual_axis: true
+    auto_grain: true
     format: "$0.0a"
     smooth: true
 
   - id: division_share_donut
     title: "Sales Share by Product Category"
-    subtitle: "RTE vs Beverages vs Snacks vs Tobacco"
+    subtitle: "Category distribution for {{time_range}}"
     type: donut_chart
     source: bq_seven_eleven
     position: { x: 8, y: 2, w: 4, h: 4 }
@@ -136,7 +138,7 @@ widgets:
   # Row 3: Regional Store Performance & Inventory Radar
   - id: regional_sales_bar
     title: "Store Cluster Performance & Same-Store-Sales (SSS)"
-    subtitle: "Actual POS Revenue vs Target"
+    subtitle: "Actual POS Revenue vs Target across Clusters"
     type: bar_chart
     source: bq_seven_eleven
     position: { x: 0, y: 6, w: 7, h: 4 }
@@ -150,7 +152,7 @@ widgets:
 
   - id: 7eleven_radar
     title: "Store Operations & Supply Chain Health"
-    subtitle: "Restock turnaround, on-shelf availability, waste %"
+    subtitle: "Operational metrics and store audit scores"
     type: radar
     source: bq_seven_eleven
     position: { x: 7, y: 6, w: 5, h: 4 }
@@ -226,7 +228,7 @@ widgets:
     source: revenue_lakehouse
     position: { x: 0, y: 0, w: 3, h: 2 }
     value: "arr"
-    target: "arr_target"
+    target: "$52.0M"
     format: "$0.00a"
     comparison_label: "+18.4% YoY"
     sparkline: true
@@ -264,12 +266,12 @@ widgets:
 
   - id: arr_trend_chart
     title: "ARR Growth Trajectory & Forecast"
-    subtitle: "Actuals vs Target vs Pipeline Forecast"
+    subtitle: "Showing {{active_grain}} trajectory for {{time_range}}"
     type: area_chart
     source: revenue_lakehouse
     position: { x: 0, y: 2, w: 8, h: 4 }
-    x: "month"
-    y: ["Actual ARR", "Forecast ARR", "Target"]
+    x: "date"
+    y: ["Actual ARR", "Target"]
     format: "$0.0a"
     smooth: true
 
@@ -332,142 +334,6 @@ widgets:
         align: "center"
 `;
 
-export const ECOMMERCE_DASHBOARD_YAML = `version: "1.0"
-id: "ecommerce-omnichannel"
-title: "The Eye — Omnichannel Retail & E-Commerce"
-description: "Cross-channel revenue, conversion rates, order velocity, and inventory dynamics"
-theme: "emerald-slate"
-refresh_interval: "30s"
-
-data_sources:
-  - id: bq_store
-    name: "BigQuery Commerce Production"
-    type: bigquery
-    project: "retail-analytics-2026"
-    dataset: "omnichannel"
-
-filters:
-  - id: channel
-    label: "Sales Channel"
-    type: multi_select
-    default: ["All Channels"]
-    options:
-      - label: "All Channels"
-        value: "All Channels"
-      - label: "Direct Web Store"
-        value: "Direct Web Store"
-      - label: "Amazon Marketplace"
-        value: "Amazon Marketplace"
-      - label: "TikTok Shop"
-        value: "TikTok Shop"
-      - label: "Physical Flagship Stores"
-        value: "Physical Flagship Stores"
-
-layout:
-  columns: 12
-
-widgets:
-  - id: kpi_gmv
-    title: "Gross Merchandise Value (GMV)"
-    type: kpi_card
-    source: bq_store
-    position: { x: 0, y: 0, w: 3, h: 2 }
-    value: "gmv"
-    format: "$0.00a"
-    comparison_label: "+24.8% vs last week"
-    sparkline: true
-
-  - id: kpi_orders
-    title: "Total Orders Completed"
-    type: kpi_card
-    source: bq_store
-    position: { x: 3, y: 0, w: 3, h: 2 }
-    value: "orders"
-    format: "0,0"
-    comparison_label: "+12.1% order volume"
-    sparkline: true
-
-  - id: kpi_aov
-    title: "Average Order Value (AOV)"
-    type: kpi_card
-    source: bq_store
-    position: { x: 6, y: 0, w: 3, h: 2 }
-    value: "aov"
-    format: "$0.00"
-    comparison_label: "+$8.50 optimization"
-    sparkline: true
-
-  - id: kpi_conversion
-    title: "Checkout Conversion Rate"
-    type: kpi_card
-    source: bq_store
-    position: { x: 9, y: 0, w: 3, h: 2 }
-    value: "cvr"
-    format: "0.00%"
-    comparison_label: "+0.45% uplift"
-    sparkline: true
-
-  - id: hourly_sales_trend
-    title: "Sales Velocity & Order Volume"
-    type: line_chart
-    source: bq_store
-    position: { x: 0, y: 2, w: 8, h: 4 }
-    x: "hour"
-    y: ["Online Revenue", "In-Store Revenue"]
-    format: "$0.0a"
-    smooth: true
-
-  - id: channel_share_pie
-    title: "Revenue Share by Channel"
-    type: pie_chart
-    source: bq_store
-    position: { x: 8, y: 2, w: 4, h: 4 }
-    category: "channel"
-    value: "revenue"
-    format: "$0.0a"
-
-  - id: category_performance_bar
-    title: "Top Product Categories GMV & Margin"
-    type: bar_chart
-    source: bq_store
-    position: { x: 0, y: 6, w: 7, h: 4 }
-    x: "category"
-    y: ["GMV", "Gross Profit"]
-    format: "$0.0a"
-
-  - id: inventory_radar
-    title: "Supply Chain & Fulfillment Health"
-    type: radar
-    source: bq_store
-    position: { x: 7, y: 6, w: 5, h: 4 }
-
-  - id: top_products_table
-    title: "High Velocity Products & Stock Alerts"
-    type: table
-    source: bq_store
-    position: { x: 0, y: 10, w: 12, h: 4 }
-    table_columns:
-      - key: "product_name"
-        label: "Product Name"
-      - key: "sku"
-        label: "SKU"
-      - key: "units_sold"
-        label: "Units Sold"
-        format: "0,0"
-        align: "right"
-      - key: "revenue"
-        label: "Revenue"
-        format: "$0,0"
-        align: "right"
-      - key: "stock_status"
-        label: "Inventory Status"
-        badge: true
-      - key: "margin"
-        label: "Margin"
-        format: "0.0%"
-        align: "right"
-`;
-
 export const SAMPLE_DASHBOARDS: Record<string, { name: string; yaml: string }> = {
   'seven-eleven-bq': {
     name: '🏪 7-Eleven BigQuery (seven-eleven-qlik-bq)',
@@ -476,9 +342,5 @@ export const SAMPLE_DASHBOARDS: Record<string, { name: string; yaml: string }> =
   'saas-executive': {
     name: '📈 Executive SaaS & Revenue Overview',
     yaml: SAAS_EXECUTIVE_DASHBOARD_YAML,
-  },
-  'ecommerce-retail': {
-    name: '🛒 Omnichannel Retail & E-Commerce',
-    yaml: ECOMMERCE_DASHBOARD_YAML,
   },
 };
