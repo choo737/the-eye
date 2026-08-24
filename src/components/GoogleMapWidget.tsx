@@ -55,7 +55,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
   // Dynamically resolve map points from Query Engine with strict property sanitation
   const storePoints = useMemo(() => {
-    const rawList = (data?.mapPoints && data.mapPoints.length > 0) ? data.mapPoints : defaultMasterStores;
+    const rawList = (data?.mapPoints !== undefined) ? data.mapPoints : defaultMasterStores;
     return rawList.map((p: any) => {
       const storeName = p.name || p.store_name || p.store || p.title || p.id || '7-Eleven Store';
       const storeId = p.id || p.store_id || '7E-0000';

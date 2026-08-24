@@ -64,28 +64,22 @@ export function evaluateRowFilters(row: TabularRow, activeFilters: FilterState):
       continue;
     }
 
-    const matchingCol = Object.keys(row).find(k => {
-      const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanF = filterKey.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return cleanK === cleanF || cleanK.includes(cleanF) || cleanF.includes(cleanK);
+    const activeFilterValues: string[] = Array.isArray(filterValue)
+      ? filterValue.filter(v => !String(v).startsWith('All')).map(String)
+      : [String(filterValue)].filter(v => !v.startsWith('All'));
+
+    if (activeFilterValues.length === 0) continue;
+
+    // Check if any column in the row satisfies this active filter selection
+    const satisfies = Object.keys(row).some(col => {
+      const colVal = String(row[col] ?? '').toLowerCase();
+      return activeFilterValues.some(afv => {
+        const normAfv = afv.toLowerCase();
+        return colVal === normAfv || colVal.includes(normAfv) || normAfv.includes(colVal);
+      });
     });
 
-    if (!matchingCol) continue;
-
-    const rowVal = String(row[matchingCol] ?? '');
-
-    if (Array.isArray(filterValue)) {
-      const activeOptions = filterValue.filter(v => !String(v).startsWith('All'));
-      if (activeOptions.length > 0) {
-        const matchesAny = activeOptions.some(opt => rowVal.toLowerCase() === String(opt).toLowerCase());
-        if (!matchesAny) return false;
-      }
-    } else {
-      const targetOpt = String(filterValue);
-      if (!targetOpt.startsWith('All') && rowVal.toLowerCase() !== targetOpt.toLowerCase()) {
-        return false;
-      }
-    }
+    if (!satisfies) return false;
   }
   return true;
 }
