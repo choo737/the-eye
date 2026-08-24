@@ -52,6 +52,10 @@ export interface FilterSpec {
   default?: any;
   options?: FilterOption[];
   placeholder?: string;
+  min_date?: string;           // e.g. "2025-01-01" or relative "-12m", "-6m", "-1y"
+  max_date?: string;           // e.g. "2026-12-31" or relative "today", "+6m"
+  max_backdate?: string;       // e.g. "12m", "6m", "1y", "90d" (max historical lookback window)
+  available_presets?: string[]; // e.g. ["today", "last_7_days", "last_30_days", "ytd"]
 }
 
 export type WidgetType = 

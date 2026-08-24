@@ -86,6 +86,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   label={filter.label}
                   minDate={filter.min_date}
                   maxDate={filter.max_date}
+                  maxBackdate={filter.max_backdate}
                   availablePresets={filter.available_presets}
                 />
               </div>

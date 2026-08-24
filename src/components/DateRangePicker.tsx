@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, X, Lock } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, X, Lock, ChevronDown } from 'lucide-react';
 
 interface DateRangePickerProps {
   value?: string | { startDate?: string; endDate?: string; preset?: string };
@@ -7,6 +7,7 @@ interface DateRangePickerProps {
   label?: string;
   minDate?: string;
   maxDate?: string;
+  maxBackdate?: string; // e.g. "12m", "6m", "1y", "90d"
   availablePresets?: string[];
 }
 
@@ -22,23 +23,61 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   label = 'Date Range',
   minDate,
   maxDate,
+  maxBackdate,
   availablePresets
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Parse min and max dates if provided
+  // Reference base date (2026-08-24)
+  const baseDate = useMemo(() => new Date(2026, 7, 24), []);
+
+  // Helper to parse relative date expressions like "-12m", "6m", "1y", "today"
+  const parseDateExpression = (expr?: string, isMin: boolean = true): Date => {
+    if (!expr) {
+      if (maxBackdate && isMin) {
+        return parseRelativeWindow(maxBackdate);
+      }
+      return isMin ? new Date(2024, 0, 1) : new Date(2026, 11, 31);
+    }
+
+    const trimmed = expr.trim().toLowerCase();
+    if (trimmed === 'today' || trimmed === 'now') return new Date(2026, 7, 24);
+    if (trimmed.startsWith('-') || trimmed.endsWith('m') || trimmed.endsWith('y') || trimmed.endsWith('d')) {
+      return parseRelativeWindow(trimmed);
+    }
+
+    const parsed = new Date(expr);
+    return isNaN(parsed.getTime()) ? (isMin ? new Date(2024, 0, 1) : new Date(2026, 11, 31)) : parsed;
+  };
+
+  const parseRelativeWindow = (windowStr: string): Date => {
+    const clean = windowStr.replace(/[^0-9a-z]/gi, '').toLowerCase();
+    const d = new Date(baseDate.getTime());
+
+    if (clean.endsWith('m')) {
+      const months = parseInt(clean) || 12;
+      d.setMonth(d.getMonth() - months);
+    } else if (clean.endsWith('y')) {
+      const years = parseInt(clean) || 1;
+      d.setFullYear(d.getFullYear() - years);
+    } else if (clean.endsWith('d')) {
+      const days = parseInt(clean) || 30;
+      d.setDate(d.getDate() - days);
+    }
+    return d;
+  };
+
   const parsedMinDate = useMemo(() => {
-    if (!minDate) return new Date(2024, 0, 1);
-    const d = new Date(minDate);
-    return isNaN(d.getTime()) ? new Date(2024, 0, 1) : d;
-  }, [minDate]);
+    if (maxBackdate && !minDate) {
+      return parseRelativeWindow(maxBackdate);
+    }
+    return parseDateExpression(minDate, true);
+  }, [minDate, maxBackdate, baseDate]);
 
   const parsedMaxDate = useMemo(() => {
-    if (!maxDate) return new Date(2026, 11, 31);
-    const d = new Date(maxDate);
-    return isNaN(d.getTime()) ? new Date(2026, 11, 31) : d;
-  }, [maxDate]);
+    return parseDateExpression(maxDate, false);
+  }, [maxDate, baseDate]);
 
   const ALL_PRESETS: DatePreset[] = [
     {
@@ -89,34 +128,60 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     {
       id: 'ytd',
       label: 'Year to Date (YTD)',
-      getRange: () => {
-        const currentYear = 2026; // Dataset reference year
-        return { start: new Date(currentYear, 0, 1), end: new Date(currentYear, 7, 24) };
-      }
+      getRange: () => ({ start: new Date(2026, 0, 1), end: new Date(2026, 7, 24) })
     },
     {
       id: 'all_time',
       label: 'All-Time Historical',
-      getRange: () => ({ start: new Date(2025, 0, 1), end: new Date(2026, 7, 24) })
+      getRange: () => ({ start: new Date(parsedMinDate), end: new Date(2026, 7, 24) })
     }
   ];
 
-  // Filter presets based on declarative configuration
   const activePresets = useMemo(() => {
     if (!availablePresets || availablePresets.length === 0) return ALL_PRESETS;
     return ALL_PRESETS.filter(p => availablePresets.includes(p.id));
-  }, [availablePresets]);
+  }, [availablePresets, parsedMinDate]);
 
   const [selectedPreset, setSelectedPreset] = useState<string>('ytd');
   const [startDate, setStartDate] = useState<Date>(new Date(2026, 0, 1));
   const [endDate, setEndDate] = useState<Date>(new Date(2026, 7, 24));
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
-  // Default calendar month views: Left = July 2026, Right = August 2026
+  // Text input states for direct typing
+  const [fromInputText, setFromInputText] = useState<string>('01/01/2026');
+  const [toInputText, setToInputText] = useState<string>('08/24/2026');
+  const [inputError, setInputError] = useState<string | null>(null);
+
+  // Month and Year views for Left & Right calendar cards
   const [leftViewMonth, setLeftViewMonth] = useState<number>(6); // July
   const [leftViewYear, setLeftViewYear] = useState<number>(2026);
   const [rightViewMonth, setRightViewMonth] = useState<number>(7); // August
   const [rightViewYear, setRightViewYear] = useState<number>(2026);
+
+  const formatDateString = (d: Date): string => {
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  };
+
+  const parseInputDate = (str: string): Date | null => {
+    const parts = str.trim().split(/[\/\-\.]/);
+    if (parts.length !== 3) return null;
+    let mm = parseInt(parts[0]);
+    let dd = parseInt(parts[1]);
+    let yyyy = parseInt(parts[2]);
+    if (yyyy < 100) yyyy += 2000;
+    if (isNaN(mm) || isNaN(dd) || isNaN(yyyy)) return null;
+    if (mm < 1 || mm > 12 || dd < 1 || dd > 31 || yyyy < 2000 || yyyy > 2050) return null;
+    const d = new Date(yyyy, mm - 1, dd);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  useEffect(() => {
+    setFromInputText(formatDateString(startDate));
+    setToInputText(formatDateString(endDate));
+  }, [startDate, endDate]);
 
   useEffect(() => {
     if (typeof value === 'string') {
@@ -142,13 +207,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const formatDateString = (d: Date): string => {
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${mm}/${dd}/${yyyy}`;
-  };
-
   const isDateDisabled = (date: Date): boolean => {
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const min = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), parsedMinDate.getDate());
@@ -156,11 +214,45 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return d < min || d > max;
   };
 
+  // Direct typing handlers
+  const handleFromType = (val: string) => {
+    setFromInputText(val);
+    const parsed = parseInputDate(val);
+    if (parsed) {
+      if (isDateDisabled(parsed)) {
+        setInputError(`Date must be between ${formatDateString(parsedMinDate)} and ${formatDateString(parsedMaxDate)}`);
+        return;
+      }
+      setInputError(null);
+      setSelectedPreset('custom');
+      setStartDate(parsed);
+      setLeftViewMonth(parsed.getMonth());
+      setLeftViewYear(parsed.getFullYear());
+    }
+  };
+
+  const handleToType = (val: string) => {
+    setToInputText(val);
+    const parsed = parseInputDate(val);
+    if (parsed) {
+      if (isDateDisabled(parsed)) {
+        setInputError(`Date must be between ${formatDateString(parsedMinDate)} and ${formatDateString(parsedMaxDate)}`);
+        return;
+      }
+      setInputError(null);
+      setSelectedPreset('custom');
+      setEndDate(parsed);
+      setRightViewMonth(parsed.getMonth());
+      setRightViewYear(parsed.getFullYear());
+    }
+  };
+
   const handleSelectPreset = (preset: DatePreset) => {
     setSelectedPreset(preset.id);
     const { start, end } = preset.getRange();
     setStartDate(start);
     setEndDate(end);
+    setInputError(null);
 
     setLeftViewMonth(start.getMonth());
     setLeftViewYear(start.getFullYear());
@@ -190,61 +282,18 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setIsOpen(false);
   };
 
-  // Left Calendar Navigation with min/max bounds check
-  const canPrevLeft = useMemo(() => {
-    const target = new Date(leftViewYear, leftViewMonth, 1);
-    const minMonth = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), 1);
-    return target > minMonth;
-  }, [leftViewMonth, leftViewYear, parsedMinDate]);
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June', 
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
-  const canNextRight = useMemo(() => {
-    const target = new Date(rightViewYear, rightViewMonth, 1);
-    const maxMonth = new Date(parsedMaxDate.getFullYear(), parsedMaxDate.getMonth(), 1);
-    return target < maxMonth;
-  }, [rightViewMonth, rightViewYear, parsedMaxDate]);
-
-  const prevLeftMonth = () => {
-    if (!canPrevLeft) return;
-    if (leftViewMonth === 0) {
-      setLeftViewMonth(11);
-      setLeftViewYear(leftViewYear - 1);
-    } else {
-      setLeftViewMonth(leftViewMonth - 1);
-    }
-  };
-
-  const nextLeftMonth = () => {
-    if (leftViewMonth === 11) {
-      setLeftViewMonth(0);
-      setLeftViewYear(leftViewYear + 1);
-    } else {
-      setLeftViewMonth(leftViewMonth + 1);
-    }
-  };
-
-  const prevRightMonth = () => {
-    if (rightViewMonth === 0) {
-      setRightViewMonth(11);
-      setRightViewYear(rightViewYear - 1);
-    } else {
-      setRightViewMonth(rightViewMonth - 1);
-    }
-  };
-
-  const nextRightMonth = () => {
-    if (!canNextRight) return;
-    if (rightViewMonth === 11) {
-      setRightViewMonth(0);
-      setRightViewYear(rightViewYear + 1);
-    } else {
-      setRightViewMonth(rightViewMonth + 1);
-    }
-  };
+  const YEAR_OPTIONS = [2024, 2025, 2026, 2027];
 
   const handleDateClick = (date: Date) => {
     if (isDateDisabled(date)) return;
 
     setSelectedPreset('custom');
+    setInputError(null);
     if (!startDate || (startDate && endDate)) {
       setStartDate(date);
       setEndDate(date);
@@ -258,18 +307,15 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
+  // Render month card with Month & Year Select Dropdowns for instant 1-click jumps
   const renderCalendarCard = (
     month: number, 
     year: number, 
+    setMonth: (m: number) => void,
+    setYear: (y: number) => void,
     onPrev: () => void, 
-    onNext: () => void,
-    prevDisabled: boolean = false,
-    nextDisabled: boolean = false
+    onNext: () => void
   ) => {
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June', 
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
     const firstDayIndex = new Date(year, month, 1).getDay();
@@ -278,19 +324,16 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
     const days = [];
 
-    // Previous month trailing days
     for (let i = firstDayIndex - 1; i >= 0; i--) {
       const d = new Date(year, month - 1, daysInPrevMonth - i);
       days.push({ date: d, isCurrentMonth: false });
     }
 
-    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
       const d = new Date(year, month, i);
       days.push({ date: d, isCurrentMonth: true });
     }
 
-    // Next month leading days (fill standard 42 slots)
     const remainingSlots = 42 - days.length;
     for (let i = 1; i <= remainingSlots; i++) {
       const d = new Date(year, month + 1, i);
@@ -299,31 +342,44 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
     return (
       <div className="flex-1 bg-slate-900/90 rounded-2xl p-3 border border-slate-800/80 shadow-inner">
-        {/* Month Header with aligned prev/next arrows */}
+        {/* Month & Year Selectors Header */}
         <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-800">
           <button
             type="button"
             onClick={onPrev}
-            disabled={prevDisabled}
-            className={`p-1 rounded-lg transition ${
-              prevDisabled ? 'opacity-20 cursor-not-allowed text-slate-600' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-            }`}
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
             title="Previous Month"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <span className="text-xs font-extrabold text-slate-100 tracking-tight">
-            {monthNames[month]} – {year}
-          </span>
+          {/* Quick Month & Year Dropdown Selectors */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={month}
+              onChange={(e) => setMonth(parseInt(e.target.value))}
+              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs font-bold text-slate-200 cursor-pointer focus:outline-none focus:border-cyan-500"
+            >
+              {MONTH_NAMES.map((name, idx) => (
+                <option key={name} value={idx}>{name}</option>
+              ))}
+            </select>
+
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs font-bold text-cyan-400 cursor-pointer focus:outline-none focus:border-cyan-500"
+            >
+              {YEAR_OPTIONS.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
 
           <button
             type="button"
             onClick={onNext}
-            disabled={nextDisabled}
-            className={`p-1 rounded-lg transition ${
-              nextDisabled ? 'opacity-20 cursor-not-allowed text-slate-600' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-            }`}
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
             title="Next Month"
           >
             <ChevronRight className="w-4 h-4" />
@@ -397,39 +453,47 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </span>
       </button>
 
-      {/* Advanced Dual Calendar Popover Modal */}
+      {/* Advanced Dual Calendar Popover Modal with Direct Typing & Quick Month/Year Dropdowns */}
       {isOpen && (
         <div 
-          className="absolute top-full right-0 mt-2 z-50 bg-slate-950 border border-slate-700 rounded-3xl p-4 sm:p-5 shadow-2xl w-[660px] max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-150"
+          className="absolute top-full right-0 mt-2 z-50 bg-slate-950 border border-slate-700 rounded-3xl p-4 sm:p-5 shadow-2xl w-[680px] max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-150"
           style={{ backgroundColor: '#020617', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(51, 65, 85, 0.6)' }}
         >
-          {/* Top Date Inputs Row + Range Bounds Tag */}
+          {/* Top Date Inputs Row (Direct Editable Typing Enabled) */}
           <div className="flex flex-col gap-2 pb-3 mb-3 border-b border-slate-800">
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
+              <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 focus-within:border-cyan-500/80 rounded-xl px-3.5 py-2 shadow-inner transition">
                 <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">From</span>
                 <input
                   type="text"
-                  readOnly
-                  value={formatDateString(startDate)}
-                  className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
+                  value={fromInputText}
+                  onChange={(e) => handleFromType(e.target.value)}
+                  placeholder="MM/DD/YYYY"
+                  className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none placeholder:text-slate-600"
                 />
               </div>
-              <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
+              <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 focus-within:border-cyan-500/80 rounded-xl px-3.5 py-2 shadow-inner transition">
                 <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">To</span>
                 <input
                   type="text"
-                  readOnly
-                  value={formatDateString(endDate)}
-                  className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
+                  value={toInputText}
+                  onChange={(e) => handleToType(e.target.value)}
+                  placeholder="MM/DD/YYYY"
+                  className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none placeholder:text-slate-600"
                 />
               </div>
             </div>
 
-            {(minDate || maxDate) && (
+            {inputError && (
+              <span className="text-[10px] text-rose-400 font-semibold px-1 animate-in fade-in">
+                ⚠️ {inputError}
+              </span>
+            )}
+
+            {(minDate || maxDate || maxBackdate) && (
               <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono px-1">
                 <span className="flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-cyan-500/70" /> Configured Range Boundary:
+                  <Lock className="w-3 h-3 text-cyan-500/70" /> Allowed Window ({maxBackdate ? `Max ${maxBackdate} Backdate` : 'Bound'}):
                 </span>
                 <span className="text-cyan-400 font-bold">
                   {formatDateString(parsedMinDate)} – {formatDateString(parsedMaxDate)}
@@ -438,16 +502,58 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             )}
           </div>
 
-          {/* Main Body: Separated Dual Calendars + Right Presets Sidebar */}
+          {/* Main Body: Dual Month Cards with Month/Year Pickers + Quick Presets Sidebar */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Left Month Calendar Card */}
-            {renderCalendarCard(leftViewMonth, leftViewYear, prevLeftMonth, nextLeftMonth, !canPrevLeft, false)}
+            {renderCalendarCard(
+              leftViewMonth, 
+              leftViewYear, 
+              (m) => setLeftViewMonth(m),
+              (y) => setLeftViewYear(y),
+              () => {
+                if (leftViewMonth === 0) {
+                  setLeftViewMonth(11);
+                  setLeftViewYear(leftViewYear - 1);
+                } else {
+                  setLeftViewMonth(leftViewMonth - 1);
+                }
+              },
+              () => {
+                if (leftViewMonth === 11) {
+                  setLeftViewMonth(0);
+                  setLeftViewYear(leftViewYear + 1);
+                } else {
+                  setLeftViewMonth(leftViewMonth + 1);
+                }
+              }
+            )}
 
             {/* Right Month Calendar Card */}
-            {renderCalendarCard(rightViewMonth, rightViewYear, prevRightMonth, nextRightMonth, false, !canNextRight)}
+            {renderCalendarCard(
+              rightViewMonth, 
+              rightViewYear, 
+              (m) => setRightViewMonth(m),
+              (y) => setRightViewYear(y),
+              () => {
+                if (rightViewMonth === 0) {
+                  setRightViewMonth(11);
+                  setRightViewYear(rightViewYear - 1);
+                } else {
+                  setRightViewMonth(rightViewMonth - 1);
+                }
+              },
+              () => {
+                if (rightViewMonth === 11) {
+                  setRightViewMonth(0);
+                  setRightViewYear(rightViewYear + 1);
+                } else {
+                  setRightViewMonth(rightViewMonth + 1);
+                }
+              }
+            )}
 
             {/* Right Quick Presets Sidebar */}
-            <div className="w-full md:w-40 bg-slate-900/90 rounded-2xl p-2.5 border border-slate-800/80 flex flex-col gap-1 overflow-y-auto max-h-[290px] shadow-inner">
+            <div className="w-full md:w-40 bg-slate-900/90 rounded-2xl p-2.5 border border-slate-800/80 flex flex-col gap-1 overflow-y-auto max-h-[300px] shadow-inner">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-2 pb-1 border-b border-slate-800">
                 Quick Presets
               </span>
