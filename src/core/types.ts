@@ -126,6 +126,7 @@ export interface WidgetInteraction {
 export interface MeasureConfig {
   field: string;
   name?: string;
+  label?: string;
   axis?: 'left' | 'right';
   format?: string;
   color?: string;
@@ -225,6 +226,8 @@ export interface WidgetSpec {
     align?: 'left' | 'center' | 'right';
     badge?: boolean;
   }>;
+  labels?: Record<string, string>;
+  measure_labels?: Record<string, string>;
   
   interaction?: WidgetInteraction;
 }

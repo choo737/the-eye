@@ -411,6 +411,9 @@ widgets:
     position: { x: 0, y: 2, w: 8, h: 4 }
     dimension: "transaction_date"
     measures: ["transaction_volume_myr", "fee_income_myr"]
+    labels:
+      transaction_volume_myr: "Gross Banking Volume (RM)"
+      fee_income_myr: "Net Non-Interest Fee Income (RM)"
     dual_axis: true
 
   - id: cimb_product_mix
@@ -431,6 +434,9 @@ widgets:
     position: { x: 0, y: 6, w: 12, h: 4 }
     dimension: "region"
     measures: ["transaction_volume_myr", "deposit_target_myr"]
+    labels:
+      transaction_volume_myr: "Actual Branch Volume (RM)"
+      deposit_target_myr: "Fiscal Target Allocation (RM)" 
 
   # Row 4: Interactive Branch Network GIS Map
   - id: cimb_branch_network_map

@@ -1,3 +1,40 @@
+export function resolveFieldLabel(fieldName: string, widget?: WidgetSpec): string {
+  if (!fieldName) return '';
+  
+  // 1. Check explicit label dictionary e.g. labels: { "tx_vol_myr": "Gross Banking Volume (RM)" }
+  if (widget?.labels && widget.labels[fieldName]) {
+    return widget.labels[fieldName];
+  }
+  if ((widget as any)?.measure_labels && (widget as any).measure_labels[fieldName]) {
+    return (widget as any).measure_labels[fieldName];
+  }
+
+  // 2. Check structured measures array e.g. measures: [{ field: "tx_vol_myr", label: "Gross Banking Volume (RM)" }]
+  if (Array.isArray(widget?.measures)) {
+    const found = widget.measures.find((m: any) => (typeof m === 'object' && m !== null && m.field === fieldName));
+    if (found && typeof found === 'object') {
+      return (found as any).label || (found as any).name || fieldName;
+    }
+  }
+
+  // 3. Check structured Y-axis measures e.g. y: [{ field: "tx_vol_myr", label: "Gross Banking Volume (RM)" }]
+  if (Array.isArray(widget?.y)) {
+    const found = widget.y.find((m: any) => (typeof m === 'object' && m !== null && m.field === fieldName));
+    if (found && typeof found === 'object') {
+      return (found as any).label || (found as any).name || fieldName;
+    }
+  }
+
+  // 4. Check table columns config e.g. table_columns: [{ key: "tx_vol_myr", label: "Gross Banking Volume (RM)" }]
+  if (Array.isArray(widget?.table_columns)) {
+    const col = widget.table_columns.find(c => c.key === fieldName);
+    if (col?.label) return col.label;
+  }
+
+  // 5. Fallback: exact field name as declared
+  return fieldName;
+}
+
 export function getTimeWindowFactor(timeFilter: any): number {
   if (typeof timeFilter === 'object' && timeFilter?.startDate && timeFilter?.endDate) {
     const d1 = new Date(timeFilter.startDate).getTime();
@@ -228,6 +265,12 @@ export function transformGenericTabularData(
 
     const useDualAxis = (widget.measures && widget.measures.length > 1) || Boolean((widget as any).dual_axis);
 
+    const m1Name = typeof widget.measures?.[0] === 'object' ? (widget.measures[0] as any).field : widget.measures?.[0];
+    const m2Name = typeof widget.measures?.[1] === 'object' ? (widget.measures[1] as any).field : widget.measures?.[1];
+
+    const label1 = resolveFieldLabel(m1Name || measureCol, widget);
+    const label2 = resolveFieldLabel(m2Name || targetCol, widget);
+
     return {
       dynamicTitle,
       dynamicSubtitle,
@@ -236,8 +279,8 @@ export function transformGenericTabularData(
       useDualAxis,
       categories: categories.length > 0 ? categories : ['No Data'],
       series: [
-        { name: widget.measures?.[0] ? widget.measures[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Actual Volume', data: actualSeries, yAxisIndex: 0 },
-        { name: widget.measures?.[1] ? widget.measures[1].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Target Allocation', data: targetSeries, yAxisIndex: useDualAxis ? 1 : 0 }
+        { name: label1, data: actualSeries, yAxisIndex: 0 },
+        { name: label2, data: targetSeries, yAxisIndex: useDualAxis ? 1 : 0 }
       ]
     };
   }
@@ -267,6 +310,12 @@ export function transformGenericTabularData(
 
     const useDualAxis = (widget.measures && widget.measures.length > 1) || (widget as any).dual_axis || true;
 
+    const m1Name = typeof widget.measures?.[0] === 'object' ? (widget.measures[0] as any).field : widget.measures?.[0];
+    const m2Name = typeof widget.measures?.[1] === 'object' ? (widget.measures[1] as any).field : widget.measures?.[1];
+
+    const label1 = resolveFieldLabel(m1Name || measureCol, widget);
+    const label2 = resolveFieldLabel(m2Name || countCol, widget);
+
     return {
       dynamicTitle,
       dynamicSubtitle,
@@ -275,8 +324,8 @@ export function transformGenericTabularData(
       useDualAxis,
       categories,
       series: [
-        { name: widget.measures?.[0] ? widget.measures[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Primary Metric Stream', data: seriesData1, yAxisIndex: 0 },
-        { name: widget.measures?.[1] ? widget.measures[1].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Secondary Metric Stream', data: seriesData2, yAxisIndex: 1 }
+        { name: label1, data: seriesData1, yAxisIndex: 0 },
+        { name: label2, data: seriesData2, yAxisIndex: 1 }
       ]
     };
   }
