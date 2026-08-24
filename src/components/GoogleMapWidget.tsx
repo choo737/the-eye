@@ -7,7 +7,7 @@ import {
   Focus, Scan, MapPin, Store, DollarSign, User, ShieldCheck, 
   Globe, Satellite, Target, Plus, Minus, Compass, 
   TrendingUp, PieChart, X, Layers, Table as TableIcon,
-  ChevronRight, ArrowUpDown, Calendar
+  ChevronRight, ArrowUpDown, Calendar, Flame, CircleDot
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 
@@ -43,41 +43,45 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
   // Fallback master stores dataset
   const defaultMasterStores = [
-    { id: '7E-1082', store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: 38400, target: 35000, manager: 'Ahmad Zaki', nps: 96, pos_count: 8 },
-    { id: '7E-2041', store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: 31200, target: 32000, manager: 'Michelle Tan', nps: 88, pos_count: 6 },
-    { id: '7E-0492', store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', name: 'Gurney Plaza Waterfront', lat: 5.4377, lng: 100.3098, region: 'Northern Region', sales: 24500, target: 25000, manager: 'Rajeswary S.', nps: 84, pos_count: 5 },
-    { id: '7E-3118', store_id: '7E-3118', store_name: 'JB City Square Customs Hub', name: 'JB City Square Customs Hub', lat: 1.4619, lng: 103.7638, region: 'Southern Region', sales: 28900, target: 30000, manager: 'Kevin Wong', nps: 78, pos_count: 6 },
-    { id: '7E-0842', store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', name: 'KLIA2 Departure Hall Terminal', lat: 2.7456, lng: 101.6841, region: 'Klang Valley / Central', sales: 42100, target: 38000, manager: 'Noraini Mohd', nps: 98, pos_count: 10 },
-    { id: '7E-1934', store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', name: 'Ipoh Old Town Heritage', lat: 4.5975, lng: 101.0772, region: 'Northern Region', sales: 16800, target: 22000, manager: 'Chong Wei Lun', nps: 42, pos_count: 4 },
-    { id: '7E-4421', store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', name: 'Kuantan Teluk Cempedak Beach', lat: 3.8168, lng: 103.3654, region: 'East Coast & Islands', sales: 19500, target: 20000, manager: 'Fatimah Ali', nps: 68, pos_count: 4 },
-    { id: '7E-5512', store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', name: 'Kuching Waterfront Heritage', lat: 1.5583, lng: 110.3444, region: 'Sabah & Sarawak', sales: 21400, target: 22000, manager: 'Leonard Jabu', nps: 74, pos_count: 5 }
+    { id: '7E-1082', store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: 12450000, target: 14000000, manager: 'Ahmad Zaki', nps: 96, pos_count: 8 },
+    { id: '7E-2041', store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: 11200000, target: 12500000, manager: 'Michelle Tan', nps: 88, pos_count: 6 },
+    { id: '7E-0492', store_id: '7E-0492', store_name: 'Gurney Plaza Waterfront', name: 'Gurney Plaza Waterfront', lat: 5.4377, lng: 100.3098, region: 'Northern Region', sales: 9450000, target: 10500000, manager: 'Rajeswary S.', nps: 84, pos_count: 5 },
+    { id: '7E-3118', store_id: '7E-3118', store_name: 'JB City Square Customs Hub', name: 'JB City Square Customs Hub', lat: 1.4619, lng: 103.7638, region: 'Southern Region', sales: 10890000, target: 11500000, manager: 'Kevin Wong', nps: 78, pos_count: 6 },
+    { id: '7E-0842', store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', name: 'KLIA2 Departure Hall Terminal', lat: 2.7456, lng: 101.6841, region: 'Klang Valley / Central', sales: 14210000, target: 15000000, manager: 'Noraini Mohd', nps: 98, pos_count: 10 },
+    { id: '7E-1934', store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', name: 'Ipoh Old Town Heritage', lat: 4.5975, lng: 101.0772, region: 'Northern Region', sales: 4680000, target: 6000000, manager: 'Chong Wei Lun', nps: 42, pos_count: 4 },
+    { id: '7E-4421', store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', name: 'Kuantan Teluk Cempedak Beach', lat: 3.8168, lng: 103.3654, region: 'East Coast & Islands', sales: 4250000, target: 7000000, manager: 'Fatimah Ali', nps: 68, pos_count: 4 },
+    { id: '7E-5512', store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', name: 'Kuching Waterfront Heritage', lat: 1.5583, lng: 110.3444, region: 'Sabah & Sarawak', sales: 4520000, target: 8500000, manager: 'Leonard Jabu', nps: 74, pos_count: 5 }
   ];
 
   // Dynamically resolve map points from Query Engine with strict property sanitation
   const storePoints = useMemo(() => {
     const rawList = (data?.mapPoints !== undefined) ? data.mapPoints : defaultMasterStores;
     return rawList.map((p: any) => {
-      const storeName = p.name || p.store_name || p.store || p.title || p.id || '7-Eleven Store';
-      const storeId = p.id || p.store_id || '7E-0000';
-      const sales = typeof p.sales === 'number' ? p.sales : 30000;
-      const target = typeof p.target === 'number' ? p.target : 30000;
-      const attainmentPct = p.target_achievement_pct ?? (Math.round((sales / target) * 1000) / 10);
-      const manager = p.manager || p.store_manager || 'Store Manager';
-      const region = p.region || 'Malaysia';
-      const nps = p.nps ?? 85;
-      const posCount = p.pos_count ?? 6;
+      const storeName = p.name || p.store_name || p.branch_name || p.title || p.id || 'Location';
+      const storeId = p.id || p.store_id || p.branch_code || 'LOC-001';
+      const sales = typeof p.sales === 'number' ? p.sales : (typeof p.transaction_volume_myr === 'number' ? p.transaction_volume_myr : (typeof p.gross_revenue_myr === 'number' ? p.gross_revenue_myr : 10000000));
+      const target = typeof p.target === 'number' ? p.target : (typeof p.deposit_target_myr === 'number' ? p.deposit_target_myr : (typeof p.monthly_budget_target === 'number' ? p.monthly_budget_target : sales));
+      const attainmentPct = p.target_achievement_pct ?? (target > 0 ? Math.round((sales / target) * 1000) / 10 : 100);
+      const manager = p.manager || p.store_manager || p.branch_manager || 'Branch Manager';
+      const region = p.region || p.region_cluster || 'Malaysia';
+      const nps = p.nps ?? (p.customer_nps ?? (p.nps_score ?? 88));
+      const posCount = p.pos_count ?? (p.atm_count ?? (p.pos_terminal_count ?? 6));
+      const state = p.state || 'Malaysia';
 
       return {
         ...p,
         id: storeId,
         store_id: storeId,
+        branch_code: storeId,
         name: storeName,
         store_name: storeName,
+        branch_name: storeName,
         sales,
         target,
         target_achievement_pct: attainmentPct,
         manager,
         region,
+        state,
         nps,
         pos_count: posCount
       };
@@ -86,6 +90,10 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
   const [selectedPin, setSelectedPin] = useState<any | null>(null);
   const [mapStyle, setMapStyle] = useState<'google_streets' | 'google_satellite' | 'google_terrain'>('google_streets');
+  const [layerType, setLayerType] = useState<'pins' | 'heatmap' | 'bubbles'>(
+    (widget.map_config?.layer_type as any) || (widget.type === 'heatmap' ? 'heatmap' : widget.type === 'bubble_map' ? 'bubbles' : 'pins')
+  );
+  const [showTableState, setShowTableState] = useState<boolean>(widget.map_config?.show_table !== false);
 
   // Preserve deep-dive selection on filter change & seamlessly reflect newly changed filter context
   useEffect(() => {
@@ -97,7 +105,16 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     }
   }, [data, activeFilters, storePoints]);
 
-  const showTable = widget.map_config?.show_table !== false;
+  // Fit bounds when store points change
+  useEffect(() => {
+    if (mapInstanceRef.current && storePoints.length > 0) {
+      const validPoints = storePoints.filter(p => typeof p.lat === 'number' && typeof p.lng === 'number');
+      if (validPoints.length > 0) {
+        const bounds = L.latLngBounds(validPoints.map(p => [p.lat, p.lng]));
+        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+      }
+    }
+  }, [storePoints]);
 
   const colorScale: ColorScaleSpec = widget.map_config?.color_scale || {
     metric_field: 'target_achievement_pct',
@@ -118,17 +135,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     }
   };
 
-  const renderTemplateString = (templateStr?: string, store?: any): string => {
-    if (!templateStr || !store) return templateStr || '';
-    return templateStr
-      .replace(/\{\{\s*store_name\s*\}\}/g, store.store_name || store.name || '')
-      .replace(/\{\{\s*selected_store_name\s*\}\}/g, store.store_name || store.name || '')
-      .replace(/\{\{\s*store_id\s*\}\}/g, store.id || store.store_id || '')
-      .replace(/\{\{\s*manager\s*\}\}/g, store.manager || '')
-      .replace(/\{\{\s*region\s*\}\}/g, store.region || '')
-      .replace(/\{\{\s*time_range\s*\}\}/g, timeLabel);
-  };
-
   const GOOGLE_MAP_TILES = {
     google_streets: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
     google_satellite: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
@@ -146,7 +152,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
       if (!mapInstanceRef.current) {
         const map = L.map(mapContainerRef.current, {
-          center: [4.2105, 108.9758],
+          center: [4.2105, 101.9758],
           zoom: 6,
           zoomControl: false,
           scrollWheelZoom: true
@@ -187,85 +193,138 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     }
   }, [mapStyle]);
 
-  // 3. Render Markers
+  // 3. Render Markers, Heatmap, or Bubbles based on layerType
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
     try {
       markersLayerRef.current.clearLayers();
 
+      const maxSales = Math.max(...storePoints.map(p => p.sales || 1), 1);
+
       storePoints.forEach((pin: any) => {
+        if (typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return;
         const isSelected = selectedPin?.id === pin.id;
-        const attainmentPct = pin.target_achievement_pct ?? 100;
-        const { color } = getAttainmentColor(attainmentPct);
-        const displayName = pin.store_name || pin.name || pin.id || 'Store';
+        const displayName = pin.store_name || pin.name || pin.id || 'Location';
+        const formattedSales = formatValue(pin.sales, 'RM 0.0a');
 
-        const markerHtml = `
-          <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
-            <div style="
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              background: #0f172a;
-              color: white;
-              padding: 4px 10px;
-              border-radius: 12px;
-              border: 2px solid ${isSelected ? '#38bdf8' : color};
-              box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px ${color}80;
-              font-family: ui-sans-serif, system-ui, sans-serif;
-              white-space: nowrap;
-            ">
-              <span style="
-                background: ${color};
-                color: #020617;
-                font-size: 11px;
-                font-weight: 900;
-                padding: 2px 6px;
-                border-radius: 6px;
-              ">${attainmentPct}%</span>
-              <span style="font-size: 11px; font-weight: 800; color: #f8fafc; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
-                ${displayName}
-              </span>
+        if (layerType === 'heatmap') {
+          // Heatmap layer: Multi-ring radial intensity gradient
+          const intensity = Math.min(1.0, Math.max(0.3, pin.sales / maxSales));
+          const outerRadius = 65000 * intensity;
+          const innerRadius = 25000 * intensity;
+
+          // Outer heat halo
+          const outerCircle = L.circle([pin.lat, pin.lng], {
+            radius: outerRadius,
+            fillColor: '#f97316',
+            fillOpacity: 0.25 * intensity,
+            stroke: false
+          });
+
+          // Core hot spot
+          const innerCircle = L.circle([pin.lat, pin.lng], {
+            radius: innerRadius,
+            fillColor: '#ef4444',
+            fillOpacity: 0.65 * intensity,
+            stroke: false
+          });
+
+          // Center pin
+          const centerMarker = L.circleMarker([pin.lat, pin.lng], {
+            radius: 5,
+            fillColor: '#fef08a',
+            fillOpacity: 0.9,
+            color: '#fff',
+            weight: 1.5
+          }).bindTooltip(`<strong>${displayName}</strong><br/>Volume: ${formattedSales}`, { direction: 'top' });
+
+          centerMarker.on('click', () => setSelectedPin(pin));
+          outerCircle.on('click', () => setSelectedPin(pin));
+
+          markersLayerRef.current?.addLayer(outerCircle);
+          markersLayerRef.current?.addLayer(innerCircle);
+          markersLayerRef.current?.addLayer(centerMarker);
+        } else if (layerType === 'bubbles') {
+          // Bubble Map: Circle radius scaled proportional to metric volume
+          const radiusRatio = Math.sqrt(pin.sales / maxSales);
+          const bubbleRadius = Math.max(12, Math.round(radiusRatio * 32));
+
+          const bubble = L.circleMarker([pin.lat, pin.lng], {
+            radius: bubbleRadius,
+            fillColor: isSelected ? '#38bdf8' : '#0ea5e9',
+            fillOpacity: 0.6,
+            color: isSelected ? '#38bdf8' : '#38bdf8',
+            weight: isSelected ? 3 : 1.5
+          }).bindTooltip(`<strong>${displayName}</strong><br/>Volume: ${formattedSales}<br/>Region: ${pin.region}`, { direction: 'top' });
+
+          bubble.on('click', () => setSelectedPin((prev: any) => (prev?.id === pin.id ? null : pin)));
+          markersLayerRef.current?.addLayer(bubble);
+        } else {
+          // Pins Map: Clean location pin with formatted metric badge
+          const markerHtml = `
+            <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                background: #0f172a;
+                color: white;
+                padding: 4px 10px;
+                border-radius: 12px;
+                border: 2px solid ${isSelected ? '#38bdf8' : '#0284c7'};
+                box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px #0284c780;
+                font-family: ui-sans-serif, system-ui, sans-serif;
+                white-space: nowrap;
+              ">
+                <span style="
+                  background: #0284c7;
+                  color: #ffffff;
+                  font-size: 11px;
+                  font-weight: 800;
+                  padding: 2px 6px;
+                  border-radius: 6px;
+                ">${formattedSales}</span>
+                <span style="font-size: 11px; font-weight: 800; color: #f8fafc; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
+                  ${displayName}
+                </span>
+              </div>
+
+              <div style="
+                width: 0;
+                height: 0;
+                border-left: 7px solid transparent;
+                border-right: 7px solid transparent;
+                border-top: 9px solid ${isSelected ? '#38bdf8' : '#0284c7'};
+                margin-top: -1px;
+              "></div>
+
+              <div style="
+                width: 5px;
+                height: 5px;
+                background: #0284c7;
+                border-radius: 50%;
+                margin-top: -2px;
+              "></div>
             </div>
+          `;
 
-            <div style="
-              width: 0;
-              height: 0;
-              border-left: 7px solid transparent;
-              border-right: 7px solid transparent;
-              border-top: 9px solid ${isSelected ? '#38bdf8' : color};
-              margin-top: -1px;
-            "></div>
+          const customIcon = L.divIcon({
+            html: markerHtml,
+            className: 'custom-teardrop-pin',
+            iconSize: [180, 42],
+            iconAnchor: [90, 42]
+          });
 
-            <div style="
-              width: 5px;
-              height: 5px;
-              background: ${color};
-              border-radius: 50%;
-              margin-top: -2px;
-            "></div>
-          </div>
-        `;
-
-        const customIcon = L.divIcon({
-          html: markerHtml,
-          className: 'custom-teardrop-pin',
-          iconSize: [180, 42],
-          iconAnchor: [90, 42]
-        });
-
-        const marker = L.marker([pin.lat, pin.lng], { icon: customIcon });
-
-        marker.on('click', () => {
-          setSelectedPin((prev: any) => (prev?.id === pin.id ? null : pin));
-        });
-
-        markersLayerRef.current?.addLayer(marker);
+          const marker = L.marker([pin.lat, pin.lng], { icon: customIcon });
+          marker.on('click', () => setSelectedPin((prev: any) => (prev?.id === pin.id ? null : pin)));
+          markersLayerRef.current?.addLayer(marker);
+        }
       });
     } catch (err) {
       console.warn('Marker render:', err);
     }
-  }, [selectedPin, mapStyle, colorScale, storePoints]);
+  }, [selectedPin, mapStyle, layerType, colorScale, storePoints]);
 
   const handleSelectStore = (store: any) => {
     setSelectedPin((prev: any) => {
@@ -281,119 +340,42 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     setSelectedPin(null);
   };
 
-  // -------------------------------------------------------------
-  // GENERIC CASCADING CONTEXT INHERITANCE:
-  // Dynamically calculate time-grain series for selected store matching main filter horizon
-  // -------------------------------------------------------------
-  const { chartXAxis, chartSalesData, chartTxData, periodSales, periodTarget } = useMemo(() => {
-    const dailyBase = selectedPin?.sales || 30000;
-    const dailyTarget = selectedPin?.target || 30000;
-
-    let xAxis: string[] = [];
-    let salesMultipliers: number[] = [];
-    let txMultipliers: number[] = [];
-    let cumulativeFactor = 1.0;
-
-    const t = String(timeRangeFilter);
-
-    if (t === 'ytd' || t.includes('YTD') || t.includes('ytd') || t === '2026-YTD' || t === 'all_time') {
-      // 8 Months YTD Grain
-      xAxis = ['Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026'];
-      salesMultipliers = [28, 29, 32, 34, 30, 29, 35, 38]; // in thousands per day avg
-      txMultipliers = [1400, 1450, 1600, 1720, 1500, 1480, 1750, 1920];
-      cumulativeFactor = 236; // ~236 days YTD
-    } else if (t === 'last_90_days' || t.includes('Quarter') || t.includes('3_months')) {
-      // 90 Days Weekly Grain
-      xAxis = ['W24 (Jun)', 'W26 (Jun)', 'W28 (Jul)', 'W30 (Jul)', 'W32 (Aug)', 'W34 (Aug)'];
-      salesMultipliers = [30, 31, 33, 35, 37, 39];
-      txMultipliers = [1500, 1550, 1650, 1750, 1850, 1950];
-      cumulativeFactor = 90;
-    } else if (t === 'last_30_days' || t.includes('Month')) {
-      // 30 Days 5-Day Interval Grain
-      xAxis = ['Day 1-5', 'Day 6-10', 'Day 11-15', 'Day 16-20', 'Day 21-25', 'Day 26-30'];
-      salesMultipliers = [32, 34, 31, 36, 38, 41];
-      txMultipliers = [1600, 1700, 1550, 1800, 1900, 2050];
-      cumulativeFactor = 30;
-    } else {
-      // Intraday Hourly Grain
-      xAxis = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
-      salesMultipliers = [0.85, 2.4, 3.1, 4.8, 3.6, 3.2, 5.6, 6.2, 4.9, 1.8];
-      txMultipliers = [45, 130, 175, 260, 195, 180, 295, 330, 260, 110];
-      cumulativeFactor = 1.0;
-    }
-
-    const scale = dailyBase / 30000;
-    const computedSales = salesMultipliers.map(v => Math.round(v * 1000 * scale));
-    const computedTx = txMultipliers.map(v => Math.round(v * scale));
-
-    const totalPeriodSales = Math.round(dailyBase * cumulativeFactor);
-    const totalPeriodTarget = Math.round(dailyTarget * cumulativeFactor);
-
-    return {
-      chartXAxis: xAxis,
-      chartSalesData: computedSales,
-      chartTxData: computedTx,
-      periodSales: totalPeriodSales,
-      periodTarget: totalPeriodTarget
-    };
-  }, [selectedPin, timeRangeFilter]);
-
   const getHourlyChartOption = () => {
+    const dailyBase = selectedPin?.sales || 10000000;
+    const xAxis = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+    const multipliers = [0.15, 0.4, 0.65, 0.8, 0.6, 0.45, 0.2];
+    const dataSeries = multipliers.map(m => Math.round(dailyBase * m));
+
     return {
       backgroundColor: 'transparent',
       tooltip: { 
         trigger: 'axis',
         formatter: (params: any[]) => {
-          let res = `<div style="font-weight: bold; margin-bottom: 4px;">Horizon: ${params[0].name}</div>`;
-          params.forEach(p => {
-            const isSales = p.seriesName.includes('Sales');
-            const val = isSales ? formatValue(p.value, 'RM 0,0') : formatValue(p.value, '0,0');
-            res += `<div style="display: flex; justify-content: space-between; gap: 12px;">
-              <span>${p.marker} ${p.seriesName}</span>
-              <strong>${val}</strong>
-            </div>`;
-          });
-          return res;
+          return `<strong>${params[0].name}</strong><br/>Volume: ${formatValue(params[0].value, 'RM 0.0a')}`;
         }
       },
-      legend: { textStyle: { color: '#94a3b8', fontSize: 11 }, top: 0 },
-      grid: { top: 35, left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { top: 25, left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: {
         type: 'category',
-        data: chartXAxis,
+        data: xAxis,
         axisLine: { lineStyle: { color: '#334155' } },
         axisLabel: { color: '#94a3b8', fontSize: 10 }
       },
-      yAxis: [
-        {
-          type: 'value',
-          name: widget.drilldown?.sub_widgets?.[0]?.y?.[0] || 'Sales (RM)',
-          nameTextStyle: { color: '#94a3b8', fontSize: 10 },
-          splitLine: { lineStyle: { color: '#1e293b' } },
-          axisLabel: { 
-            color: '#94a3b8', 
-            fontSize: 10, 
-            formatter: (v: number) => formatValue(v, 'RM 0.0a') 
-          }
-        },
-        {
-          type: 'value',
-          name: widget.drilldown?.sub_widgets?.[0]?.y?.[1] || 'POS Tx',
-          nameTextStyle: { color: '#94a3b8', fontSize: 10 },
-          splitLine: { show: false },
-          axisLabel: { 
-            color: '#94a3b8', 
-            fontSize: 10,
-            formatter: (v: number) => formatValue(v, '0,0')
-          }
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { 
+          color: '#94a3b8', 
+          fontSize: 10, 
+          formatter: (v: number) => formatValue(v, 'RM 0.0a') 
         }
-      ],
+      },
       series: [
         {
-          name: widget.drilldown?.sub_widgets?.[0]?.y?.[0] || 'POS Sales (RM)',
+          name: 'Transaction Volume',
           type: 'line',
           smooth: true,
-          data: chartSalesData,
+          data: dataSeries,
           itemStyle: { color: '#38bdf8' },
           areaStyle: {
             color: {
@@ -405,241 +387,214 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
               ]
             }
           }
-        },
-        {
-          name: widget.drilldown?.sub_widgets?.[0]?.y?.[1] || 'POS Transactions',
-          type: 'line',
-          yAxisIndex: 1,
-          smooth: true,
-          data: chartTxData,
-          itemStyle: { color: '#34d399' }
         }
       ]
     };
   };
 
-  const getCategoryChartOption = () => {
-    return {
-      backgroundColor: 'transparent',
-      tooltip: { 
-        trigger: 'item', 
-        formatter: (p: any) => `${p.name}: <strong>${formatValue(p.value, 'RM 0.0a')}</strong> (${p.percent}%)` 
-      },
-      legend: { show: false },
-      series: [
-        {
-          name: 'Division Sales',
-          type: 'pie',
-          radius: ['45%', '72%'],
-          center: ['50%', '50%'],
-          avoidLabelOverlap: false,
-          itemStyle: { borderRadius: 6, borderColor: '#0f172a', borderWidth: 2 },
-          label: { show: false },
-          data: [
-            { value: Math.round(periodSales * 0.38), name: 'Ready-to-Eat (RTE)', itemStyle: { color: '#10b981' } },
-            { value: Math.round(periodSales * 0.28), name: 'Cold Beverages & Slurpee', itemStyle: { color: '#38bdf8' } },
-            { value: Math.round(periodSales * 0.18), name: 'Packaged Snacks', itemStyle: { color: '#fbbf24' } },
-            { value: Math.round(periodSales * 0.16), name: 'Tobacco & Convenience', itemStyle: { color: '#818cf8' } }
-          ]
-        }
-      ]
-    };
-  };
-
-  const configuredTitle = widget.drilldown?.title 
-    ? renderTemplateString(widget.drilldown.title, selectedPin)
-    : `Store Performance Drill-Down: ${selectedPin?.name || selectedPin?.store_name || ''}`;
-
-  const configuredSubtitle = widget.drilldown?.subtitle
-    ? renderTemplateString(widget.drilldown.subtitle, selectedPin)
-    : `Cascading ${timeLabel} performance, category mix, and commercial budget attainment for ${selectedPin?.id || ''}`;
+  const isDarkTile = mapStyle === 'google_streets' || mapStyle === 'google_satellite';
 
   return (
-    <div className="flex flex-col w-full bg-slate-900/90 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
-      {/* 1. Header Bar */}
-      <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between shrink-0">
+    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden backdrop-blur-md">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-slate-100 text-sm tracking-tight">{data?.dynamicTitle || widget.title}</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
-                  Google Maps Live ({storePoints.length} Stores Plotted)
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> {timeLabel}
-                </span>
-              </div>
-              {widget.subtitle && (
-                <p className="text-xs text-slate-400 mt-0.5">{data?.dynamicSubtitle || widget.subtitle}</p>
-              )}
-            </div>
-          </div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Globe className="w-5 h-5 text-cyan-400" />
+            {data?.dynamicTitle || widget.title}
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {data?.dynamicSubtitle || widget.subtitle || 'Geospatial intelligence and location distribution'}
+          </p>
         </div>
 
-        {/* Map Layer Switcher */}
-        <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs">
+        {/* Toolbar: Layer Type Switcher & Satellite Toggle */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Layer Type Switcher */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              onClick={() => setLayerType('pins')}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all ${
+                layerType === 'pins' ? 'bg-cyan-500/20 text-cyan-300 font-semibold shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Pins</span>
+            </button>
+            <button
+              onClick={() => setLayerType('heatmap')}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all ${
+                layerType === 'heatmap' ? 'bg-amber-500/20 text-amber-300 font-semibold shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5" />
+              <span>Heatmap</span>
+            </button>
+            <button
+              onClick={() => setLayerType('bubbles')}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all ${
+                layerType === 'bubbles' ? 'bg-indigo-500/20 text-indigo-300 font-semibold shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <CircleDot className="w-3.5 h-3.5" />
+              <span>Bubbles</span>
+            </button>
+          </div>
+
+          {/* Map Tile Style Toggle */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              onClick={() => setMapStyle('google_streets')}
+              className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-all ${
+                mapStyle === 'google_streets' ? 'bg-slate-800 text-white font-medium' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Google Streets"
+            >
+              <Globe className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setMapStyle('google_satellite')}
+              className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-all ${
+                mapStyle === 'google_satellite' ? 'bg-slate-800 text-white font-medium' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Satellite View"
+            >
+              <Satellite className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Table View Toggle */}
           <button
-            onClick={() => setMapStyle('google_streets')}
-            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition ${
-              mapStyle === 'google_streets' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
+            onClick={() => setShowTableState(!showTableState)}
+            className={`px-3 py-1 rounded-xl border text-xs flex items-center gap-1.5 transition-all ${
+              showTableState 
+                ? 'bg-slate-800 border-slate-700 text-white' 
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            <Globe className="w-3.5 h-3.5" /> Google Roadmap
-          </button>
-          <button
-            onClick={() => setMapStyle('google_satellite')}
-            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition ${
-              mapStyle === 'google_satellite' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Satellite className="w-3.5 h-3.5" /> Google Satellite
-          </button>
-          <button
-            onClick={() => setMapStyle('google_terrain')}
-            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition ${
-              mapStyle === 'google_terrain' ? 'bg-cyan-500 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" /> Google Terrain
+            <TableIcon className="w-3.5 h-3.5" />
+            <span>Table</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Interactive Map Viewport */}
-      <div className="h-[440px] relative w-full bg-slate-950">
-        <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-10" />
+      {/* Main Map Canvas */}
+      <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-slate-800/80 shadow-inner">
+        <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-        {/* Zoom Controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-1 z-20 bg-slate-950/90 p-1 rounded-xl border border-slate-800 shadow-xl backdrop-blur-md">
-          <button
-            onClick={() => mapInstanceRef.current?.zoomIn()}
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition"
-            title="Zoom In"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          <div className="h-px bg-slate-800 w-full"></div>
-          <button
-            onClick={() => mapInstanceRef.current?.zoomOut()}
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition"
-            title="Zoom Out"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-          <div className="h-px bg-slate-800 w-full"></div>
-          <button
-            onClick={() => mapInstanceRef.current?.setView([4.2105, 108.9758], 6)}
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition"
-            title="Reset to Malaysia View"
-          >
-            <Compass className="w-4 h-4 text-cyan-400" />
-          </button>
+        {/* Map Floating Summary Badge */}
+        <div className="absolute top-3 left-3 z-[400] bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2.5 text-xs text-slate-300 shadow-xl">
+          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <span>Showing <strong>{storePoints.length}</strong> Locations</span>
+          <span className="text-slate-600">|</span>
+          <span>Layer: <strong className="capitalize text-cyan-300">{layerType}</strong></span>
         </div>
 
-        {/* Legend */}
-        <div className="absolute bottom-4 right-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-md z-20 flex flex-col gap-1.5 text-[11px] pointer-events-auto">
-          <div className="flex items-center justify-between text-slate-300 font-bold gap-4">
-            <span className="flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-cyan-400" /> Revenue Attainment Status
-            </span>
-            <span className="text-[10px] text-slate-400 font-mono">Google Sheets</span>
-          </div>
+        {/* Selected Store Deep Dive Modal Drawer */}
+        {selectedPin && (
+          <div className="absolute right-3 top-3 bottom-3 w-80 sm:w-96 z-[500] bg-slate-950/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl p-4 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-200">
+            <div>
+              <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
+                <div>
+                  <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">{selectedPin.id}</span>
+                  <h3 className="text-sm font-bold text-white leading-tight">{selectedPin.name}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{selectedPin.region} • {selectedPin.state}</p>
+                </div>
+                <button
+                  onClick={handleCloseDrilldown}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-          <div className="flex items-center gap-3 text-[10px] font-bold">
-            <span className="flex items-center gap-1 text-emerald-400">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> On Track (≥100%)
-            </span>
-            <span className="flex items-center gap-1 text-amber-400">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Warning (90-99%)
-            </span>
-            <span className="flex items-center gap-1 text-rose-400">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span> At Risk (&lt;90%)
-            </span>
-          </div>
-        </div>
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-2 gap-2 my-3">
+                <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase">Volume</span>
+                  <p className="text-sm font-extrabold text-white font-mono">{formatValue(selectedPin.sales, 'RM 0.00a')}</p>
+                </div>
+                <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase">NPS Score</span>
+                  <p className="text-sm font-extrabold text-emerald-400 font-mono">{selectedPin.nps} / 100</p>
+                </div>
+                <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase">Terminals / ATMs</span>
+                  <p className="text-sm font-extrabold text-cyan-400 font-mono">{selectedPin.pos_count} Units</p>
+                </div>
+                <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase">Manager</span>
+                  <p className="text-xs font-semibold text-slate-300 truncate">{selectedPin.manager}</p>
+                </div>
+              </div>
 
-        {!selectedPin && (
-          <div className="absolute bottom-4 left-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-xl z-20 flex items-center gap-2.5 text-xs text-slate-300 pointer-events-auto animate-in fade-in">
-            <Focus className="w-4 h-4 text-cyan-400" />
-            <span>Click any store pin on the map or select a store in the table below to dive into {timeLabel} performance.</span>
+              {/* Hourly Velocity Chart */}
+              <div className="mt-2">
+                <span className="text-[11px] font-semibold text-slate-300 uppercase">Intraday Activity Stream</span>
+                <div className="h-36 w-full mt-1">
+                  <ReactECharts option={getHourlyChartOption()} style={{ height: '100%', width: '100%' }} />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleCloseDrilldown}
+              className="mt-3 w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-medium border border-slate-800 transition-colors"
+            >
+              Close Deep Dive
+            </button>
           </div>
         )}
       </div>
 
-      {/* 3. STORE OUTLETS DATA TABLE LIST */}
-      {showTable && (
-        <div className="border-t border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <div className="flex items-center gap-2">
-              <TableIcon className="w-4 h-4 text-cyan-400" />
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
-                Store Outlets Target Attainment & Regional Performance Table ({timeLabel})
-              </h4>
-              <span className="text-[10px] text-slate-500 font-mono">({storePoints.length} Stores)</span>
-            </div>
-            <span className="text-[10px] text-slate-400">
-              💡 Select any store below to focus map and view deep-dive analytics
+      {/* Dynamic Tabular Breakdown View */}
+      {showTableState && (
+        <div className="border border-slate-800/80 rounded-xl overflow-hidden bg-slate-950/60 mt-1">
+          <div className="px-4 py-2.5 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <TableIcon className="w-3.5 h-3.5 text-cyan-400" />
+              Location Performance Directory ({storePoints.length} Locations)
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-900/40">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-900/80 text-slate-400 text-[11px] font-bold">
-                  <th className="py-3 px-4">Store ID</th>
-                  <th className="py-3 px-4">Store Outlet Location</th>
-                  <th className="py-3 px-4">Region</th>
-                  <th className="py-3 px-4">Store Manager</th>
-                  <th className="py-3 px-4 text-right">POS Sales ({timeLabel})</th>
-                  <th className="py-3 px-4 text-right">Budget Target (GSheet)</th>
-                  <th className="py-3 px-4 text-right">Attainment %</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-3 text-center">Action</th>
+          <div className="overflow-x-auto max-h-60 overflow-y-auto">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-900/90 text-slate-400 border-b border-slate-800 sticky top-0 uppercase text-[10px] tracking-wider font-semibold">
+                <tr>
+                  <th className="px-4 py-2.5">Code / ID</th>
+                  <th className="px-4 py-2.5">Location Name</th>
+                  <th className="px-4 py-2.5">Region</th>
+                  <th className="px-4 py-2.5 text-right">Volume</th>
+                  <th className="px-4 py-2.5 text-center">NPS</th>
+                  <th className="px-4 py-2.5">Manager</th>
+                  <th className="px-4 py-2.5 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-medium">
-                {storePoints.map((st: any) => {
-                  const isSelected = selectedPin?.id === st.id;
-                  const { color, label, badgeBg } = getAttainmentColor(st.target_achievement_pct);
-
+              <tbody className="divide-y divide-slate-800/50 font-mono text-[11px]">
+                {storePoints.map((store: any) => {
+                  const isSelected = selectedPin?.id === store.id;
                   return (
-                    <tr
-                      key={st.id}
-                      onClick={() => handleSelectStore(st)}
-                      className={`cursor-pointer transition-all duration-150 ${
-                        isSelected 
-                          ? 'bg-cyan-500/15 text-white font-semibold ring-1 ring-cyan-400/40' 
-                          : 'hover:bg-slate-800/60 text-slate-300'
+                    <tr 
+                      key={store.id} 
+                      onClick={() => handleSelectStore(store)}
+                      className={`hover:bg-slate-800/40 cursor-pointer transition-colors ${
+                        isSelected ? 'bg-cyan-950/30 text-white font-semibold' : ''
                       }`}
                     >
-                      <td className="py-3 px-4 font-mono text-[11px] font-bold text-cyan-400">{st.id}</td>
-                      <td className="py-3 px-4 font-bold text-slate-100">{st.name || st.store_name}</td>
-                      <td className="py-3 px-4 text-slate-400">{st.region}</td>
-                      <td className="py-3 px-4 text-slate-300">{st.manager}</td>
-                      <td className="py-3 px-4 text-right font-bold text-slate-100">{formatValue(st.sales, 'RM 0,0')}</td>
-                      <td className="py-3 px-4 text-right text-cyan-300">{formatValue(st.target, 'RM 0,0')}</td>
-                      <td className="py-3 px-4 text-right font-black" style={{ color: color }}>
-                        {st.target_achievement_pct}%
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeBg}`}>
-                          {label.split(' ')[0]}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center">
+                      <td className="px-4 py-2 text-cyan-400 font-medium">{store.id}</td>
+                      <td className="px-4 py-2 font-sans font-medium text-slate-200">{store.name}</td>
+                      <td className="px-4 py-2 font-sans text-slate-400">{store.region}</td>
+                      <td className="px-4 py-2 text-right font-bold text-white">{formatValue(store.sales, 'RM 0.00a')}</td>
+                      <td className="px-4 py-2 text-center text-emerald-400">{store.nps}</td>
+                      <td className="px-4 py-2 font-sans text-slate-400">{store.manager}</td>
+                      <td className="px-4 py-2 text-center font-sans">
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleSelectStore(st); }}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
-                            isSelected
-                              ? 'bg-cyan-500 text-slate-950 shadow-md'
-                              : 'bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-300'
+                          onClick={(e) => { e.stopPropagation(); handleSelectStore(store); }}
+                          className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                            isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                           }`}
                         >
-                          {isSelected ? 'Active ✓' : 'Dive-in →'}
+                          {isSelected ? 'Selected' : 'Inspect'}
                         </button>
                       </td>
                     </tr>
@@ -647,95 +602,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                 })}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* 4. STORE DRILL-DOWN DEEP-DIVE */}
-      {selectedPin && (
-        <div className="border-t border-slate-800 bg-slate-950/95 p-5 animate-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/10">
-                <Focus className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-extrabold text-white tracking-tight">
-                    {configuredTitle}
-                  </h4>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
-                    {timeLabel} Deep-Dive
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {configuredSubtitle}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={handleCloseDrilldown}
-              className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition flex items-center gap-1.5 text-xs font-semibold"
-              title="Close Store Drilldown"
-            >
-              <X className="w-4 h-4" /> Close Drilldown
-            </button>
-          </div>
-
-          {/* Sub-Widget KPI Scorecards dynamically cascading time range */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{timeLabel} Store Revenue</span>
-              <span className="text-xl font-black text-white mt-0.5 block">{formatValue(periodSales, 'RM 0.0a')}</span>
-              <span className="text-[10px] text-emerald-400 font-semibold mt-0.5 block">+12.4% vs benchmark</span>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{timeLabel} Budget Target</span>
-              <span className="text-xl font-black text-cyan-300 mt-0.5 block">{formatValue(periodTarget, 'RM 0.0a')}</span>
-              <span className="text-[10px] font-semibold mt-0.5 block" style={{ color: getAttainmentColor(selectedPin.target_achievement_pct).color }}>
-                {selectedPin.target_achievement_pct}% Attainment
-              </span>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active POS Lanes</span>
-              <span className="text-xl font-black text-indigo-300 mt-0.5 block">{selectedPin.pos_count} Lanes</span>
-              <span className="text-[10px] text-indigo-400 font-semibold mt-0.5 block">100% Online & Synced</span>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer NPS Rating</span>
-              <span className="text-xl font-black text-amber-300 mt-0.5 block">★ {selectedPin.nps} / 100</span>
-              <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">Store Mgr: {selectedPin.manager}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <div className="lg:col-span-8 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> {widget.drilldown?.sub_widgets?.[0]?.title || 'Transaction Velocity & Customer Traffic'} ({timeLabel})
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">Live BigQuery Stream</span>
-              </div>
-              <div className="h-[200px]">
-                <ReactECharts option={getHourlyChartOption()} style={{ height: '100%', width: '100%' }} />
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <PieChart className="w-3.5 h-3.5 text-indigo-400" /> {widget.drilldown?.sub_widgets?.[1]?.title || 'Product Division Share'} ({timeLabel})
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">Product Mix</span>
-              </div>
-              <div className="h-[200px]">
-                <ReactECharts option={getCategoryChartOption()} style={{ height: '100%', width: '100%' }} />
-              </div>
-            </div>
           </div>
         </div>
       )}

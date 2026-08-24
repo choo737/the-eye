@@ -317,9 +317,23 @@ export function transformGenericTabularData(
   };
 }
 
+export const DEFAULT_CIMB_DATASET: TabularRow[] = [
+  { branch_code: 'CIMB-0101', branch_name: 'CIMB Menara KL Sentral Main', region: 'Central Region', state: 'Kuala Lumpur', latitude: 3.1343, longitude: 101.6865, banking_product: 'Consumer CASA Deposits', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 12100000000, fee_income_myr: 36510000, deposit_target_myr: 15000000000, branch_manager: 'Datuk Faridah Rahman', customer_nps: 94, atm_count: 12 },
+  { branch_code: 'CIMB-0102', branch_name: 'CIMB Jalan Raja Chulan Financial Hub', region: 'Central Region', state: 'Kuala Lumpur', latitude: 3.1498, longitude: 101.7088, banking_product: 'Mortgages & Home Loans', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 12070000000, fee_income_myr: 36570000, deposit_target_myr: 12000000000, branch_manager: 'Tan Sri Lawrence Lim', customer_nps: 91, atm_count: 8 },
+  { branch_code: 'CIMB-0201', branch_name: 'CIMB Gurney Drive Premier Branch', region: 'Northern Region', state: 'Penang', latitude: 5.4398, longitude: 100.3090, banking_product: 'Wealth & Unit Trusts', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 12080000000, fee_income_myr: 36520000, deposit_target_myr: 8500000000, branch_manager: 'Dr. Raj Kumar', customer_nps: 89, atm_count: 6 },
+  { branch_code: 'CIMB-0301', branch_name: 'CIMB Johor Bahru City Centre Gateway', region: 'Southern Region', state: 'Johor', latitude: 1.4655, longitude: 103.7618, banking_product: 'SME & Commercial Loans', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 12080000000, fee_income_myr: 36540000, deposit_target_myr: 9500000000, branch_manager: 'Grace Goh Bee Lian', customer_nps: 88, atm_count: 8 },
+  { branch_code: 'CIMB-0401', branch_name: 'CIMB Kuantan Coastal Main Branch', region: 'East Coast', state: 'Pahang', latitude: 3.8077, longitude: 103.3260, banking_product: 'Consumer CASA Deposits', transaction_channel: 'ATM & Cash Deposit Machine', transaction_volume_myr: 12080000000, fee_income_myr: 36500000, deposit_target_myr: 6000000000, branch_manager: 'Haji Shahrul Azman', customer_nps: 82, atm_count: 5 },
+  { branch_code: 'CIMB-0501', branch_name: 'CIMB Kuching Waterfront Premier Center', region: 'East Malaysia', state: 'Sarawak', latitude: 1.5595, longitude: 103.3422, banking_product: 'Auto Financing & Hire Purchase', transaction_channel: 'Over-the-Counter (OTC)', transaction_volume_myr: 12070000000, fee_income_myr: 36580000, deposit_target_myr: 7000000000, branch_manager: 'Jonathan Ting Choon', customer_nps: 86, atm_count: 6 },
+  { branch_code: 'CIMB-0502', branch_name: 'CIMB Kota Kinabalu Financial Center', region: 'East Malaysia', state: 'Sabah', latitude: 5.9804, longitude: 116.0735, banking_product: 'SME & Commercial Loans', transaction_channel: 'Premier Wealth Desk', transaction_volume_myr: 12080000000, fee_income_myr: 36540000, deposit_target_myr: 6500000000, branch_manager: 'Dayang Nurul Hidayah', customer_nps: 85, atm_count: 6 },
+  { branch_code: 'CIMB-0103', branch_name: 'CIMB Damansara Uptown Commercial Hub', region: 'Central Region', state: 'Selangor', latitude: 3.1366, longitude: 101.6225, banking_product: 'Consumer CASA Deposits', transaction_channel: 'CIMB Clicks & Digital Hub', transaction_volume_myr: 12070000000, fee_income_myr: 36540000, deposit_target_myr: 11000000000, branch_manager: 'Michael Chong Wai Keat', customer_nps: 92, atm_count: 7 }
+];
+
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
-  return transformGenericTabularData(widget, DEFAULT_STORE_DATASET, activeFilters, overrideGrain);
+  const isCimb = widget.source?.toLowerCase().includes('cimb') || (widget as any).dataset?.toLowerCase().includes('cimb');
+  const dataset = isCimb ? DEFAULT_CIMB_DATASET : DEFAULT_STORE_DATASET;
+  return transformGenericTabularData(widget, dataset, activeFilters, overrideGrain);
 }
+
 
 export const DEFAULT_STORE_DATASET: TabularRow[] = [
   { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region_cluster: 'Klang Valley / Central', latitude: 3.1578, longitude: 101.7123, product_division: 'Fresh Food & Ready-to-Eat (RTE)', gross_revenue_myr: 12450000, basket_items_count: 4200, monthly_budget_target: 14000000, store_manager: 'Ahmad Zaki', nps_score: 96, pos_terminal_count: 8 },

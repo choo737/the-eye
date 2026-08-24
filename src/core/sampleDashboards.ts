@@ -112,7 +112,6 @@ widgets:
     source: bq_seven_eleven
     position: { x: 0, y: 0, w: 3, h: 2 }
     value: "gross_sales"
-    target: "RM 85.0M"
     format: "RM 0.00a"
     comparison_label: "+14.2% YoY"
     sparkline: true
@@ -369,7 +368,6 @@ widgets:
     source: bq_cimb_bank
     position: { x: 0, y: 0, w: 3, h: 2 }
     value: "transaction_volume_myr"
-    target: "RM 95.0B"
     format: "RM 0.00a"
     comparison_label: "+18.6% vs Q3 target"
     sparkline: true
