@@ -88,12 +88,20 @@ export const Header: React.FC<HeaderProps> = ({
           ))}
         </select>
 
-        {/* Google IAM & ADC Delegated Authority Badge */}
-        <div className="hidden xl:flex items-center gap-1.5 text-xs bg-indigo-950/40 border border-indigo-500/30 px-2.5 py-1 rounded-lg">
-          <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="text-slate-300 font-medium">ADC / Google IAM:</span>
-          <span className="text-cyan-400 font-mono text-[11px]">{spec?.data_sources?.[0]?.project || spec?.data_sources?.[0]?.name || spec?.data_sources?.[0]?.id || "Active Source"}</span>
-        </div>
+        {/* Dynamic Connection Status Badge (Live BigQuery vs Template Preview) */}
+        {spec?.data_sources?.[0]?.type === 'bigquery' ? (
+          <div className="hidden xl:flex items-center gap-1.5 text-xs bg-emerald-950/40 border border-emerald-500/40 px-2.5 py-1 rounded-lg">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-slate-300 font-medium">BigQuery ADC:</span>
+            <span className="text-emerald-300 font-mono text-[11px] font-bold">{spec?.data_sources?.[0]?.project || 'seven-eleven-qlik-bq'}</span>
+          </div>
+        ) : (
+          <div className="hidden xl:flex items-center gap-1.5 text-xs bg-indigo-950/40 border border-indigo-500/30 px-2.5 py-1 rounded-lg">
+            <span className="text-indigo-300 text-xs">🧪</span>
+            <span className="text-slate-300 font-medium">Data Source:</span>
+            <span className="text-cyan-400 font-mono text-[11px]">{spec?.data_sources?.[0]?.name || spec?.data_sources?.[0]?.type || 'Template Preview'}</span>
+          </div>
+        )}
       </div>
 
       {/* Center: Device Viewport Switcher */}
