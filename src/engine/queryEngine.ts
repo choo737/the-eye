@@ -236,8 +236,8 @@ export function transformGenericTabularData(
       useDualAxis,
       categories: categories.length > 0 ? categories : ['No Data'],
       series: [
-        { name: 'Actual Sales Volume', data: actualSeries, yAxisIndex: 0 },
-        { name: 'Store Budget Target', data: targetSeries, yAxisIndex: useDualAxis ? 1 : 0 }
+        { name: widget.measures?.[0] ? widget.measures[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Actual Volume', data: actualSeries, yAxisIndex: 0 },
+        { name: widget.measures?.[1] ? widget.measures[1].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Target Allocation', data: targetSeries, yAxisIndex: useDualAxis ? 1 : 0 }
       ]
     };
   }
@@ -275,8 +275,8 @@ export function transformGenericTabularData(
       useDualAxis,
       categories,
       series: [
-        { name: 'Store POS Sales', data: seriesData1, yAxisIndex: 0 },
-        { name: 'Customer Footfall / Transactions', data: seriesData2, yAxisIndex: 1 }
+        { name: widget.measures?.[0] ? widget.measures[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Primary Metric Stream', data: seriesData1, yAxisIndex: 0 },
+        { name: widget.measures?.[1] ? widget.measures[1].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Secondary Metric Stream', data: seriesData2, yAxisIndex: 1 }
       ]
     };
   }

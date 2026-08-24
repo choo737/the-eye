@@ -144,13 +144,15 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
 
     // 3. Treemap Chart
     if (effectiveType === 'treemap') {
-      const treeData = data?.data || [
-        { name: 'Fresh Food & RTE', value: 38400000 },
-        { name: 'Beverages & Slurpee', value: 24500000 },
-        { name: 'Packaged Snacks', value: 15600000 },
-        { name: 'Tobacco & Nicotine', value: 12800000 },
-        { name: 'Personal Care', value: 8900000 }
-      ];
+      const treeData = data?.data || (data?.categories ? data.categories.map((c: string, i: number) => ({
+        name: c,
+        value: data?.series?.[0]?.data?.[i] || 1000
+      })) : [
+        { name: 'Division A', value: 45000 },
+        { name: 'Division B', value: 32000 },
+        { name: 'Division C', value: 21000 },
+        { name: 'Division D', value: 14000 }
+      ]);
       return {
         tooltip: {
           formatter: (params: any) => `${params.name}: <strong>${formatValue(params.value, widget.format || 'RM 0.0a')}</strong>`,
@@ -248,16 +250,16 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
 
     // 6. Scatter & Bubble Chart
     if (effectiveType === 'scatter_chart' || effectiveType === 'bubble_chart') {
-      const scatterPoints = data?.data || [
-        [35000, 38400, 8, 'KLCC'],
-        [32000, 31200, 6, 'Mid Valley'],
-        [25000, 24500, 5, 'Gurney'],
-        [30000, 28900, 6, 'JB Customs'],
-        [38000, 42100, 10, 'KLIA2'],
-        [22000, 16800, 4, 'Ipoh'],
-        [20000, 19500, 4, 'Kuantan'],
-        [22000, 21400, 5, 'Kuching']
-      ];
+      const scatterPoints = data?.data || (data?.categories ? data.categories.map((c: string, i: number) => [
+        data?.series?.[0]?.data?.[i] || 1000,
+        data?.series?.[1]?.data?.[i] || 1200,
+        8,
+        c
+      ]) : [
+        [30000, 32000, 8, 'Entity Alpha'],
+        [25000, 27000, 6, 'Entity Beta'],
+        [20000, 19000, 5, 'Entity Gamma']
+      ]);
       return {
         tooltip: {
           formatter: (p: any) => `${p.value[3]}: Target ${formatValue(p.value[0], 'RM 0,0')} | Sales ${formatValue(p.value[1], 'RM 0,0')}`,
@@ -404,8 +406,8 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       };
     });
 
-    const primaryAxisName = Array.isArray(widget.y) ? widget.y[0] : (widget.y || 'Sales (RM)');
-    const secondaryAxisName = Array.isArray(widget.y) && widget.y[1] ? widget.y[1] : 'Footfall / Count';
+    const primaryAxisName = Array.isArray(widget.y) ? widget.y[0] : (widget.y || widget.title || 'Value');
+    const secondaryAxisName = Array.isArray(widget.y) && widget.y[1] ? widget.y[1] : 'Secondary Metric';
 
     const valueAxisConfig = {
       type: 'value',
