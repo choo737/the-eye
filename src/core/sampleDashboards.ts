@@ -181,24 +181,24 @@ widgets:
     source: bq_seven_eleven
     position: { x: 7, y: 6, w: 5, h: 4 }
 
-  # Row 4: Interactive Google Maps Geospatial Intelligence (Dynamic NPS Color Scale)
+  # Row 4: Interactive Google Maps Geospatial Intelligence (Google Sheets Revenue Target Attainment)
   - id: outlet_geo_map
-    title: "Store Outlets Geospatial Intelligence (Google Maps)"
-    subtitle: "Filtered outlet locations colored by Customer NPS Rating (Green: 100 to Red: 0)"
+    title: "Store Outlets Revenue Target Attainment (Google Maps × Google Sheets)"
+    subtitle: "Filtered outlet locations colored by Google Sheets sales target attainment (Green: On Track >=100% to Red: At Risk <90%)"
     type: google_map
-    source: bq_seven_eleven
+    source: bq_gsheet_store_mesh
     position: { x: 0, y: 10, w: 12, h: 4 }
     map_config:
       center: { lat: 3.1390, lng: 101.6869 }
       zoom: 6
-      style: "dark"
-      metric_field: "nps_rating"
+      style: "google_streets"
+      metric_field: "target_achievement_pct"
       color_scale:
-        min: 0
-        max: 100
-        min_color: "#ef4444"   # Red (NPS 0)
-        mid_color: "#eab308"   # Yellow (NPS 50)
-        max_color: "#22c55e"   # Green (NPS 100)
+        min: 80
+        max: 110
+        min_color: "#ef4444"   # Red (At Risk <90%)
+        mid_color: "#eab308"   # Amber (Warning 90-99%)
+        max_color: "#22c55e"   # Green (On Track >=100%)
     interaction:
       on_click_filter:
         filter_id: "store_region"
