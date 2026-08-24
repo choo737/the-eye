@@ -36,9 +36,15 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
           textStyle: { color: '#f8fafc' }
         },
         legend: {
-          bottom: '2%',
+          bottom: 4,
           left: 'center',
-          textStyle: { color: textColor, fontSize: 11 },
+          itemWidth: 9,
+          itemHeight: 9,
+          itemGap: 10,
+          type: 'scroll',
+          pageIconColor: '#38bdf8',
+          pageTextStyle: { color: '#94a3b8', fontSize: 10 },
+          textStyle: { color: textColor, fontSize: 10.5 },
           icon: 'circle'
         },
         color: cyanPalette,
@@ -46,8 +52,9 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
           {
             name: data?.dynamicTitle || widget.title,
             type: 'pie',
-            radius: effectiveType === 'donut_chart' ? ['45%', '72%'] : '68%',
-            avoidLabelOverlap: false,
+            center: ['50%', '40%'], // Raised center to avoid legend collision
+            radius: effectiveType === 'donut_chart' ? ['38%', '64%'] : '60%',
+            avoidLabelOverlap: true,
             itemStyle: {
               borderRadius: 6,
               borderColor: '#0f172a',
@@ -60,7 +67,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
             emphasis: {
               label: {
                 show: true,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 'bold',
                 color: '#f8fafc'
               }
