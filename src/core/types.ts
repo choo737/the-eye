@@ -224,12 +224,20 @@ export interface CacheTelemetry {
   bytesSavedEst?: string;
 }
 
+export interface CurrencySpec {
+  symbol?: string; // e.g. "RM", "$", "€", "£", "¥", "SGD"
+  code?: string;   // e.g. "MYR", "USD", "EUR", "SGD"
+  position?: 'prefix' | 'suffix';
+  space?: boolean;
+}
+
 export interface DashboardSpec {
   version: string;
   id: string;
   title: string;
   description?: string;
   theme?: DashboardTheme;
+  currency?: CurrencySpec;
   refresh_interval?: string;
   cache?: CacheSpec;
   data_sources: DataSourceSpec[];

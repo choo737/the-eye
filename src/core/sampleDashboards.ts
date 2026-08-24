@@ -40,7 +40,7 @@ data_mesh:
         format: "0.0%"
       - name: "variance_to_budget"
         formula: "daily_sales - q3_budget_target"
-        format: "$0,0"
+        format: "RM 0,0"
 
 filters:
   - id: store_region
@@ -96,8 +96,8 @@ widgets:
     source: bq_seven_eleven
     position: { x: 0, y: 0, w: 3, h: 2 }
     value: "gross_sales"
-    target: "$85.0M"
-    format: "$0.00a"
+    target: "RM 85.0M"
+    format: "RM 0.00a"
     comparison_label: "+14.2% YoY"
     sparkline: true
 
@@ -107,8 +107,8 @@ widgets:
     source: bq_seven_eleven
     position: { x: 3, y: 0, w: 3, h: 2 }
     value: "basket_size"
-    format: "$0.00"
-    comparison_label: "+$1.85 / basket"
+    format: "RM 0.00"
+    comparison_label: "+RM 1.85 / basket"
     sparkline: true
 
   - id: kpi_store_count
@@ -139,10 +139,10 @@ widgets:
     source: bq_seven_eleven
     position: { x: 0, y: 2, w: 8, h: 4 }
     x: "date"
-    y: ["Store Sales ($)", "Customer Count"]
+    y: ["Store Sales (RM)", "Customer Count"]
     dual_axis: true
     auto_grain: true
-    format: "$0.0a"
+    format: "RM 0.0a"
     smooth: true
 
   - id: division_share_donut
@@ -153,7 +153,7 @@ widgets:
     position: { x: 8, y: 2, w: 4, h: 4 }
     category: "category"
     value: "sales"
-    format: "$0.0a"
+    format: "RM 0.0a"
     interaction:
       on_click_filter:
         filter_id: "product_division"
@@ -168,7 +168,7 @@ widgets:
     position: { x: 0, y: 6, w: 7, h: 4 }
     x: "cluster"
     y: ["Actual Revenue", "Target Revenue"]
-    format: "$0.0a"
+    format: "RM 0.0a"
     interaction:
       on_click_filter:
         filter_id: "store_region"
@@ -208,7 +208,7 @@ widgets:
           title: "Hourly POS Transaction Velocity"
           type: line_chart
           x: "hour"
-          y: ["Hourly POS Sales ($)", "POS Transactions"]
+          y: ["Hourly POS Sales (RM)", "POS Transactions"]
           dual_axis: true
         - id: store_category_donut
           title: "Store Category Share"
@@ -231,12 +231,12 @@ widgets:
       - key: "store_manager"
         label: "Store Manager"
       - key: "daily_sales"
-        label: "Actual POS Sales"
-        format: "$0,0"
+        label: "Actual POS Sales (RM)"
+        format: "RM 0,0"
         align: "right"
       - key: "q3_budget_target"
-        label: "Q3 Budget Target"
-        format: "$0,0"
+        label: "Q3 Budget Target (RM)"
+        format: "RM 0,0"
         align: "right"
       - key: "target_achievement_pct"
         label: "Attainment %"

@@ -230,7 +230,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           let res = `<div style="font-weight: bold; margin-bottom: 4px;">Time: ${params[0].name}</div>`;
           params.forEach(p => {
             const isSales = p.seriesName.includes('Sales');
-            const val = isSales ? formatValue(p.value, '$0,0') : formatValue(p.value, '0,0');
+            const val = isSales ? formatValue(p.value, 'RM 0,0') : formatValue(p.value, '0,0');
             res += `<div style="display: flex; justify-content: space-between; gap: 12px;">
               <span>${p.marker} ${p.seriesName}</span>
               <strong>${val}</strong>
@@ -250,13 +250,13 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
       yAxis: [
         {
           type: 'value',
-          name: 'Sales ($)',
+          name: 'Sales (RM)',
           nameTextStyle: { color: '#94a3b8', fontSize: 10 },
           splitLine: { lineStyle: { color: '#1e293b' } },
           axisLabel: { 
             color: '#94a3b8', 
             fontSize: 10, 
-            formatter: (v: number) => formatValue(v, '$0,0') 
+            formatter: (v: number) => formatValue(v, 'RM 0,0') 
           }
         },
         {
@@ -273,7 +273,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
       ],
       series: [
         {
-          name: 'Hourly POS Sales ($)',
+          name: 'Hourly POS Sales (RM)',
           type: 'line',
           smooth: true,
           data: salesData,
@@ -307,7 +307,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
       backgroundColor: 'transparent',
       tooltip: { 
         trigger: 'item', 
-        formatter: (p: any) => `${p.name}: <strong>${formatValue(p.value, '$0,0')}</strong> (${p.percent}%)` 
+        formatter: (p: any) => `${p.name}: <strong>${formatValue(p.value, 'RM 0,0')}</strong> (${p.percent}%)` 
       },
       legend: { show: false },
       series: [
@@ -500,13 +500,13 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily POS Revenue</span>
-              <span className="text-xl font-black text-white mt-0.5 block">{formatValue(selectedPin.sales, '$0,0')}</span>
+              <span className="text-xl font-black text-white mt-0.5 block">{formatValue(selectedPin.sales, 'RM 0,0')}</span>
               <span className="text-[10px] text-emerald-400 font-semibold mt-0.5 block">+12.4% vs last week</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">GSheet Budget Target</span>
-              <span className="text-xl font-black text-cyan-300 mt-0.5 block">{formatValue(selectedPin.target, '$0,0')}</span>
+              <span className="text-xl font-black text-cyan-300 mt-0.5 block">{formatValue(selectedPin.target, 'RM 0,0')}</span>
               <span className="text-[10px] font-semibold mt-0.5 block" style={{ color: getAttainmentColor(selectedPin.target_achievement_pct).color }}>
                 {selectedPin.target_achievement_pct}% Attainment
               </span>
