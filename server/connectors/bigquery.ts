@@ -51,7 +51,7 @@ export class BigQueryConnector {
         query,
         params,
         dryRun: false,
-        location: 'US' // or asia-southeast1
+        location: 'asia-southeast1' // or asia-southeast1
       });
 
       const [rows] = await job.getQueryResults();
