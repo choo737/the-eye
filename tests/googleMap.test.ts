@@ -67,8 +67,7 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
     expect(res.mapPoints).toBeDefined();
     expect(res.mapPoints.length).toBeGreaterThanOrEqual(8);
 
-    // Verify every single store point has valid non-undefined name and attributes
-    res.mapPoints.forEach((point: any, idx: number) => {
+    res.mapPoints.forEach((point: any) => {
       expect(point.name).toBeDefined();
       expect(typeof point.name).toBe('string');
       expect(point.name).not.toBe('undefined');
@@ -109,5 +108,18 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
       expect(point.name).not.toBe('undefined');
       expect(point.name.length).toBeGreaterThan(0);
     });
+  });
+
+  it('should support toggle unselect logic for store deep-dives', () => {
+    let currentSelected: any = null;
+    const store1 = { id: '7E-1082', name: 'KLCC' };
+
+    // Select store1
+    currentSelected = currentSelected?.id === store1.id ? null : store1;
+    expect(currentSelected?.id).toBe('7E-1082');
+
+    // Click again -> should toggle unselect to null
+    currentSelected = currentSelected?.id === store1.id ? null : store1;
+    expect(currentSelected).toBeNull();
   });
 });

@@ -71,6 +71,11 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   }, [data?.mapPoints]);
 
   const [selectedPin, setSelectedPin] = useState<any | null>(null);
+  // Auto-reset deep-dive selection whenever the main filters or data change
+  useEffect(() => {
+    setSelectedPin(null);
+  }, [data]);
+
   const [mapStyle, setMapStyle] = useState<'google_streets' | 'google_satellite' | 'google_terrain'>('google_streets');
 
   const showTable = widget.map_config?.show_table !== false;
@@ -232,7 +237,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         const marker = L.marker([pin.lat, pin.lng], { icon: customIcon });
 
         marker.on('click', () => {
-          setSelectedPin(pin);
+          setSelectedPin((prev: any) => (prev?.id === pin.id ? null : pin));
         });
 
         markersLayerRef.current?.addLayer(marker);
@@ -243,8 +248,13 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   }, [selectedPin, mapStyle, colorScale, storePoints]);
 
   const handleSelectStore = (store: any) => {
-    setSelectedPin(store);
-    mapInstanceRef.current?.setView([store.lat, store.lng], 9, { animate: true });
+    setSelectedPin((prev: any) => {
+      if (prev?.id === store.id) {
+        return null; // Toggle unselect
+      }
+      mapInstanceRef.current?.setView([store.lat, store.lng], 9, { animate: true });
+      return store;
+    });
   };
 
   const handleCloseDrilldown = () => {
