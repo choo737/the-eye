@@ -287,7 +287,30 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const YEAR_OPTIONS = [2024, 2025, 2026, 2027];
+  const minYear = parsedMinDate.getFullYear();
+  const maxYear = parsedMaxDate.getFullYear();
+
+  const YEAR_OPTIONS = useMemo(() => {
+    const years: number[] = [];
+    const startY = Math.min(minYear, 2020);
+    const endY = Math.max(maxYear, 2030);
+    for (let y = startY; y <= endY; y++) {
+      years.push(y);
+    }
+    return years;
+  }, [minYear, maxYear]);
+
+  const canGoPrev = (m: number, y: number) => {
+    const curMonth = new Date(y, m, 1);
+    const minMonth = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), 1);
+    return curMonth > minMonth;
+  };
+
+  const canGoNext = (m: number, y: number) => {
+    const curMonth = new Date(y, m, 1);
+    const maxMonth = new Date(parsedMaxDate.getFullYear(), parsedMaxDate.getMonth(), 1);
+    return curMonth < maxMonth;
+  };
 
   const handleDateClick = (date: Date) => {
     if (isDateDisabled(date)) return;
@@ -312,10 +335,30 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     month: number, 
     year: number, 
     setMonth: (m: number) => void,
-    setYear: (y: number) => void,
-    onPrev: () => void, 
-    onNext: () => void
+    setYear: (y: number) => void
   ) => {
+    const canPrev = canGoPrev(month, year);
+    const canNext = canGoNext(month, year);
+
+    const handlePrev = () => {
+      if (!canPrev) return;
+      if (month === 0) {
+        setMonth(11);
+        setYear(year - 1);
+      } else {
+        setMonth(month - 1);
+      }
+    };
+
+    const handleNext = () => {
+      if (!canNext) return;
+      if (month === 11) {
+        setMonth(0);
+        setYear(year + 1);
+      } else {
+        setMonth(month + 1);
+      }
+    };
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
     const firstDayIndex = new Date(year, month, 1).getDay();
@@ -346,8 +389,11 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-800">
           <button
             type="button"
-            onClick={onPrev}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            onClick={handlePrev}
+            disabled={!canPrev}
+            className={`p-1 rounded-lg transition ${
+              !canPrev ? 'opacity-20 cursor-not-allowed text-slate-600' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
             title="Previous Month"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -378,8 +424,11 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
           <button
             type="button"
-            onClick={onNext}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            onClick={handleNext}
+            disabled={!canNext}
+            className={`p-1 rounded-lg transition ${
+              !canNext ? 'opacity-20 cursor-not-allowed text-slate-600' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+            }`}
             title="Next Month"
           >
             <ChevronRight className="w-4 h-4" />
@@ -405,7 +454,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             let cellClass = 'h-7 flex items-center justify-center rounded-lg transition text-xs ';
 
             if (disabled) {
-              cellClass += 'text-slate-700 opacity-25 cursor-not-allowed pointer-events-none ';
+              cellClass += 'text-slate-600/60 font-normal cursor-not-allowed pointer-events-none ';
             } else if (!item.isCurrentMonth) {
               cellClass += 'text-slate-600 hover:text-slate-400 cursor-pointer ';
             } else if (isStart || isEnd) {
@@ -509,23 +558,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
               leftViewMonth, 
               leftViewYear, 
               (m) => setLeftViewMonth(m),
-              (y) => setLeftViewYear(y),
-              () => {
-                if (leftViewMonth === 0) {
-                  setLeftViewMonth(11);
-                  setLeftViewYear(leftViewYear - 1);
-                } else {
-                  setLeftViewMonth(leftViewMonth - 1);
-                }
-              },
-              () => {
-                if (leftViewMonth === 11) {
-                  setLeftViewMonth(0);
-                  setLeftViewYear(leftViewYear + 1);
-                } else {
-                  setLeftViewMonth(leftViewMonth + 1);
-                }
-              }
+              (y) => setLeftViewYear(y)
             )}
 
             {/* Right Month Calendar Card */}
@@ -533,23 +566,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
               rightViewMonth, 
               rightViewYear, 
               (m) => setRightViewMonth(m),
-              (y) => setRightViewYear(y),
-              () => {
-                if (rightViewMonth === 0) {
-                  setRightViewMonth(11);
-                  setRightViewYear(rightViewYear - 1);
-                } else {
-                  setRightViewMonth(rightViewMonth - 1);
-                }
-              },
-              () => {
-                if (rightViewMonth === 11) {
-                  setRightViewMonth(0);
-                  setRightViewYear(rightViewYear + 1);
-                } else {
-                  setRightViewMonth(rightViewMonth + 1);
-                }
-              }
+              (y) => setRightViewYear(y)
             )}
 
             {/* Right Quick Presets Sidebar */}
