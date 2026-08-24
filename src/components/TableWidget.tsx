@@ -1,6 +1,7 @@
-import { formatValue } from '../utils/formatters';
 import React, { useState } from 'react';
 import { WidgetSpec } from '../core/types';
+import { formatValue } from '../utils/formatters';
+import { resolveFieldLabel } from '../engine/queryEngine';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 
 interface TableWidgetProps {
@@ -14,7 +15,10 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, data }) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const rows: any[] = data?.rows || [];
-  const columns = widget.table_columns || (rows.length > 0 ? Object.keys(rows[0]).map(k => ({ key: k, label: k })) : []);
+  const columns = widget.table_columns || (rows.length > 0 ? Object.keys(rows[0]).map(k => ({
+    key: k,
+    label: resolveFieldLabel(k, widget)
+  })) : []);
 
   const filteredRows = rows.filter(row => {
     if (!searchTerm) return true;
@@ -76,7 +80,7 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, data }) => {
                   className={`px-4 py-3 cursor-pointer hover:text-white transition select-none ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}
                 >
                   <div className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
-                    <span>{col.label}</span>
+                    <span>{col.label || resolveFieldLabel(col.key, widget)}</span>
                     {sortKey === col.key && (
                       sortOrder === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-cyan-400" /> : <ChevronDown className="w-3.5 h-3.5 text-cyan-400" />
                     )}
@@ -97,15 +101,9 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, data }) => {
                 <tr key={rowIdx} className="hover:bg-slate-850/60 transition">
                   {columns.map(col => {
                     const rawVal = row[col.key];
-                    let display = rawVal;
-
-                    if (col.format === '$0,0' && typeof rawVal === 'number') {
-                      display = `$${rawVal.toLocaleString()}`;
-                    } else if (col.format === '0.0%' && typeof rawVal === 'number') {
-                      display = `${rawVal.toFixed(1)}%`;
-                    } else if (col.format === '0,0' && typeof rawVal === 'number') {
-                      display = Math.round(rawVal).toLocaleString();
-                    }
+                    const formatted = (col.format && typeof rawVal === 'number')
+                      ? formatValue(rawVal, col.format)
+                      : rawVal;
 
                     return (
                       <td
@@ -114,18 +112,18 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, data }) => {
                       >
                         {col.badge ? (
                           <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
-                            String(rawVal).toLowerCase().includes('healthy') || String(rawVal).toLowerCase().includes('excellent') || String(rawVal).toLowerCase().includes('audited')
+                            String(rawVal).toLowerCase().includes('healthy') || String(rawVal).toLowerCase().includes('excellent') || String(rawVal).toLowerCase().includes('audited') || String(rawVal).toLowerCase().includes('on track')
                               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : String(rawVal).toLowerCase().includes('warning') || String(rawVal).toLowerCase().includes('low stock')
+                              : String(rawVal).toLowerCase().includes('warning') || String(rawVal).toLowerCase().includes('low stock') || String(rawVal).toLowerCase().includes('near')
                               ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              : String(rawVal).toLowerCase().includes('critical')
+                              : String(rawVal).toLowerCase().includes('critical') || String(rawVal).toLowerCase().includes('risk')
                               ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                               : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                           }`}>
                             {rawVal}
                           </span>
                         ) : (
-                          display
+                          formatted
                         )}
                       </td>
                     );

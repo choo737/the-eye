@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { WidgetSpec } from '../core/types';
 import { formatValue } from '../utils/formatters';
+import { resolveFieldLabel } from '../engine/queryEngine';
 import { 
   BarChart3, 
   LineChart as LineChartIcon, 
@@ -40,9 +41,11 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
           trigger: 'item',
           formatter: (params: any) => {
             const formattedVal = formatValue(params.value, widget.format || 'RM 0.0a');
+            const metricKey = typeof widget.measures?.[0] === 'object' ? (widget.measures[0] as any).field : widget.measures?.[0];
+            const metricTitle = resolveFieldLabel(metricKey || 'value', widget);
             return `<div style="font-weight: bold; margin-bottom: 2px;">${params.name}</div>
                     <div style="display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-                      <span>${params.marker} Sales:</span>
+                      <span>${params.marker} ${metricTitle}:</span>
                       <strong>${formattedVal}</strong>
                       <span style="color: #94a3b8; font-size: 11px;">(${params.percent}%)</span>
                     </div>`;

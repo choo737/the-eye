@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { WidgetSpec, ColorScaleSpec } from '../core/types';
 import { formatValue } from '../utils/formatters';
+import { resolveFieldLabel } from '../engine/queryEngine';
 import { 
   Focus, Scan, MapPin, Store, DollarSign, User, ShieldCheck, 
   Globe, Satellite, Target, Plus, Minus, Compass, 
@@ -511,19 +512,19 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
               {/* Metrics Grid */}
               <div className="grid grid-cols-2 gap-2 my-3">
                 <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase">Volume</span>
-                  <p className="text-sm font-extrabold text-white font-mono">{formatValue(selectedPin.sales, 'RM 0.00a')}</p>
+                  <span className="text-[10px] text-slate-400 uppercase">{resolveFieldLabel(widget.value_col || 'volume', widget)}</span>
+                  <p className="text-sm font-extrabold text-white font-mono">{formatValue(selectedPin.sales, widget.format || 'RM 0.00a')}</p>
                 </div>
                 <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase">NPS Score</span>
+                  <span className="text-[10px] text-slate-400 uppercase">{resolveFieldLabel('nps', widget)}</span>
                   <p className="text-sm font-extrabold text-emerald-400 font-mono">{selectedPin.nps} / 100</p>
                 </div>
                 <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase">Terminals / ATMs</span>
+                  <span className="text-[10px] text-slate-400 uppercase">{resolveFieldLabel('pos_count', widget)}</span>
                   <p className="text-sm font-extrabold text-cyan-400 font-mono">{selectedPin.pos_count} Units</p>
                 </div>
                 <div className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase">Manager</span>
+                  <span className="text-[10px] text-slate-400 uppercase">{resolveFieldLabel('manager', widget)}</span>
                   <p className="text-xs font-semibold text-slate-300 truncate">{selectedPin.manager}</p>
                 </div>
               </div>
@@ -561,12 +562,12 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-900/90 text-slate-400 border-b border-slate-800 sticky top-0 uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
-                  <th className="px-4 py-2.5">Code / ID</th>
-                  <th className="px-4 py-2.5">Location Name</th>
-                  <th className="px-4 py-2.5">Region</th>
-                  <th className="px-4 py-2.5 text-right">Volume</th>
-                  <th className="px-4 py-2.5 text-center">NPS</th>
-                  <th className="px-4 py-2.5">Manager</th>
+                  <th className="px-4 py-2.5">{resolveFieldLabel('id', widget)}</th>
+                  <th className="px-4 py-2.5">{resolveFieldLabel('name', widget)}</th>
+                  <th className="px-4 py-2.5">{resolveFieldLabel('region', widget)}</th>
+                  <th className="px-4 py-2.5 text-right">{resolveFieldLabel(widget.value_col || 'volume', widget)}</th>
+                  <th className="px-4 py-2.5 text-center">{resolveFieldLabel('nps', widget)}</th>
+                  <th className="px-4 py-2.5">{resolveFieldLabel('manager', widget)}</th>
                   <th className="px-4 py-2.5 text-center">Action</th>
                 </tr>
               </thead>
