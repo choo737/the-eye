@@ -105,10 +105,10 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 1. KPI WIDGET EXECUTION (Point-in-Time vs Flow Metric Aware)
+  // 1. KPI WIDGET EXECUTION
   // -------------------------------------------------------------
   if (widget.type === 'kpi_card') {
-    // A) Store Count (Entity count - does not scale with time)
+    // A) Store Count
     if (widget.value === 'store_count' || widget.format === '0,0') {
       return {
         dynamicTitle,
@@ -116,8 +116,8 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
         value: totalStores,
         comparison_label: isAllRegions ? '+28 new store openings' : `+${Math.round(totalStores * 0.03)} in selected regions`,
         sparklineData: [
-          Math.round(totalStores * 0.92),
-          Math.round(totalStores * 0.95),
+          Math.round(totalStores * 0.94),
+          Math.round(totalStores * 0.96),
           Math.round(totalStores * 0.98),
           totalStores
         ]
@@ -132,7 +132,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
         dynamicSubtitle,
         value: computedAbv,
         comparison_label: timeRange === 'last_30_days' ? '+$0.65 / basket' : '+$1.85 / basket',
-        sparklineData: [13.2, 13.8, 14.5, 15.1, 15.8, computedAbv]
+        sparklineData: [15.2, 14.8, 16.4, 15.9, 16.8, computedAbv]
       };
     }
 
@@ -144,11 +144,11 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
         dynamicSubtitle,
         value: rtePct,
         comparison_label: '+3.8% mix shift',
-        sparklineData: [21.0, 22.8, 24.5, 26.0, 27.4, rtePct]
+        sparklineData: [24.0, 22.8, 26.5, 25.0, 27.4, rtePct]
       };
     }
 
-    // D) POS Gross Sales (Additive Flow metric)
+    // D) POS Gross Sales
     const baseAnnualSales = 78450000;
     const computedSales = Math.round(baseAnnualSales * regionSalesFraction * divisionMultiplier * timeFlowMultiplier);
     const targetSales = `$${((85.0 * regionSalesFraction * divisionMultiplier * timeFlowMultiplier)).toFixed(1)}M`;
@@ -159,7 +159,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       value: computedSales,
       target: targetSales,
       comparison_label: timeRange === 'last_30_days' ? '+8.4% vs prev 30d' : '+14.2% YoY',
-      sparklineData: [0.75, 0.82, 0.88, 0.93, 0.97, 1.0].map(m => Math.round(computedSales * m))
+      sparklineData: [0.72, 0.88, 0.79, 0.94, 0.86, 1.0].map(m => Math.round(computedSales * m))
     };
   }
 
@@ -255,7 +255,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 6. CARTESIAN TIME-SERIES & CATEGORY BAR CHARTS
+  // 6. CARTESIAN TIME-SERIES WITH REALISTIC RETAIL SEASONALITY & VARIANCE
   // -------------------------------------------------------------
   const yMeasures = Array.isArray(widget.y) ? widget.y : (widget.y ? [widget.y] : ['Sales Volume']);
   const isDualAxis = widget.dual_axis || (yMeasures.length > 1 && yMeasures.some(m => String(m).toLowerCase().includes('count') || String(m).toLowerCase().includes('rate')));
@@ -263,30 +263,50 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
 
   if (isTimeSeries) {
     let categories: string[] = [];
+    let seasonalMultipliers: number[] = [];
+
     if (effectiveGrain === 'day') {
-      categories = ['Aug 01', 'Aug 04', 'Aug 07', 'Aug 10', 'Aug 13', 'Aug 16', 'Aug 19', 'Aug 22', 'Aug 24'];
+      // 10 sample points across 30 days showing weekend retail surges
+      categories = ['Aug 01 (Fri)', 'Aug 04 (Mon)', 'Aug 07 (Thu)', 'Aug 10 (Sun)', 'Aug 13 (Wed)', 'Aug 16 (Sat)', 'Aug 19 (Tue)', 'Aug 22 (Fri)', 'Aug 24 (Sun)'];
+      // Weekend peaks vs mid-week dips
+      seasonalMultipliers = [1.24, 0.88, 0.94, 1.32, 0.91, 1.38, 0.89, 1.28, 1.35];
     } else if (effectiveGrain === 'week') {
       categories = ['W1 Jun', 'W2 Jun', 'W3 Jun', 'W4 Jun', 'W1 Jul', 'W2 Jul', 'W3 Jul', 'W4 Jul', 'W1 Aug', 'W2 Aug', 'W3 Aug', 'W4 Aug'];
+      // School holidays surge in June, steady July, Merdeka promo in August
+      seasonalMultipliers = [1.18, 1.22, 1.28, 1.15, 1.02, 1.05, 1.08, 1.04, 1.14, 1.20, 1.26, 1.31];
     } else if (effectiveGrain === 'hour') {
-      categories = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
+      categories = ['06:00', '08:00 (Rush)', '10:00', '12:00 (Lunch)', '14:00', '16:00', '18:00 (Rush)', '20:00', '22:00 (Late Night)', '00:00'];
+      // Realistic 24-Hour Retail Traffic Pattern: Morning peak, Lunch peak, Evening peak
+      seasonalMultipliers = [0.35, 1.45, 0.78, 1.55, 0.85, 0.92, 1.62, 1.38, 1.10, 0.45];
     } else {
-      categories = ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26'];
+      // Monthly 2026 YTD Retail Curve: CNY in Feb, Ramadan/Raya in April, Mid-year holidays in June, Merdeka in Aug
+      categories = ['Jan 26', 'Feb 26 (CNY)', 'Mar 26', 'Apr 26 (Raya)', 'May 26', 'Jun 26 (Holidays)', 'Jul 26', 'Aug 26 (Promo)'];
+      seasonalMultipliers = [0.92, 1.34, 0.96, 1.42, 1.05, 1.28, 1.12, 1.36];
     }
+
+    const baseMonthlySales = 8800000 * regionSalesFraction * divisionMultiplier;
+    const baseMonthlyFootfall = 480000 * (totalStores / 2580);
 
     const series = yMeasures.map((measure, idx) => {
       const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
       const isSecondary = isDualAxis && idx > 0 && (measureName.toLowerCase().includes('count') || measureName.toLowerCase().includes('rate'));
 
-      const baseNumbers = categories.map((_, i) => {
-        const trend = (i + 1) / categories.length;
-        if (isSecondary) return Math.round((18000 + trend * 12000) * (totalStores / 2580));
-        return Math.round((2400 + trend * 1600) * 1000 * regionSalesFraction * divisionMultiplier);
+      const dataPoints = categories.map((_, i) => {
+        const mult = seasonalMultipliers[i] || 1.0;
+        if (isSecondary) {
+          // Footfall / Customer count with realistic noise (+/- 2%)
+          const variance = 1 + (((i * 7) % 5) - 2) * 0.015;
+          return Math.round(baseMonthlyFootfall * mult * variance);
+        }
+        // POS Sales with natural transaction basket variance
+        const variance = 1 + (((i * 11) % 7) - 3) * 0.018;
+        return Math.round(baseMonthlySales * mult * variance);
       });
 
       return {
         name: measureName,
         yAxisIndex: isSecondary ? 1 : 0,
-        data: baseNumbers
+        data: dataPoints
       };
     });
 
@@ -301,7 +321,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     };
   }
 
-  // Category Bar Chart (exact clusters for selected regions)
+  // Category Bar Chart
   const series = yMeasures.map((measure) => {
     const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
     const isTarget = measureName.toLowerCase().includes('target');
