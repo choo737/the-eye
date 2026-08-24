@@ -31,6 +31,8 @@ filters:
         value: "Southern Region"
       - label: "East Coast & Islands"
         value: "East Coast & Islands"
+      - label: "Sabah & Sarawak"
+        value: "Sabah & Sarawak"
 
   - id: product_division
     label: "Product Division"

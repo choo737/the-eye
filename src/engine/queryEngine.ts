@@ -14,13 +14,22 @@ export function interpolateString(template: string, context: Record<string, any>
   });
 }
 
-/**
- * 100% Filter-Agnostic & Schema-Driven Generic Query Engine.
- * Dynamically evaluates any user-defined dimensions, measures, time horizons, and filters.
- */
+function normalizeKey(str: string): string {
+  return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function matchesFilter(targetValue: string, filterValues: string[]): boolean {
+  if (filterValues.length === 0) return true;
+  const targetNorm = normalizeKey(targetValue);
+  return filterValues.some(fv => {
+    const fvNorm = normalizeKey(fv);
+    if (fvNorm.startsWith('all')) return true;
+    return targetNorm.includes(fvNorm) || fvNorm.includes(targetNorm);
+  });
+}
+
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
-  // Extract time filter generically
-  const timeRange = activeFilters['time_range'] || activeFilters['date_range'] || activeFilters['time'] || '2026-YTD';
+  const timeRange = activeFilters['time_range'] || activeFilters['date_range'] || '2026-YTD';
   
   let effectiveGrain = overrideGrain;
   if (!effectiveGrain) {
@@ -52,21 +61,21 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const dynamicTitle = interpolateString(widget.title, context);
   const dynamicSubtitle = widget.subtitle ? interpolateString(widget.subtitle, context) : `Showing ${grainLabel} rollup for ${timeLabel}`;
 
-  // Generic dimensional filter scaling
+  // Extract non-temporal active filter values
+  const activeTokens: string[] = [];
   let scale = 1.0;
-  const activeFilterValues: string[] = [];
 
   Object.entries(activeFilters).forEach(([key, val]) => {
     if (key.includes('time') || key.includes('date')) return;
     if (Array.isArray(val)) {
       const nonAll = val.filter(v => !String(v).startsWith('All'));
       if (nonAll.length > 0) {
-        scale *= Math.min(1.0, nonAll.length * 0.38);
-        activeFilterValues.push(...nonAll.map(String));
+        scale *= Math.min(1.0, nonAll.length * 0.35);
+        activeTokens.push(...nonAll.map(String));
       }
     } else if (val && !String(val).startsWith('All')) {
       scale *= 0.55;
-      activeFilterValues.push(String(val));
+      activeTokens.push(String(val));
     }
   });
 
@@ -118,10 +127,8 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       { name: 'General & Personal Care', value: Math.round(7850000 * scale) }
     ];
 
-    if (activeFilterValues.length > 0) {
-      const match = slices.filter(s => 
-        activeFilterValues.some(afv => s.name.toLowerCase().includes(afv.toLowerCase().slice(0, 4)))
-      );
+    if (activeTokens.length > 0) {
+      const match = slices.filter(s => matchesFilter(s.name, activeTokens));
       if (match.length > 0) slices = match;
     }
 
@@ -172,7 +179,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 5. TABLE WIDGET EXECUTION (Generic Multi-Column Filter)
+  // 5. TABLE WIDGET EXECUTION
   // -------------------------------------------------------------
   if (widget.type === 'table') {
     const allRows = [
@@ -183,17 +190,17 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       { store_id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', region: 'Klang Valley / Central', daily_sales: Math.round(42100 * scale), avg_basket: 29.80, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
       { store_id: '7E-1934', store_name: 'Ipoh Old Town Heritage', region: 'Northern Region', daily_sales: Math.round(16800 * scale), avg_basket: 15.60, compliance: 'Low Stock Alert', pos_terminal_count: 2 },
       { store_id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', region: 'East Coast & Islands', daily_sales: Math.round(19500 * scale), avg_basket: 18.20, compliance: 'Healthy / Audited', pos_terminal_count: 2 },
-      { store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', region: 'East Coast & Islands', daily_sales: Math.round(21400 * scale), avg_basket: 20.10, compliance: 'Healthy / Audited', pos_terminal_count: 3 }
+      { store_id: '7E-5512', store_name: 'Kuching Waterfront Heritage', region: 'Sabah & Sarawak', daily_sales: Math.round(21400 * scale), avg_basket: 20.10, compliance: 'Healthy / Audited', pos_terminal_count: 3 }
     ];
 
     let filteredRows = allRows;
-    if (activeFilterValues.length > 0) {
-      filteredRows = filteredRows.filter(r => {
-        return activeFilterValues.some(afv => 
-          Object.values(r).some(cellVal => String(cellVal).toLowerCase().includes(afv.toLowerCase().slice(0, 4)))
+    if (activeTokens.length > 0) {
+      filteredRows = allRows.filter(row => {
+        return activeTokens.some(token => 
+          matchesFilter(row.region, [token]) || matchesFilter(row.store_name, [token])
         );
       });
-      if (filteredRows.length === 0) filteredRows = allRows.slice(0, 3);
+      if (filteredRows.length === 0) filteredRows = allRows;
     }
 
     return {
@@ -250,18 +257,30 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     };
   }
 
-  // Generic Category Bar Chart
-  let categories = ['Klang Valley / Central', 'Northern Region', 'Southern Region', 'East Coast & Islands', 'Sabah & Sarawak'];
-  if (activeFilterValues.length > 0) {
-    const match = categories.filter(c => activeFilterValues.some(afv => c.toLowerCase().includes(afv.toLowerCase().slice(0, 4))));
-    if (match.length > 0) categories = match;
+  // Canonical Category Clusters
+  const allClusters = [
+    { name: 'Klang Valley / Central', baseVal: 32.5 },
+    { name: 'Northern Region', baseVal: 18.2 },
+    { name: 'Southern Region', baseVal: 14.6 },
+    { name: 'East Coast & Islands', baseVal: 8.4 },
+    { name: 'Sabah & Sarawak', baseVal: 4.75 }
+  ];
+
+  let visibleClusters = allClusters;
+  if (activeTokens.length > 0) {
+    const matched = allClusters.filter(c => matchesFilter(c.name, activeTokens));
+    if (matched.length > 0) visibleClusters = matched;
   }
 
-  const series = yMeasures.map((measure) => {
+  const series = yMeasures.map((measure, mIdx) => {
     const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
+    const isTarget = measureName.toLowerCase().includes('target');
     return {
       name: measureName,
-      data: categories.map((_, i) => Math.round((32.5 - i * 6.5) * 1000000 * scale))
+      data: visibleClusters.map((c) => {
+        const val = isTarget ? (c.baseVal * 1.06) : c.baseVal;
+        return Math.round(val * 1000000 * scale);
+      })
     };
   });
 
@@ -269,7 +288,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     dynamicTitle,
     dynamicSubtitle,
     useDualAxis: isDualAxis,
-    categories,
+    categories: visibleClusters.map(c => c.name),
     series
   };
 }
