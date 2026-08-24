@@ -49,7 +49,9 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
       const { filter_id } = widget.interaction.on_click_filter;
       const clickedVal = eventParams.name || eventParams.seriesName;
       if (clickedVal) {
-        onFilterChange(filter_id, clickedVal);
+        const targetFilter = spec.filters?.find(f => f.id === filter_id);
+        const isMulti = targetFilter?.type === 'multi_select';
+        onFilterChange(filter_id, isMulti ? [clickedVal] : clickedVal);
       }
     }
   };

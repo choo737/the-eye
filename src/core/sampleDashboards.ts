@@ -128,6 +128,10 @@ widgets:
     category: "category"
     value: "sales"
     format: "$0.0a"
+    interaction:
+      on_click_filter:
+        filter_id: "product_division"
+        field: "category"
 
   # Row 3: Regional Store Performance & Inventory Radar
   - id: regional_sales_bar
@@ -139,6 +143,10 @@ widgets:
     x: "cluster"
     y: ["Actual Revenue", "Target Revenue"]
     format: "$0.0a"
+    interaction:
+      on_click_filter:
+        filter_id: "store_region"
+        field: "cluster"
 
   - id: 7eleven_radar
     title: "Store Operations & Supply Chain Health"
