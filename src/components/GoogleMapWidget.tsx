@@ -32,11 +32,11 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     { id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: 38400, target: 35000, manager: 'Ahmad Zaki', nps: 96, pos_count: 8 },
     { id: '7E-2041', store_name: 'Mid Valley Megamall North Court', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: 31200, target: 32000, manager: 'Michelle Tan', nps: 88, pos_count: 6 },
     { id: '7E-0492', store_name: 'Gurney Plaza Waterfront', name: 'Gurney Plaza Waterfront', lat: 5.4377, lng: 100.3098, region: 'Northern Region', sales: 24500, target: 25000, manager: 'Rajeswary S.', nps: 84, pos_count: 5 },
-    { id: '7E-3118', store_name: 'JB City Square Customs Hub', name: 'JB City Square Customs Hub', lat: 1.4619, lng: 103.7638, region: 'Southern Region', sales: 28900, target: 30000, manager: 'Kevin Wong', nps: 78, pos_count: 6 },
-    { id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', name: 'KLIA2 Departure Hall Terminal', lat: 2.7456, lng: 101.6841, region: 'Klang Valley / Central', sales: 42100, target: 38000, manager: 'Noraini Mohd', nps: 98, pos_count: 10 },
-    { id: '7E-1934', store_name: 'Ipoh Old Town Heritage', name: 'Ipoh Old Town Heritage', lat: 4.5975, lng: 101.0772, region: 'Northern Region', sales: 16800, target: 22000, manager: 'Chong Wei Lun', nps: 42, pos_count: 4 },
-    { id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', name: 'Kuantan Teluk Cempedak Beach', lat: 3.8168, lng: 103.3654, region: 'East Coast & Islands', sales: 19500, target: 20000, manager: 'Fatimah Ali', nps: 68, pos_count: 4 },
-    { id: '7E-5512', store_name: 'Kuching Waterfront Heritage', name: 'Kuching Waterfront Heritage', lat: 1.5583, lng: 110.3444, region: 'Sabah & Sarawak', sales: 21400, target: 22000, manager: 'Leonard Jabu', nps: 74, pos_count: 5 }
+    { id: '7E-3118', store_name: 'JB City Square Customs Hub', lat: 1.4619, lng: 103.7638, region: 'Southern Region', sales: 28900, target: 30000, manager: 'Kevin Wong', nps: 78, pos_count: 6 },
+    { id: '7E-0842', store_name: 'KLIA2 Departure Hall Terminal', lat: 2.7456, lng: 101.6841, region: 'Klang Valley / Central', sales: 42100, target: 38000, manager: 'Noraini Mohd', nps: 98, pos_count: 10 },
+    { id: '7E-1934', store_name: 'Ipoh Old Town Heritage', lat: 4.5975, lng: 101.0772, region: 'Northern Region', sales: 16800, target: 22000, manager: 'Chong Wei Lun', nps: 42, pos_count: 4 },
+    { id: '7E-4421', store_name: 'Kuantan Teluk Cempedak Beach', lat: 3.8168, lng: 103.3654, region: 'East Coast & Islands', sales: 19500, target: 20000, manager: 'Fatimah Ali', nps: 68, pos_count: 4 },
+    { id: '7E-5512', store_name: 'Kuching Waterfront Heritage', lat: 1.5583, lng: 110.3444, region: 'Sabah & Sarawak', sales: 21400, target: 22000, manager: 'Leonard Jabu', nps: 74, pos_count: 5 }
   ].map(p => {
     const attainmentPct = Math.round((p.sales / p.target) * 1000) / 10;
     return {
@@ -221,7 +221,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
   const handleSelectStore = (store: any) => {
     setSelectedPin(store);
-    // Pan map to store coordinates
     mapInstanceRef.current?.setView([store.lat, store.lng], 9, { animate: true });
   };
 
@@ -347,11 +346,11 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   // Configured Drilldown Header from YAML Spec
   const configuredTitle = widget.drilldown?.title 
     ? renderTemplateString(widget.drilldown.title, selectedPin)
-    : `Store Performance Drilldown: ${selectedPin?.name || ''}`;
+    : `Store Performance Drill-Down: ${selectedPin?.name || ''}`;
 
   const configuredSubtitle = widget.drilldown?.subtitle
     ? renderTemplateString(widget.drilldown.subtitle, selectedPin)
-    : `Hourly POS velocity, category mix, and commercial target variance for store ${selectedPin?.id || ''}`;
+    : `Hourly POS transaction velocity, category mix, and commercial budget attainment for ${selectedPin?.id || ''}`;
 
   return (
     <div className="flex flex-col w-full bg-slate-900/90 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
@@ -467,7 +466,88 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
         )}
       </div>
 
-      {/* 3. STORE DRILL-DOWN SUB-WIDGET CONTAINER (HIDDEN UNTIL USER CLICKS A STORE!) */}
+      {/* 3. STORE OUTLETS DATA TABLE LIST (PLACED DIRECTLY BELOW THE MAP!) */}
+      {showTable && (
+        <div className="border-t border-slate-800 bg-slate-950 p-4">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <div className="flex items-center gap-2">
+              <TableIcon className="w-4 h-4 text-cyan-400" />
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
+                Store Outlets Target Attainment & Regional Performance Table
+              </h4>
+              <span className="text-[10px] text-slate-500 font-mono">({allMasterStores.length} Stores)</span>
+            </div>
+            <span className="text-[10px] text-slate-400">
+              💡 Select any store below to focus map and view deep-dive analytics
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-900/40">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-900/80 text-slate-400 text-[11px] font-bold">
+                  <th className="py-3 px-4">Store ID</th>
+                  <th className="py-3 px-4">Store Outlet Location</th>
+                  <th className="py-3 px-4">Region</th>
+                  <th className="py-3 px-4">Store Manager</th>
+                  <th className="py-3 px-4 text-right">Actual POS Sales</th>
+                  <th className="py-3 px-4 text-right">Budget Target (GSheet)</th>
+                  <th className="py-3 px-4 text-right">Attainment %</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-medium">
+                {allMasterStores.map((st) => {
+                  const isSelected = selectedPin?.id === st.id;
+                  const { color, label, badgeBg } = getAttainmentColor(st.target_achievement_pct);
+
+                  return (
+                    <tr
+                      key={st.id}
+                      onClick={() => handleSelectStore(st)}
+                      className={`cursor-pointer transition-all duration-150 ${
+                        isSelected 
+                          ? 'bg-cyan-500/15 text-white font-semibold ring-1 ring-cyan-400/40' 
+                          : 'hover:bg-slate-800/60 text-slate-300'
+                      }`}
+                    >
+                      <td className="py-3 px-4 font-mono text-[11px] font-bold text-cyan-400">{st.id}</td>
+                      <td className="py-3 px-4 font-bold text-slate-100">{st.name}</td>
+                      <td className="py-3 px-4 text-slate-400">{st.region}</td>
+                      <td className="py-3 px-4 text-slate-300">{st.manager}</td>
+                      <td className="py-3 px-4 text-right font-bold text-slate-100">{formatValue(st.sales, 'RM 0,0')}</td>
+                      <td className="py-3 px-4 text-right text-cyan-300">{formatValue(st.target, 'RM 0,0')}</td>
+                      <td className="py-3 px-4 text-right font-black" style={{ color: color }}>
+                        {st.target_achievement_pct}%
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeBg}`}>
+                          {label.split(' ')[0]}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleSelectStore(st); }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
+                            isSelected
+                              ? 'bg-cyan-500 text-slate-950 shadow-md'
+                              : 'bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-300'
+                          }`}
+                        >
+                          {isSelected ? 'Active ✓' : 'Dive-in →'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 4. STORE DRILL-DOWN DEEP-DIVE (SHOWN BELOW THE LIST WHEN A STORE IS SELECTED!) */}
       {selectedPin && (
         <div className="border-t border-slate-800 bg-slate-950/95 p-5 animate-in slide-in-from-top-4 duration-300">
           {/* Drilldown Header with Close Button */}
@@ -555,83 +635,6 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                 <ReactECharts option={getCategoryChartOption()} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. CONFIGURABLE STORE OUTLETS DATA TABLE FORM (CONTROLLED BY YAML: show_table) */}
-      {showTable && (
-        <div className="border-t border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <div className="flex items-center gap-2">
-              <TableIcon className="w-4 h-4 text-cyan-400" />
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
-                Store Outlets Target Attainment & Regional Performance Table
-              </h4>
-              <span className="text-[10px] text-slate-500 font-mono">({allMasterStores.length} Stores)</span>
-            </div>
-            <span className="text-[10px] text-slate-400">
-              💡 Click any store row to focus on the map and open drill-down
-            </span>
-          </div>
-
-          <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-900/40">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-900/80 text-slate-400 text-[11px] font-bold">
-                  <th className="py-3 px-4">Store ID</th>
-                  <th className="py-3 px-4">Store Outlet Location</th>
-                  <th className="py-3 px-4">Region</th>
-                  <th className="py-3 px-4">Store Manager</th>
-                  <th className="py-3 px-4 text-right">Actual POS Sales</th>
-                  <th className="py-3 px-4 text-right">Budget Target (GSheet)</th>
-                  <th className="py-3 px-4 text-right">Attainment %</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 font-medium">
-                {allMasterStores.map((st) => {
-                  const isSelected = selectedPin?.id === st.id;
-                  const { color, label, badgeBg } = getAttainmentColor(st.target_achievement_pct);
-
-                  return (
-                    <tr
-                      key={st.id}
-                      onClick={() => handleSelectStore(st)}
-                      className={`cursor-pointer transition-all duration-150 ${
-                        isSelected 
-                          ? 'bg-cyan-500/10 text-white font-semibold' 
-                          : 'hover:bg-slate-800/60 text-slate-300'
-                      }`}
-                    >
-                      <td className="py-3 px-4 font-mono text-[11px] font-bold text-cyan-400">{st.id}</td>
-                      <td className="py-3 px-4 font-bold text-slate-100">{st.name}</td>
-                      <td className="py-3 px-4 text-slate-400">{st.region}</td>
-                      <td className="py-3 px-4 text-slate-300">{st.manager}</td>
-                      <td className="py-3 px-4 text-right font-bold text-slate-100">{formatValue(st.sales, 'RM 0,0')}</td>
-                      <td className="py-3 px-4 text-right text-cyan-300">{formatValue(st.target, 'RM 0,0')}</td>
-                      <td className="py-3 px-4 text-right font-black" style={{ color: color }}>
-                        {st.target_achievement_pct}%
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeBg}`}>
-                          {label.split(' ')[0]}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSelectStore(st); }}
-                          className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-300 transition"
-                        >
-                          Dive-in →
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
       )}
