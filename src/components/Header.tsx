@@ -92,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden xl:flex items-center gap-1.5 text-xs bg-indigo-950/40 border border-indigo-500/30 px-2.5 py-1 rounded-lg">
           <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
           <span className="text-slate-300 font-medium">ADC / Google IAM:</span>
-          <span className="text-cyan-400 font-mono text-[11px]">seven-eleven-qlik-bq</span>
+          <span className="text-cyan-400 font-mono text-[11px]">{spec?.data_sources?.[0]?.project || spec?.data_sources?.[0]?.name || spec?.data_sources?.[0]?.id || "Active Source"}</span>
         </div>
       </div>
 

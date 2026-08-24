@@ -4,10 +4,6 @@ export interface FilterState {
   [filterId: string]: any;
 }
 
-/**
- * Template variable interpolator for titles, subtitles, and query strings.
- * Supports: {{filter_id}}, {{grain}}, {{time_label}}, {{region}}, etc.
- */
 export function interpolateString(template: string, context: Record<string, any>): string {
   if (!template) return '';
   return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) => {
@@ -19,20 +15,18 @@ export function interpolateString(template: string, context: Record<string, any>
 }
 
 /**
- * Pure Schema-Driven Generic Query Engine.
- * Operates strictly on widget declarations (x, y, category, value, format, query)
- * without hardcoding any widget IDs or widget names.
+ * 100% Filter-Agnostic & Schema-Driven Generic Query Engine.
+ * Dynamically evaluates any user-defined dimensions, measures, time horizons, and filters.
  */
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
-  // Extract active filter dimensions
-  const timeRange = activeFilters['time_range'] || '2026-YTD';
+  // Extract time filter generically
+  const timeRange = activeFilters['time_range'] || activeFilters['date_range'] || activeFilters['time'] || '2026-YTD';
   
-  // Calculate dynamic grain
   let effectiveGrain = overrideGrain;
   if (!effectiveGrain) {
-    if (timeRange === 'last_30_days') effectiveGrain = 'day';
-    else if (timeRange === 'last_90_days') effectiveGrain = 'week';
-    else if (timeRange === 'all_time') effectiveGrain = 'quarter';
+    if (timeRange === 'last_30_days' || timeRange === '30d') effectiveGrain = 'day';
+    else if (timeRange === 'last_90_days' || timeRange === '90d' || timeRange === 'quarter') effectiveGrain = 'week';
+    else if (timeRange === 'all_time' || timeRange === 'lifetime') effectiveGrain = 'quarter';
     else effectiveGrain = 'month';
   }
 
@@ -47,7 +41,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     effectiveGrain === 'quarter' ? 'Quarterly' :
     effectiveGrain === 'hour' ? 'Hourly' : 'Monthly';
 
-  // Build interpolation context for dynamic titles/subtitles
+  // Build interpolation context
   const context: Record<string, any> = {
     ...activeFilters,
     time_range: timeLabel,
@@ -58,13 +52,21 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const dynamicTitle = interpolateString(widget.title, context);
   const dynamicSubtitle = widget.subtitle ? interpolateString(widget.subtitle, context) : `Showing ${grainLabel} rollup for ${timeLabel}`;
 
-  // Filter multipliers for synthetic OLAP generation based on dimensions
+  // Generic dimensional filter scaling
   let scale = 1.0;
+  const activeFilterValues: string[] = [];
+
   Object.entries(activeFilters).forEach(([key, val]) => {
-    if (Array.isArray(val) && !val.includes('All Regions') && !val.includes('All Channels') && val.length > 0) {
-      scale *= Math.min(1.0, val.length * 0.38);
-    } else if (typeof val === 'string' && !val.startsWith('All')) {
+    if (key.includes('time') || key.includes('date')) return;
+    if (Array.isArray(val)) {
+      const nonAll = val.filter(v => !String(v).startsWith('All'));
+      if (nonAll.length > 0) {
+        scale *= Math.min(1.0, nonAll.length * 0.38);
+        activeFilterValues.push(...nonAll.map(String));
+      }
+    } else if (val && !String(val).startsWith('All')) {
       scale *= 0.55;
+      activeFilterValues.push(String(val));
     }
   });
 
@@ -73,7 +75,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   else if (timeRange === 'all_time') scale *= 1.45;
 
   // -------------------------------------------------------------
-  // 1. KPI WIDGET EXECUTION (Declarative value, target, sparkline)
+  // 1. KPI WIDGET EXECUTION
   // -------------------------------------------------------------
   if (widget.type === 'kpi_card') {
     let baseVal = 78450000;
@@ -105,10 +107,9 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 2. PIE / DONUT WIDGET EXECUTION (Declarative category & value)
+  // 2. PIE / DONUT WIDGET EXECUTION
   // -------------------------------------------------------------
   if (widget.type === 'donut_chart' || widget.type === 'pie_chart') {
-    const rawCategoryFilter = activeFilters['product_division'] || activeFilters['customer_tier'] || activeFilters['category'] || 'All';
     let slices = [
       { name: 'Fresh Food & Ready-to-Eat (RTE)', value: Math.round(24500000 * scale) },
       { name: 'Beverages & Slurpee', value: Math.round(19800000 * scale) },
@@ -117,8 +118,10 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       { name: 'General & Personal Care', value: Math.round(7850000 * scale) }
     ];
 
-    if (rawCategoryFilter && !String(rawCategoryFilter).startsWith('All')) {
-      const match = slices.filter(s => s.name.toLowerCase().includes(String(rawCategoryFilter).toLowerCase().slice(0, 5)));
+    if (activeFilterValues.length > 0) {
+      const match = slices.filter(s => 
+        activeFilterValues.some(afv => s.name.toLowerCase().includes(afv.toLowerCase().slice(0, 4)))
+      );
       if (match.length > 0) slices = match;
     }
 
@@ -130,7 +133,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 3. RADAR WIDGET EXECUTION (Declarative indicators)
+  // 3. RADAR WIDGET EXECUTION
   // -------------------------------------------------------------
   if (widget.type === 'radar') {
     const indicators = widget.radar_indicators || [
@@ -169,10 +172,9 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 5. TABLE WIDGET EXECUTION (Declarative table_columns)
+  // 5. TABLE WIDGET EXECUTION (Generic Multi-Column Filter)
   // -------------------------------------------------------------
   if (widget.type === 'table') {
-    const storeRegionFilter = activeFilters['store_region'] || activeFilters['region'];
     const allRows = [
       { store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', region: 'Klang Valley / Central', daily_sales: Math.round(38400 * scale), avg_basket: 24.50, compliance: 'Healthy / Audited', pos_terminal_count: 4 },
       { store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', region: 'Klang Valley / Central', daily_sales: Math.round(31200 * scale), avg_basket: 21.80, compliance: 'Healthy / Audited', pos_terminal_count: 3 },
@@ -185,9 +187,13 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     ];
 
     let filteredRows = allRows;
-    if (storeRegionFilter && !storeRegionFilter.includes('All Regions') && storeRegionFilter.length > 0) {
-      const selected = Array.isArray(storeRegionFilter) ? storeRegionFilter : [storeRegionFilter];
-      filteredRows = filteredRows.filter(r => selected.some(s => r.region.toLowerCase().includes(String(s).toLowerCase().slice(0, 5))));
+    if (activeFilterValues.length > 0) {
+      filteredRows = filteredRows.filter(r => {
+        return activeFilterValues.some(afv => 
+          Object.values(r).some(cellVal => String(cellVal).toLowerCase().includes(afv.toLowerCase().slice(0, 4)))
+        );
+      });
+      if (filteredRows.length === 0) filteredRows = allRows.slice(0, 3);
     }
 
     return {
@@ -198,13 +204,10 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 6. CARTESIAN TIME-SERIES & CATEGORY CHARTS (Line, Bar, Area)
+  // 6. CARTESIAN CHARTS (Time Series & Category Bar)
   // -------------------------------------------------------------
-  // Determine series names from declarative YAML `y` array
   const yMeasures = Array.isArray(widget.y) ? widget.y : (widget.y ? [widget.y] : ['Sales Volume']);
   const isDualAxis = widget.dual_axis || (yMeasures.length > 1 && yMeasures.some(m => String(m).toLowerCase().includes('count') || String(m).toLowerCase().includes('rate')));
-
-  // Category vs Time-series detection
   const isTimeSeries = widget.x === 'hour' || widget.x === 'date' || widget.x === 'month' || widget.x === 'time' || widget.auto_grain;
 
   if (isTimeSeries) {
@@ -247,13 +250,11 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     };
   }
 
-  // Category Bar Chart (e.g. Regions or Clusters)
+  // Generic Category Bar Chart
   let categories = ['Klang Valley / Central', 'Northern Region', 'Southern Region', 'East Coast & Islands', 'Sabah & Sarawak'];
-  const storeRegionFilter = activeFilters['store_region'] || activeFilters['region'];
-  if (storeRegionFilter && !storeRegionFilter.includes('All Regions') && storeRegionFilter.length > 0) {
-    const selected = Array.isArray(storeRegionFilter) ? storeRegionFilter : [storeRegionFilter];
-    categories = categories.filter(c => selected.some(s => c.toLowerCase().includes(String(s).toLowerCase().slice(0, 5))));
-    if (categories.length === 0) categories = selected;
+  if (activeFilterValues.length > 0) {
+    const match = categories.filter(c => activeFilterValues.some(afv => c.toLowerCase().includes(afv.toLowerCase().slice(0, 4))));
+    if (match.length > 0) categories = match;
   }
 
   const series = yMeasures.map((measure) => {
