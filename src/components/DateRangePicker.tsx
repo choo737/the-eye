@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, X, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 
 interface DateRangePickerProps {
   value?: string | { startDate?: string; endDate?: string; preset?: string };
@@ -20,9 +20,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Reference date: 2026-08-24 (Dashboard current date)
-  const baseDate = new Date(2026, 7, 24); // Aug 24, 2026
 
   const PRESETS: DatePreset[] = [
     {
@@ -82,19 +79,17 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   ];
 
-  // Internal state
   const [selectedPreset, setSelectedPreset] = useState<string>('2026-YTD');
   const [startDate, setStartDate] = useState<Date>(new Date(2026, 0, 1));
   const [endDate, setEndDate] = useState<Date>(new Date(2026, 7, 24));
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
-  // Calendar views
-  const [leftViewMonth, setLeftViewMonth] = useState<number>(6); // July 2026
+  // Default calendar month views: Left = July 2026, Right = August 2026
+  const [leftViewMonth, setLeftViewMonth] = useState<number>(6); // July (0-indexed)
   const [leftViewYear, setLeftViewYear] = useState<number>(2026);
-  const [rightViewMonth, setRightViewMonth] = useState<number>(7); // August 2026
+  const [rightViewMonth, setRightViewMonth] = useState<number>(7); // August (0-indexed)
   const [rightViewYear, setRightViewYear] = useState<number>(2026);
 
-  // Parse incoming value
   useEffect(() => {
     if (typeof value === 'string') {
       const match = PRESETS.find(p => p.id === value);
@@ -107,7 +102,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   }, [value]);
 
-  // Click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -132,6 +126,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const { start, end } = preset.getRange();
     setStartDate(start);
     setEndDate(end);
+
+    // Center calendar view around selected range
     setLeftViewMonth(start.getMonth());
     setLeftViewYear(start.getFullYear());
     let nextMonth = start.getMonth() + 1;
@@ -160,7 +156,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setIsOpen(false);
   };
 
-  const handlePrevLeftMonth = () => {
+  // Left Calendar Navigation
+  const prevLeftMonth = () => {
     if (leftViewMonth === 0) {
       setLeftViewMonth(11);
       setLeftViewYear(leftViewYear - 1);
@@ -169,7 +166,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
-  const handleNextLeftMonth = () => {
+  const nextLeftMonth = () => {
     if (leftViewMonth === 11) {
       setLeftViewMonth(0);
       setLeftViewYear(leftViewYear + 1);
@@ -178,7 +175,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
-  const handlePrevRightMonth = () => {
+  // Right Calendar Navigation
+  const prevRightMonth = () => {
     if (rightViewMonth === 0) {
       setRightViewMonth(11);
       setRightViewYear(rightViewYear - 1);
@@ -187,7 +185,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
-  const handleNextRightMonth = () => {
+  const nextRightMonth = () => {
     if (rightViewMonth === 11) {
       setRightViewMonth(0);
       setRightViewYear(rightViewYear + 1);
@@ -211,9 +209,17 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
-  // Helper to render a month calendar grid
-  const renderCalendar = (month: number, year: number) => {
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  // Helper to render an isolated Month Calendar Card with dedicated navigation header
+  const renderCalendarCard = (
+    month: number, 
+    year: number, 
+    onPrev: () => void, 
+    onNext: () => void
+  ) => {
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June', 
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
     const firstDayIndex = new Date(year, month, 1).getDay();
@@ -234,7 +240,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       days.push({ date: d, isCurrentMonth: true });
     }
 
-    // Next month leading days (fill 42 slots for standard 6-row grid)
+    // Next month leading days (fill standard 42 slots)
     const remainingSlots = 42 - days.length;
     for (let i = 1; i <= remainingSlots; i++) {
       const d = new Date(year, month + 1, i);
@@ -242,34 +248,53 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
 
     return (
-      <div className="flex-1 min-w-[240px]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-slate-200">
+      <div className="flex-1 bg-slate-900/90 rounded-2xl p-3 border border-slate-800/80 shadow-inner">
+        {/* Month Header with aligned prev/next arrows */}
+        <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-800">
+          <button
+            type="button"
+            onClick={onPrev}
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            title="Previous Month"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <span className="text-xs font-extrabold text-slate-100 tracking-tight">
             {monthNames[month]} – {year}
           </span>
+
+          <button
+            type="button"
+            onClick={onNext}
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            title="Next Month"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Weekday Labels */}
-        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1">
+        {/* Weekday Header */}
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1.5 uppercase">
           {weekdays.map(w => (
-            <div key={w} className="py-1">{w}</div>
+            <div key={w} className="py-0.5">{w}</div>
           ))}
         </div>
 
         {/* Days Grid */}
-        <div className="grid grid-cols-7 gap-1 text-center text-xs">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium">
           {days.map((item, idx) => {
             const isStart = startDate && item.date.toDateString() === startDate.toDateString();
             const isEnd = endDate && item.date.toDateString() === endDate.toDateString();
             const inRange = startDate && endDate && item.date >= startDate && item.date <= endDate;
             const inHoverRange = startDate && !endDate && hoverDate && item.date >= startDate && item.date <= hoverDate;
 
-            let cellClass = 'py-1.5 rounded-lg font-medium transition cursor-pointer ';
+            let cellClass = 'h-8 flex items-center justify-center rounded-lg transition cursor-pointer ';
+
             if (!item.isCurrentMonth) {
               cellClass += 'text-slate-600 hover:text-slate-400 ';
             } else if (isStart || isEnd) {
-              cellClass += 'bg-cyan-500 text-slate-950 font-bold shadow-md ';
+              cellClass += 'bg-cyan-500 text-slate-950 font-black shadow-md scale-105 z-10 ';
             } else if (inRange || inHoverRange) {
               cellClass += 'bg-cyan-500/20 text-cyan-200 font-semibold ';
             } else {
@@ -308,82 +333,50 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <CalendarIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0 group-hover:scale-110 transition-transform" />
           <span className="truncate">{displayLabel}</span>
         </div>
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0 ml-1.5">
+        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0 ml-1.5 font-bold">
           Select Date
         </span>
       </button>
 
-      {/* Advanced Dual Calendar Popover Modal */}
+      {/* Advanced Dual Calendar Popover Modal (Solid 100% Opacity Background & Crisp Borders) */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 z-50 bg-slate-950/98 border border-slate-800 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl w-[680px] max-w-[90vw] animate-in fade-in zoom-in-95 duration-150">
+        <div 
+          className="absolute top-full left-0 mt-2 z-50 bg-slate-950 border border-slate-700 rounded-3xl p-5 shadow-2xl w-[730px] max-w-[95vw] animate-in fade-in zoom-in-95 duration-150"
+          style={{ backgroundColor: '#020617', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(51, 65, 85, 0.6)' }}
+        >
           {/* Top Date Inputs Row */}
-          <div className="grid grid-cols-2 gap-3 pb-4 mb-4 border-b border-slate-800">
-            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">From</span>
+          <div className="grid grid-cols-2 gap-3 pb-3.5 mb-3.5 border-b border-slate-800">
+            <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
+              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">From</span>
               <input
                 type="text"
                 readOnly
                 value={formatDateString(startDate)}
-                className="w-full bg-transparent text-xs font-mono font-bold text-white focus:outline-none"
+                className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
               />
             </div>
-            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">To</span>
+            <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 shadow-inner">
+              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">To</span>
               <input
                 type="text"
                 readOnly
                 value={formatDateString(endDate)}
-                className="w-full bg-transparent text-xs font-mono font-bold text-white focus:outline-none"
+                className="w-full bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Main Body: Dual Month Calendars + Right Presets Sidebar */}
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Left & Right Dual Calendars */}
-            <div className="flex-1 flex flex-col gap-4">
-              {/* Calendar Navigation Arrows */}
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={handlePrevLeftMonth}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={handleNextLeftMonth}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={handlePrevRightMonth}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={handleNextRightMonth}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+          {/* Main Body: Separated Dual Calendars + Right Presets Sidebar */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Left Month Calendar Card */}
+            {renderCalendarCard(leftViewMonth, leftViewYear, prevLeftMonth, nextLeftMonth)}
 
-              {/* Dual Month Calendar Renderers */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {renderCalendar(leftViewMonth, leftViewYear)}
-                {renderCalendar(rightViewMonth, rightViewYear)}
-              </div>
-            </div>
+            {/* Right Month Calendar Card */}
+            {renderCalendarCard(rightViewMonth, rightViewYear, prevRightMonth, nextRightMonth)}
 
             {/* Right Quick Presets Sidebar */}
-            <div className="w-full md:w-44 border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-4 flex flex-col gap-1 overflow-y-auto max-h-[260px]">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-2">
+            <div className="w-full md:w-48 bg-slate-900/90 rounded-2xl p-3 border border-slate-800/80 flex flex-col gap-1 overflow-y-auto max-h-[300px] shadow-inner">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-2 pb-1 border-b border-slate-800">
                 Quick Presets
               </span>
               {PRESETS.map((preset) => {
@@ -391,24 +384,26 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 return (
                   <button
                     key={preset.id}
+                    type="button"
                     onClick={() => handleSelectPreset(preset)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold text-left transition flex items-center justify-between ${
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold text-left transition flex items-center justify-between ${
                       isSelected
                         ? 'bg-cyan-500 text-slate-950 font-bold shadow-md'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                     }`}
                   >
                     <span>{preset.label}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0 stroke-[3]" />}
                   </button>
                 );
               })}
               <button
+                type="button"
                 onClick={() => setSelectedPreset('custom')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold text-left transition ${
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold text-left transition mt-1 pt-1.5 border-t border-slate-800 ${
                   selectedPreset === 'custom'
                     ? 'bg-cyan-500 text-slate-950 font-bold shadow-md'
-                    : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
                 Custom Range
@@ -417,18 +412,20 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </div>
 
           {/* Bottom Action Footer */}
-          <div className="flex items-center justify-end gap-2.5 pt-4 mt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-2.5 pt-3.5 mt-3.5 border-t border-slate-800">
             <button
+              type="button"
               onClick={handleCancel}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-900 border border-slate-800 transition"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleApply}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20 transition flex items-center gap-1.5"
             >
-              <Check className="w-3.5 h-3.5" /> Apply
+              <Check className="w-3.5 h-3.5 stroke-[3]" /> Apply
             </button>
           </div>
         </div>
