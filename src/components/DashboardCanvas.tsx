@@ -1,50 +1,45 @@
-import { GoogleMapWidget } from './GoogleMapWidget';
 import React from 'react';
 import { DashboardSpec, WidgetSpec } from '../core/types';
 import { FilterBar } from './FilterBar';
 import { KpiWidget } from './KpiWidget';
 import { ChartWidget } from './ChartWidget';
 import { TableWidget } from './TableWidget';
+import { GoogleMapWidget } from './GoogleMapWidget';
 import { executeWidgetQuery } from '../engine/queryEngine';
 
 interface DashboardCanvasProps {
   spec: DashboardSpec;
+  viewport?: 'desktop' | 'tablet' | 'mobile';
   activeFilters: Record<string, any>;
-  onFilterChange: (id: string, value: any) => void;
+  onFilterChange: (filterId: string, value: any) => void;
   onResetFilters: () => void;
-  viewport: 'desktop' | 'tablet' | 'mobile';
+}
+
+function getColSpanClass(w: number): string {
+  switch (w) {
+    case 1: return 'col-span-12 sm:col-span-1';
+    case 2: return 'col-span-12 sm:col-span-2';
+    case 3: return 'col-span-12 sm:col-span-6 lg:col-span-3';
+    case 4: return 'col-span-12 sm:col-span-6 lg:col-span-4';
+    case 5: return 'col-span-12 sm:col-span-6 lg:col-span-5';
+    case 6: return 'col-span-12 sm:col-span-6';
+    case 7: return 'col-span-12 sm:col-span-7';
+    case 8: return 'col-span-12 sm:col-span-8';
+    case 9: return 'col-span-12 sm:col-span-9';
+    case 10: return 'col-span-12 sm:col-span-10';
+    case 11: return 'col-span-12 sm:col-span-11';
+    case 12:
+    default: return 'col-span-12';
+  }
 }
 
 export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
   spec,
+  viewport = 'desktop',
   activeFilters,
   onFilterChange,
-  onResetFilters,
-  viewport
+  onResetFilters
 }) => {
-  const getColSpanClass = (w: number) => {
-    if (viewport === 'mobile') return 'col-span-12';
-    if (viewport === 'tablet') {
-      if (w <= 4) return 'col-span-6';
-      return 'col-span-12';
-    }
-    // Desktop 12-column grid
-    switch (w) {
-      case 1: return 'col-span-1';
-      case 2: return 'col-span-2';
-      case 3: return 'col-span-3';
-      case 4: return 'col-span-4';
-      case 5: return 'col-span-5';
-      case 6: return 'col-span-6';
-      case 7: return 'col-span-7';
-      case 8: return 'col-span-8';
-      case 9: return 'col-span-9';
-      case 10: return 'col-span-10';
-      case 11: return 'col-span-11';
-      case 12: default: return 'col-span-12';
-    }
-  };
-
   const handleChartClick = (widget: WidgetSpec, eventParams: any) => {
     if (widget.interaction?.on_click_filter) {
       const { filter_id } = widget.interaction.on_click_filter;
@@ -101,6 +96,12 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
                   <KpiWidget widget={widget} data={data} />
                 ) : widget.type === 'table' ? (
                   <TableWidget widget={widget} data={data} />
+                ) : widget.type === 'google_map' || widget.type === 'geo_map' ? (
+                  <GoogleMapWidget
+                    widget={widget}
+                    data={data}
+                    onFilterChange={onFilterChange}
+                  />
                 ) : (
                   <ChartWidget
                     widget={widget}
