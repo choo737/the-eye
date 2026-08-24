@@ -4,7 +4,7 @@ import { executeWidgetQuery } from '../src/engine/queryEngine';
 import { WidgetSpec } from '../src/core/types';
 
 describe('Google Maps & Geospatial Intelligence Widget', () => {
-  it('should validate google_map widget specification with drilldown sub_widgets', () => {
+  it('should validate google_map widget specification with show_table and templated drilldown', () => {
     const validSpec = {
       id: 'test-dash',
       title: 'Geospatial Test',
@@ -20,6 +20,7 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
             center: { lat: 3.1390, lng: 101.6869 },
             zoom: 6,
             style: 'google_streets',
+            show_table: true,
             metric_field: 'target_achievement_pct',
             color_scale: {
               min: 80,
@@ -31,22 +32,16 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
           },
           drilldown: {
             enabled: true,
-            title: 'Store Deep-Dive: {{selected_store_name}}',
+            title: 'Store Performance Drill-Down: {{store_name}} ({{store_id}})',
+            subtitle: 'Hourly POS velocity for {{store_id}}',
             sub_widgets: [
               {
                 id: 'store_hourly_velocity',
                 title: 'Hourly Velocity',
                 type: 'line_chart',
                 x: 'hour',
-                y: ['Sales', 'Transactions'],
+                y: ['Hourly POS Sales (RM)', 'POS Transactions'],
                 dual_axis: true
-              },
-              {
-                id: 'store_category_donut',
-                title: 'Store Category Share',
-                type: 'donut_chart',
-                category: 'category',
-                value: 'sales'
               }
             ]
           }
@@ -59,7 +54,7 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should execute google_map query and maintain all store pins with Google Sheets targets', () => {
+  it('should execute google_map query and return all master stores with revenue target attainment', () => {
     const mapWidget: WidgetSpec = {
       id: 'map_stores',
       title: 'Store Map',

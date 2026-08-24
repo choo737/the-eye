@@ -184,7 +184,7 @@ widgets:
   # Row 4: Interactive Google Maps Geospatial Intelligence & Store Dive-in Sub-Widgets
   - id: outlet_geo_map
     title: "Store Outlets Revenue Target Attainment (Google Maps × Google Sheets)"
-    subtitle: "All outlet locations plotted on Google Maps with declarative store drilldown sub-widgets"
+    subtitle: "All outlet locations plotted on Google Maps with configurable table view and store drilldown sub-widgets"
     type: google_map
     source: bq_gsheet_store_mesh
     position: { x: 0, y: 10, w: 12, h: 6 }
@@ -192,6 +192,7 @@ widgets:
       center: { lat: 3.1390, lng: 101.6869 }
       zoom: 6
       style: "google_streets"
+      show_table: true   # Set to false to hide table form below the map
       metric_field: "target_achievement_pct"
       color_scale:
         min: 80
@@ -201,8 +202,8 @@ widgets:
         max_color: "#22c55e"   # Green (On Track >=100%)
     drilldown:
       enabled: true
-      title: "Store Deep-Dive: {{selected_store_name}}"
-      subtitle: "Hourly POS velocity, category share, and commercial target variance"
+      title: "Store Performance Drill-Down: {{store_name}} ({{store_id}})"
+      subtitle: "Hourly POS transaction velocity, category mix, and commercial budget attainment for {{store_id}}"
       sub_widgets:
         - id: store_hourly_velocity
           title: "Hourly POS Transaction Velocity"

@@ -106,6 +106,18 @@ export interface ColorScaleSpec {
   max_color: string; // e.g. "#22c55e" (Green)
 }
 
+export interface MapTableViewSpec {
+  enabled?: boolean;
+  title?: string;
+  columns?: Array<{
+    key: string;
+    label: string;
+    format?: string;
+    align?: 'left' | 'center' | 'right';
+    badge?: boolean;
+  }>;
+}
+
 export interface MapConfigSpec {
   center?: { lat: number; lng: number };
   zoom?: number;
@@ -117,6 +129,8 @@ export interface MapConfigSpec {
   metric_field?: string; // e.g. "nps_rating"
   color_scale?: ColorScaleSpec;
   tooltip_fields?: string[];
+  show_table?: boolean;
+  table_view?: MapTableViewSpec;
 }
 
 export interface SubWidgetSpec {
