@@ -1,3 +1,4 @@
+import { biCache } from '../engine/biCache';
 import React from 'react';
 import { 
   Eye, 

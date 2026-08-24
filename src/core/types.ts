@@ -27,6 +27,7 @@ export interface DataSourceSpec {
   range?: string;
   path?: string;
   refresh_interval?: string;
+  cache?: CacheSpec;
   options?: Record<string, any>;
 }
 
@@ -164,6 +165,20 @@ export interface DataMeshSpec {
   computed_fields?: ComputedFieldSpec[];
 }
 
+export interface CacheSpec {
+  enabled?: boolean;
+  ttl?: string; // e.g. "5m", "15m", "1h", "24h"
+  strategy?: 'stale_while_revalidate' | 'cache_first' | 'network_only';
+  max_entries?: number;
+}
+
+export interface CacheTelemetry {
+  isCacheHit: boolean;
+  executionTimeMs: number;
+  cachedAt?: string;
+  bytesSavedEst?: string;
+}
+
 export interface DashboardSpec {
   version: string;
   id: string;
@@ -171,6 +186,7 @@ export interface DashboardSpec {
   description?: string;
   theme?: DashboardTheme;
   refresh_interval?: string;
+  cache?: CacheSpec;
   data_sources: DataSourceSpec[];
   data_mesh?: DataMeshSpec[];
   filters?: FilterSpec[];

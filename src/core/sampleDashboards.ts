@@ -5,6 +5,11 @@ description: "Federated Data Mesh combining Live BigQuery POS Telemetry with Goo
 theme: "emerald-slate"
 refresh_interval: "30s"
 
+cache:
+  enabled: true
+  ttl: "15m"
+  strategy: "stale_while_revalidate"
+
 data_sources:
   - id: bq_seven_eleven
     name: "7-Eleven BigQuery Live (the-eye-bi-platform)"
