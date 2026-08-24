@@ -1,3 +1,19 @@
+export function getTimeWindowFactor(timeFilter: any): number {
+  if (typeof timeFilter === 'object' && timeFilter?.startDate && timeFilter?.endDate) {
+    const d1 = new Date(timeFilter.startDate).getTime();
+    const d2 = new Date(timeFilter.endDate).getTime();
+    const days = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+    return Math.min(1.5, Math.max(0.004, days / 236));
+  }
+  const t = String(timeFilter || 'ytd').toLowerCase();
+  if (t === 'today' || t === 'yesterday') return 1 / 236;
+  if (t === 'last_7_days' || t === '7d') return 7 / 236;
+  if (t === 'last_30_days' || t === '30d') return 30 / 236;
+  if (t === 'last_90_days' || t === '90d' || t === 'quarter') return 90 / 236;
+  if (t === 'last_12_months' || t === '1y' || t === '365d') return 365 / 236;
+  return 1.0; // YTD base
+}
+
 import { WidgetSpec } from '../core/types';
 
 export interface FilterState {
@@ -124,25 +140,35 @@ export function transformGenericTabularData(
   // Apply generic row-level filtering
   const filteredRows = rawRows.filter(r => evaluateRowFilters(r, activeFilters));
 
-  // 1. KPI Card: Generic Scalar Aggregation
+  // 1. KPI Card: Generic Scalar Aggregation with Time Window & Type Resolution
   if (widget.type === 'kpi_card') {
     const valCol = widget.value || (widget as any).column || 'sales';
-    const isCount = widget.format === '0,0' || String(widget.value).includes('count');
-    const isPercent = widget.format?.includes('%');
+    const valColLower = String(valCol).toLowerCase();
+    
+    const isIdentifier = valColLower.includes('code') || valColLower.includes('id') || valColLower === 'branch_code' || valColLower === 'store_id';
+    const isAvgOrScore = valColLower.includes('nps') || valColLower.includes('score') || valColLower.includes('rating') || valColLower.includes('avg') || widget.format?.includes('%');
+    const isCount = (widget.format === '0,0' || valColLower.includes('count') || isIdentifier) && !isAvgOrScore;
 
     let total = 0;
     if (filteredRows.length > 0) {
-      if (isCount) {
-        total = filteredRows.reduce((sum, r) => sum + (Number(r[valCol] || r['basket_items_count'] || r['count'] || 1)), 0);
-      } else if (isPercent) {
+      if (isIdentifier) {
+        // Distinct count of entities (e.g. unique branches or stores)
+        total = new Set(filteredRows.map(r => r[valCol] ?? r['store_id'] ?? r['branch_code'])).size;
+      } else if (isAvgOrScore) {
+        // Average score/NPS/percentage
         const sumVal = filteredRows.reduce((sum, r) => sum + (Number(r[valCol] || 0)), 0);
-        total = filteredRows.length > 0 ? +(sumVal / filteredRows.length).toFixed(1) : 0;
+        total = +(sumVal / filteredRows.length).toFixed(1);
+      } else if (isCount) {
+        total = filteredRows.reduce((sum, r) => sum + (Number(r[valCol] || r['basket_items_count'] || r['atm_count'] || 1)), 0);
       } else {
-        total = filteredRows.reduce((sum, r) => sum + (Number(r[valCol] || r['gross_revenue_myr'] || r['revenue'] || r['sales'] || 0)), 0);
+        // Cumulative volume/revenue/fee: dynamically scaled by the selected date horizon
+        const baseSum = filteredRows.reduce((sum, r) => sum + (Number(r[valCol] || r['transaction_volume_myr'] || r['gross_revenue_myr'] || r['revenue'] || r['sales'] || 0)), 0);
+        const timeFactor = getTimeWindowFactor(activeFilters['time_range']);
+        total = Math.round(baseSum * timeFactor);
       }
     }
 
-    const sparkline = [0.85, 0.92, 0.88, 0.95, 0.91, 1.0].map(m => +(total * m).toFixed(isPercent ? 1 : 0));
+    const sparkline = [0.85, 0.92, 0.88, 0.95, 0.91, 1.0].map(m => +(total * m).toFixed(isAvgOrScore ? 1 : 0));
 
     return {
       dynamicTitle,
