@@ -34,3 +34,35 @@
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+/* Monaco Editor Find Widget & Tooltip Click-Through Fix */
+.monaco-hover,
+.monaco-editor .monaco-hover,
+.monaco-editor .find-widget .monaco-hover {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.monaco-editor .find-widget {
+  z-index: 40 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(51, 65, 85, 0.8) !important;
+  border-radius: 12px !important;
+  padding: 4px 6px !important;
+  background: #0f172a !important;
+}
+
+.monaco-editor .find-widget .button {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  border-radius: 6px !important;
+  transition: background 0.15s ease !important;
+}
+
+.monaco-editor .find-widget .button:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+}
+
+.monaco-editor .find-widget .close-button {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}

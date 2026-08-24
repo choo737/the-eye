@@ -117,7 +117,18 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
             wordWrap: 'on',
             tabSize: 2,
             renderLineHighlight: 'all',
-            padding: { top: 12, bottom: 12 }
+            padding: { top: 12, bottom: 12 },
+            find: {
+              addExtraSpaceOnTop: false,
+              autoFindInSelection: 'never',
+              seedSearchStringFromSelection: 'always',
+              cursorMoveOnType: true
+            },
+            hover: {
+              enabled: true,
+              delay: 800,
+              sticky: false
+            }
           }}
         />
       </div>
