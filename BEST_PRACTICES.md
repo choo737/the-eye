@@ -1,112 +1,57 @@
-# 🛡️ The Eye — Enterprise Production Best Practices & Architectural Standards
+# 👁️ The Eye — Enterprise Architecture & Best Practice Standards
 
-This document establishes the official engineering, security, and operational best practices for deploying and extending **The Eye** in production environments.
-
----
-
-## 1. 🔐 Authentication & Credential Authority Propagation
-
-### The Challenge
-In enterprise BI architectures, a common anti-pattern is using a single super-privileged service account for all users. This violates the **Principle of Least Privilege (PoLP)**, bypasses audit logs, and breaks row/column-level security (RLS/CLS).
-
-### The Standard Pattern: Credential Delegation & Authority Forwarding
-```
-┌──────────────┐     Google OAuth 2.0 (OIDC)      ┌──────────────────┐
-│  End User    │ ───────────────────────────────► │  The Eye Backend │
-└──────────────┘                                  └─────────┬────────┘
-                                                            │
-                     Delegated Identity / ADC Token         │
-                     (Downscoped OAuth / User Token)        ▼
-                                                  ┌──────────────────┐
-                                                  │  Google BigQuery │
-                                                  │  (IAM & RLS/CLS) │
-                                                  └──────────────────┘
-```
-
-1. **Google Identity Propagation**:
-   - The end user authenticates via Google OAuth 2.0 (Google Workspace / Cloud Identity).
-   - The user's OAuth access token and identity claims (`email`, `hd`, `sub`) are validated on the backend.
-   - When querying **Google BigQuery** (e.g. `seven-eleven-qlik-bq`) or **Google Sheets**, the backend initializes the client using the end-user's delegated credentials or impersonated session tokens.
-   - **Audit Logs**: Every query in BigQuery `INFORMATION_SCHEMA.JOBS_BY_PROJECT` reflects the actual user's email, not an opaque service account.
-   - **BigQuery Row-Level Security (RLS)**: Row-access policies (`CREATE ROW ACCESS POLICY ... ON table FILTER USING (region = SESSION_USER())`) execute automatically under the end-user's identity context.
-
-2. **RDBMS & Cloud Warehouses (Snowflake, Databricks, PostgreSQL)**:
-   - Use session-context injection or user-scoped claims:
-     ```sql
-     -- PostgreSQL Session Variable
-     SET LOCAL app.current_user_email = 'user@example.com';
-     SET LOCAL app.current_tenant_id = 'tenant_123';
-     ```
-   - All declarative queries must pass through parameterized bindings (`:filter_id` -> `$1, $2`), completely preventing SQL injection.
-
-3. **Secret Zero Storage**:
-   - Never store plain-text passwords or service account private keys in `dashboard.yaml` or Git repositories.
-   - Use environment interpolation (`${DB_PASSWORD}`) or integration with Google Secret Manager / HashiCorp Vault.
+> **Core Axiom:** *The Eye is a Universal, Generic Declarative BI Engine (equivalent to Power BI, Tableau, and Looker Studio). Never hardcode domain logic, widget IDs, filter keys, regional names, holiday strings, or dataset schemas in code.*
 
 ---
 
-## 2. ⚡ Query Execution & Performance Optimization
+## 🏛️ Rule 1: Zero Hardcoding Architecture (Universal BI Engine)
 
-### A. Push-Down Predicates (Warehouse Execution)
-- BigQuery and Snowflake must execute aggregations (`GROUP BY`, `SUM`, `COUNT_DISTINCT`) and date partitions at the warehouse level.
-- **Partition Elimination**: Always declare partitioned timestamp filters in `dashboard.yaml` so the BigQuery query planner scans only the required partitions:
-  ```yaml
-  query: |
-    SELECT 
-      store_id, 
-      sum(transaction_amount) as revenue 
-    FROM `seven-eleven-qlik-bq.retail_analytics.pos_transactions`
-    WHERE transaction_date >= :time_range_start 
-      AND transaction_date <= :time_range_end
-    GROUP BY 1
-  ```
-- Use `DryRun` validation on BigQuery queries before executing to estimate bytes scanned and cost.
+Like Microsoft Power BI, Tableau, or Looker Studio, **The Eye** is a generic visual and query runtime engine.
 
-### B. Client-Side OLAP (DuckDB-WASM)
-- For static datasets, CSV/Parquet uploads, and small Google Sheets (< 50,000 rows), use client-side DuckDB-WASM.
-- This avoids unnecessary database queries, provides instant 60fps filter responses, and saves cloud compute costs.
+### Strict Coding Commandments:
+1. **Never Branch on Widget IDs or Titles**:
+   - ❌ `if (widget.id === 'kpi_sales')` or `if (widget.title.includes('POS'))`
+   - ✅ Read `widget.type`, `widget.value`, `widget.format`, `widget.x`, `widget.y` generically.
+2. **Never Hardcode Domain / Regional / Holiday Strings**:
+   - ❌ Hardcoding `['Klang Valley', 'CNY', 'Raya', 'Black Friday']` in runtime code.
+   - ✅ All category labels, dimensions, and time grains come strictly from the **SQL result set, filter definitions in YAML, or ISO standard calendar mathematics**.
+3. **Template String Interpolation**:
+   - Widget titles and subtitles support dynamic mustache templates:
+     `title: "{{metric_name}} by {{dimension}}"`
+     `subtitle: "Showing {{active_grain}} aggregation for {{time_range}}"`
+4. **Dynamic Dual-Axis Scaling**:
+   - When plotting mixed metrics (e.g. Sales in `$` vs Count/Percentage), the engine reads `widget.dual_axis: true` or automatically maps secondary measures to the right Y-axis.
 
 ---
 
-## 3. 🤖 LLM Agent Guardrails & Declarative Safety
+## 🔐 Rule 2: Enterprise Authentication, SSO & RBAC
 
-When LLMs maintain or modify `dashboard.yaml`, follow these guardrails:
-
-1. **AST / JSON-Schema Strict Validation**:
-   - The LLM never writes raw arbitrary JavaScript/Python code to render UI components.
-   - The LLM outputs strictly declarative YAML adhering to `schema.json`.
-   - The validation pipeline tests for:
-     - Unknown widget types or properties.
-     - Unmapped data source references.
-     - Dangerous keywords or unescaped characters.
-2. **Automated Self-Healing Loop**:
-   - If an invalid YAML patch is generated by the LLM, the compiler catches the error, formats a structured error message (e.g. `widgets[2].source 'unknown_db' is not declared`), and automatically prompts the LLM to self-correct before applying the patch to the runtime.
-3. **Deterministic Diffing**:
-   - Changes are previewed as unified diffs in the Git/Studio UI before saving to production.
+1. **Google OAuth 2.0 / SAML Single Sign-On (SSO)**:
+   - Configurable via the **Admin Console**.
+   - Supports **Hosted Domain (`hd`) restriction** to enforce that only employees from authorized corporate domains (`@jackychoo.altostrat.com`, `@google.com`, `@company.com`) can log in.
+2. **Role-Based Access Control (RBAC)**:
+   - **👑 Owner**: Administrative control over SSO, domain whitelists, user role assignment, and dashboard deletion.
+   - **✏️ Editor**: Dashboard creation, YAML specification editing, SQL query authoring, and export privileges.
+   - **👁️ Viewer**: Read-only consumption mode. Can interact with filters, drill-downs, and cross-filtering, but **cannot view or edit raw code or database secrets**.
+3. **Per-Dashboard Access Control**:
+   - Creating a dashboard designates the creator as the **Owner**.
+   - Dashboard owners can grant granular `Editor` or `Viewer` permissions to specific colleagues by email.
 
 ---
 
-## 4. 📦 Modularization & Multi-Dashboard Architecture
+## ⚡ Rule 3: BigQuery Push-Down Query Execution & IAM Authority
 
-1. **Semantic Metric Layer**:
-   - Separate reusable metric definitions and dataset references from layout presentation:
-     - `datasources.yaml`: Database credentials and connection parameters.
-     - `metrics.yaml`: Formal formulas (e.g., `gross_margin = (revenue - cogs) / revenue`).
-     - `dashboards/*.yaml`: Visual layout, filters, and widget grid configurations.
-2. **GitOps & Version Control**:
-   - Treat dashboards like software code:
-     - Branching: `feat/q3-executive-dashboard`
-     - Automated CI checks (`npm run validate-specs`) in GitHub Actions.
-     - Peer code reviews on PRs in GitHub / Critique.
+1. **Push-Down SQL Execution**:
+   - Always push aggregations (`SUM`, `AVG`, `COUNT`), filtering (`WHERE`), and partitioning down to BigQuery / Snowflake.
+2. **Delegated Identity Propagation**:
+   - The user's OAuth access token is passed down to BigQuery so Google Cloud IAM Row-Level Security (RLS) and Column-Level Security (CLS) are enforced at the database level.
 
 ---
 
-## 5. 🚀 Production Deployment Checklist
+## 📦 Rule 4: Universal Interoperability & Export Standards
 
-| Layer | Production Recommendation |
-| :--- | :--- |
-| **Frontend** | Static build deployed to Cloud CDN / Vercel / Cloudflare Pages / GCS Bucket |
-| **Backend API** | Containerized (Docker) on Google Cloud Run or GKE with auto-scaling |
-| **Caching** | Redis / Cloud Memorystore for query result caching and catalog metadata |
-| **Monitoring** | Google Cloud Logging + OpenTelemetry for query latency and error tracking |
-| **CORS / Security** | Strict origin whitelisting + Content Security Policy (CSP) headers |
+1. **Microsoft Office Suite**:
+   - **PowerPoint (`.pptx`)**: Generates presentation decks with native editable shapes, titles, and data tables via `pptxgenjs`.
+   - **Excel (`.xlsx`)**: Generates multi-tab workbooks with structured data schemas.
+2. **Google Workspace**:
+   - **Google Docs & Slides**: Markdown and document payloads structured for immediate cloud synchronization.
