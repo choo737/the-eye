@@ -33,10 +33,6 @@ function seededNoise(seed: number): number {
   return x - Math.floor(x);
 }
 
-/**
- * 100% Generic & Schema-Driven Query Engine.
- * Dynamically binds and executes any dimension, measure, or product division filter.
- */
 export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
   const timeRange = activeFilters['time_range'] || activeFilters['date_range'] || '2026-YTD';
   
@@ -59,16 +55,38 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     effectiveGrain === 'quarter' ? 'Quarterly' :
     effectiveGrain === 'hour' ? 'Hourly' : 'Monthly';
 
+  // Division Filter Extraction
+  const rawDivision = activeFilters['product_division'] || activeFilters['category'] || activeFilters['division'] || 'All Divisions';
+  const hasDivisionFilter = rawDivision && !String(rawDivision).startsWith('All');
+
+  // Compute Division Contribution Multiplier
+  let divisionScale = 1.0;
+  if (hasDivisionFilter) {
+    const divStr = String(rawDivision).toLowerCase();
+    if (divStr.includes('fresh') || divStr.includes('rte')) divisionScale = 0.32;
+    else if (divStr.includes('beverage') || divStr.includes('slurpee')) divisionScale = 0.28;
+    else if (divStr.includes('snack') || divStr.includes('confectionery')) divisionScale = 0.20;
+    else if (divStr.includes('tobacco') || divStr.includes('services')) divisionScale = 0.15;
+    else if (divStr.includes('general') || divStr.includes('personal')) divisionScale = 0.05;
+    else divisionScale = 0.25;
+  }
+
   // Build interpolation context
   const context: Record<string, any> = {
     ...activeFilters,
     time_range: timeLabel,
     grain: grainLabel,
-    active_grain: grainLabel
+    active_grain: grainLabel,
+    product_division: hasDivisionFilter ? rawDivision : 'All Merchandise',
+    division: hasDivisionFilter ? rawDivision : 'All Merchandise'
   };
 
   const dynamicTitle = interpolateString(widget.title, context);
-  const dynamicSubtitle = widget.subtitle ? interpolateString(widget.subtitle, context) : `Showing ${grainLabel} aggregation for ${timeLabel}`;
+  const dynamicSubtitle = widget.subtitle 
+    ? interpolateString(widget.subtitle, context) 
+    : hasDivisionFilter 
+    ? `Showing ${grainLabel} stream for ${rawDivision} (${timeLabel})`
+    : `Showing ${grainLabel} aggregation for ${timeLabel}`;
 
   // Time volume multiplier (flow measures)
   let timeFlowMultiplier = 1.0;
@@ -76,27 +94,25 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   else if (timeRange === 'last_90_days') timeFlowMultiplier = 0.65;
   else if (timeRange === 'all_time') timeFlowMultiplier = 1.45;
 
-  // Extract non-temporal active filters
+  // Region / Cluster dimension scale
   const activeTokens: string[] = [];
-  let filterDimensionScale = 1.0;
+  let regionDimensionScale = 1.0;
 
   Object.entries(activeFilters).forEach(([key, val]) => {
-    if (key.includes('time') || key.includes('date')) return;
+    if (key.includes('time') || key.includes('date') || key.includes('division') || key.includes('category')) return;
     if (Array.isArray(val)) {
       const nonAll = val.filter(v => !String(v).startsWith('All'));
       if (nonAll.length > 0) {
-        filterDimensionScale *= Math.min(1.0, nonAll.length * 0.35);
+        regionDimensionScale *= Math.min(1.0, nonAll.length * 0.35);
         activeTokens.push(...nonAll.map(String));
       }
     } else if (val && !String(val).startsWith('All')) {
-      filterDimensionScale *= 0.45;
+      regionDimensionScale *= 0.55;
       activeTokens.push(String(val));
     }
   });
 
-  // Extract division / category filter specifically
-  const divisionFilter = activeFilters['product_division'] || activeFilters['category'] || activeFilters['division'];
-  const hasDivisionFilter = divisionFilter && !String(divisionFilter).startsWith('All');
+  const overallVolumeScale = regionDimensionScale * divisionScale * timeFlowMultiplier;
 
   // -------------------------------------------------------------
   // 1. KPI WIDGET EXECUTION
@@ -113,13 +129,14 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
 
     let computedVal: number;
     if (isCount) {
-      computedVal = Math.round(baseVal * (hasDivisionFilter ? 1.0 : filterDimensionScale));
+      // Store count is not reduced by product division
+      computedVal = Math.round(baseVal * regionDimensionScale);
     } else if (isPercent) {
-      computedVal = hasDivisionFilter ? 100.0 : +(baseVal * (filterDimensionScale > 0.6 ? 1.0 : 0.94)).toFixed(1);
+      computedVal = hasDivisionFilter ? +(divisionScale * 100).toFixed(1) : +(baseVal * (regionDimensionScale > 0.6 ? 1.0 : 0.94)).toFixed(1);
     } else if (isCurrencyUnit) {
-      computedVal = +(baseVal * (filterDimensionScale > 0.6 ? 1.0 : 1.08)).toFixed(2);
+      computedVal = +(baseVal * (hasDivisionFilter ? (divisionScale > 0.25 ? 1.08 : 0.92) : 1.0)).toFixed(2);
     } else {
-      computedVal = Math.round(baseVal * filterDimensionScale * timeFlowMultiplier);
+      computedVal = Math.round(baseVal * overallVolumeScale);
     }
 
     const comparisonText = timeRange === 'last_30_days' 
@@ -143,26 +160,22 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 2. PIE / DONUT WIDGET EXECUTION (Supports All Division Slices & Selection)
+  // 2. PIE / DONUT WIDGET EXECUTION
   // -------------------------------------------------------------
   if (widget.type === 'donut_chart' || widget.type === 'pie_chart') {
     const defaultSlices = [
-      { name: 'Fresh Food & Ready-to-Eat (RTE)', value: Math.round(24500000 * timeFlowMultiplier) },
-      { name: 'Beverages & Slurpee', value: Math.round(19800000 * timeFlowMultiplier) },
-      { name: 'Snacks & Confectionery', value: Math.round(15600000 * timeFlowMultiplier) },
-      { name: 'Tobacco & Core Services', value: Math.round(12800000 * timeFlowMultiplier) },
-      { name: 'General & Personal Care', value: Math.round(7850000 * timeFlowMultiplier) }
+      { name: 'Fresh Food & Ready-to-Eat (RTE)', value: Math.round(24500000 * regionDimensionScale * timeFlowMultiplier) },
+      { name: 'Beverages & Slurpee', value: Math.round(19800000 * regionDimensionScale * timeFlowMultiplier) },
+      { name: 'Snacks & Confectionery', value: Math.round(15600000 * regionDimensionScale * timeFlowMultiplier) },
+      { name: 'Tobacco & Core Services', value: Math.round(12800000 * regionDimensionScale * timeFlowMultiplier) },
+      { name: 'General & Personal Care', value: Math.round(7850000 * regionDimensionScale * timeFlowMultiplier) }
     ];
 
     let outputSlices = defaultSlices;
-
-    // If specific product division is filtered, isolate that division
     if (hasDivisionFilter) {
-      const selectedStr = String(divisionFilter);
+      const selectedStr = String(rawDivision);
       const matched = defaultSlices.filter(s => matchesFilter(s.name, [selectedStr]));
-      if (matched.length > 0) {
-        outputSlices = matched;
-      }
+      if (matched.length > 0) outputSlices = matched;
     }
 
     return {
@@ -202,11 +215,11 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       dynamicTitle,
       dynamicSubtitle,
       data: [
-        { name: 'Stage 1: Top of Funnel', value: Math.round(450000 * filterDimensionScale * timeFlowMultiplier) },
-        { name: 'Stage 2: Engagement', value: Math.round(48000 * filterDimensionScale * timeFlowMultiplier) },
-        { name: 'Stage 3: Qualified', value: Math.round(8400 * filterDimensionScale * timeFlowMultiplier) },
-        { name: 'Stage 4: Proposal / Review', value: Math.round(3200 * filterDimensionScale * timeFlowMultiplier) },
-        { name: 'Stage 5: Conversion', value: Math.round(620 * filterDimensionScale * timeFlowMultiplier) }
+        { name: 'Stage 1: Top of Funnel', value: Math.round(450000 * overallVolumeScale) },
+        { name: 'Stage 2: Engagement', value: Math.round(48000 * overallVolumeScale) },
+        { name: 'Stage 3: Qualified', value: Math.round(8400 * overallVolumeScale) },
+        { name: 'Stage 4: Proposal / Review', value: Math.round(3200 * overallVolumeScale) },
+        { name: 'Stage 5: Conversion', value: Math.round(620 * overallVolumeScale) }
       ]
     };
   }
@@ -219,8 +232,8 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       { key: 'id', label: 'ID' },
       { key: 'name', label: 'Entity Name' },
       { key: 'category', label: 'Category' },
-      { key: 'metric_value', label: 'Value', format: '$0,0' },
-      { key: 'status', label: 'Status', badge: true }
+      { key: 'daily_sales', label: 'Daily Sales', format: '$0,0' },
+      { key: 'compliance', label: 'Status', badge: true }
     ];
 
     const dynamicRows = Array.from({ length: 8 }, (_, idx) => {
@@ -229,10 +242,10 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
         if (c.key.includes('id')) row[c.key] = `7E-${1000 + idx * 142}`;
         else if (c.key.includes('name') || c.key.includes('location')) row[c.key] = `Store Outlet ${String.fromCharCode(65 + idx)} - Hub ${idx + 1}`;
         else if (c.key.includes('region') || c.key.includes('cluster')) row[c.key] = `Cluster Zone ${((idx % 4) + 1)}`;
-        else if (c.key.includes('category') || c.key.includes('division')) row[c.key] = hasDivisionFilter ? String(divisionFilter) : 'Merchandise Division';
+        else if (c.key.includes('category') || c.key.includes('division')) row[c.key] = hasDivisionFilter ? String(rawDivision) : 'Merchandise Division';
         else if (c.key.includes('status') || c.key.includes('compliance')) row[c.key] = idx % 5 === 0 ? 'Review Required' : 'Audited / Healthy';
         else if (c.format?.includes('$0.00')) row[c.key] = +(18.5 + idx * 1.4).toFixed(2);
-        else if (c.format?.includes('$0,0')) row[c.key] = Math.round((24000 + idx * 3200) * filterDimensionScale);
+        else if (c.format?.includes('$0,0')) row[c.key] = Math.round((24000 + idx * 3200) * overallVolumeScale);
         else if (c.key.includes('count') || c.key.includes('terminal')) row[c.key] = (idx % 3) + 2;
         else row[c.key] = `Data Point ${idx + 1}`;
       });
@@ -257,9 +270,9 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   // -------------------------------------------------------------
-  // 6. CARTESIAN TIME-SERIES & CATEGORY CHARTS
+  // 6. CARTESIAN TIME-SERIES (POS Velocity Chart responding to Division Filter)
   // -------------------------------------------------------------
-  const yMeasures = Array.isArray(widget.y) ? widget.y : (widget.y ? [widget.y] : ['Primary Metric']);
+  const yMeasures = Array.isArray(widget.y) ? widget.y : (widget.y ? [widget.y] : ['Sales Volume']);
   const isDualAxis = widget.dual_axis || (yMeasures.length > 1 && yMeasures.some(m => String(m).toLowerCase().includes('count') || String(m).toLowerCase().includes('rate')));
   const isTimeSeries = widget.x === 'hour' || widget.x === 'date' || widget.x === 'month' || widget.x === 'time' || widget.auto_grain;
 
@@ -277,17 +290,24 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     }
 
     const n = categories.length;
-    const baseMonthlySales = 8800000 * filterDimensionScale;
-    const baseMonthlyFootfall = 480000 * (hasDivisionFilter ? 1.0 : filterDimensionScale);
+    // Sales scales directly with Division volume multiplier
+    const baseMonthlySales = 8800000 * regionDimensionScale * divisionScale;
+    const baseMonthlyFootfall = 480000 * regionDimensionScale;
 
     const series = yMeasures.map((measure, idx) => {
-      const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
+      let measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
       const isSecondary = isDualAxis && idx > 0 && (measureName.toLowerCase().includes('count') || measureName.toLowerCase().includes('rate'));
+
+      // If division filter is active, customize primary series name to reflect division
+      if (!isSecondary && hasDivisionFilter) {
+        const shortDiv = String(rawDivision).split('&')[0].trim();
+        measureName = `${shortDiv} Sales ($)`;
+      }
 
       const dataPoints = categories.map((_, i) => {
         const t = (i / (n - 1)) * Math.PI * 2;
         const harmonic = 1.0 + 0.22 * Math.sin(t * 1.5) + 0.12 * Math.cos(t * 3.0);
-        const noise = 0.95 + seededNoise(i * 13 + idx * 7) * 0.10;
+        const noise = 0.95 + seededNoise(i * 13 + idx * 7 + (hasDivisionFilter ? 42 : 0)) * 0.10;
         const organicFactor = harmonic * noise;
 
         if (isSecondary) {
@@ -322,13 +342,18 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   }
 
   const series = yMeasures.map((measure) => {
-    const measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
+    let measureName = typeof measure === 'string' ? measure : (measure as any).name || (measure as any).field;
     const isTarget = measureName.toLowerCase().includes('target');
+    if (hasDivisionFilter && !isTarget) {
+      const shortDiv = String(rawDivision).split('&')[0].trim();
+      measureName = `${shortDiv} Sales`;
+    }
+
     return {
       name: measureName,
       data: categories.map((_, i) => {
         const base = (32.5 - i * 6.0) * (isTarget ? 1.06 : 1.0);
-        return Math.round(base * 1000000 * filterDimensionScale * timeFlowMultiplier);
+        return Math.round(base * 1000000 * overallVolumeScale);
       })
     };
   });
