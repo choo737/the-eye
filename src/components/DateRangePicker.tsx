@@ -38,7 +38,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       if (maxBackdate && isMin) {
         return parseRelativeWindow(maxBackdate);
       }
-      return isMin ? new Date(2024, 0, 1) : new Date(2026, 11, 31);
+      return isMin ? new Date(2015, 0, 1) : new Date(2035, 11, 31);
     }
 
     const trimmed = expr.trim().toLowerCase();
@@ -208,10 +208,20 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   }, [isOpen]);
 
   const isDateDisabled = (date: Date): boolean => {
+    if (!minDate && !maxDate && !maxBackdate) return false;
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const min = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), parsedMinDate.getDate());
-    const max = new Date(parsedMaxDate.getFullYear(), parsedMaxDate.getMonth(), parsedMaxDate.getDate());
-    return d < min || d > max;
+    const hasMin = Boolean(minDate || maxBackdate);
+    const hasMax = Boolean(maxDate);
+
+    if (hasMin) {
+      const min = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), parsedMinDate.getDate());
+      if (d < min) return true;
+    }
+    if (hasMax) {
+      const max = new Date(parsedMaxDate.getFullYear(), parsedMaxDate.getMonth(), parsedMaxDate.getDate());
+      if (d > max) return true;
+    }
+    return false;
   };
 
   // Direct typing handlers
@@ -287,26 +297,25 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const minYear = parsedMinDate.getFullYear();
-  const maxYear = parsedMaxDate.getFullYear();
-
   const YEAR_OPTIONS = useMemo(() => {
     const years: number[] = [];
-    const startY = Math.min(minYear, 2020);
-    const endY = Math.max(maxYear, 2030);
+    const startY = (minDate || maxBackdate) ? parsedMinDate.getFullYear() : 2018;
+    const endY = maxDate ? parsedMaxDate.getFullYear() : 2030;
     for (let y = startY; y <= endY; y++) {
       years.push(y);
     }
     return years;
-  }, [minYear, maxYear]);
+  }, [minDate, maxDate, maxBackdate, parsedMinDate, parsedMaxDate]);
 
   const canGoPrev = (m: number, y: number) => {
+    if (!minDate && !maxBackdate) return true;
     const curMonth = new Date(y, m, 1);
     const minMonth = new Date(parsedMinDate.getFullYear(), parsedMinDate.getMonth(), 1);
     return curMonth > minMonth;
   };
 
   const canGoNext = (m: number, y: number) => {
+    if (!maxDate) return true;
     const curMonth = new Date(y, m, 1);
     const maxMonth = new Date(parsedMaxDate.getFullYear(), parsedMaxDate.getMonth(), 1);
     return curMonth < maxMonth;
