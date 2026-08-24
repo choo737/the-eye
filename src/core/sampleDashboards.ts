@@ -270,3 +270,198 @@ export const SAMPLE_DASHBOARDS: Record<string, { name: string; yaml: string }> =
     yaml: SEVEN_ELEVEN_QLIK_BQ_YAML,
   },
 };
+
+export const CIMB_BANK_BQ_YAML = `version: "1.0"
+id: "cimb-bank-branch-intelligence"
+title: "CIMB Bank Malaysia — Omnichannel Branch & Wealth Intelligence (the-eye-bi-platform)"
+description: "Live BigQuery analytics for CIMB Malaysia branch banking, CASA deposits, mortgage disbursements, and OTC transaction velocity"
+theme: "corporate-blue"
+refresh_interval: "30s"
+
+cache:
+  enabled: true
+  ttl: "15m"
+  strategy: "stale_while_revalidate"
+
+data_sources:
+  - id: bq_cimb_bank
+    name: "CIMB Bank BigQuery Live (the-eye-bi-platform)"
+    type: bigquery
+    project: "the-eye-bi-platform"
+    dataset: "cimb_bank_warehouse"
+    table: "fct_branch_transactions"
+    query: |
+      SELECT 
+        transaction_date,
+        transaction_hour,
+        branch_code,
+        branch_name,
+        region,
+        state,
+        latitude,
+        longitude,
+        banking_product,
+        transaction_channel,
+        transaction_volume_myr,
+        fee_income_myr,
+        customer_queue_time_min,
+        customer_nps
+      FROM \`the-eye-bi-platform.cimb_bank_warehouse.fct_branch_transactions\`
+      WHERE transaction_date BETWEEN @start_date AND @end_date
+    options:
+      auth_mode: "google_oauth_adc_delegated"
+      location: "asia-southeast1"
+
+filters:
+  - id: region
+    label: "Branch Banking Region"
+    type: multi_select
+    column: "region"
+    default: ["All Regions"]
+    options:
+      - label: "All Regions (National Network)"
+        value: "All Regions"
+      - label: "Central Region (KL & Selangor)"
+        value: "Central Region"
+      - label: "Northern Region (Penang & Perak)"
+        value: "Northern Region"
+      - label: "Southern Region (Johor & Melaka)"
+        value: "Southern Region"
+      - label: "East Coast (Pahang & Terengganu)"
+        value: "East Coast"
+      - label: "East Malaysia (Sarawak & Sabah)"
+        value: "East Malaysia"
+
+  - id: banking_product
+    label: "Banking Portfolio Division"
+    type: single_select
+    column: "banking_product"
+    default: "All Products"
+    options:
+      - label: "All Products (Total Balance Sheet)"
+        value: "All Products"
+      - label: "Consumer CASA Deposits"
+        value: "Consumer CASA Deposits"
+      - label: "Mortgages & Home Loans"
+        value: "Mortgages & Home Loans"
+      - label: "SME & Commercial Loans"
+        value: "SME & Commercial Loans"
+      - label: "Wealth & Unit Trusts"
+        value: "Wealth & Unit Trusts"
+      - label: "Auto Financing & Hire Purchase"
+        value: "Auto Financing & Hire Purchase"
+
+  - id: time_range
+    label: "Fiscal Reporting Horizon"
+    type: daterange
+    default: "ytd"
+    max_backdate: "12m"
+
+layout:
+  columns: 12
+  row_height: 100
+
+widgets:
+  # Row 1: Key Banking Executive Scorecards
+  - id: kpi_total_volume
+    title: "Total Banking Transaction Volume"
+    type: kpi_card
+    source: bq_cimb_bank
+    position: { x: 0, y: 0, w: 3, h: 2 }
+    value: "transaction_volume_myr"
+    target: "RM 95.0B"
+    format: "RM 0.00a"
+    comparison_label: "+18.6% vs Q3 target"
+    sparkline: true
+
+  - id: kpi_fee_income
+    title: "Net Fee & Commission Income"
+    type: kpi_card
+    source: bq_cimb_bank
+    position: { x: 3, y: 0, w: 3, h: 2 }
+    value: "fee_income_myr"
+    format: "RM 0.00a"
+    comparison_label: "+RM 24.5M non-interest income"
+    sparkline: true
+
+  - id: kpi_active_branches
+    title: "CIMB Full-Service Branches"
+    type: kpi_card
+    source: bq_cimb_bank
+    position: { x: 6, y: 0, w: 3, h: 2 }
+    value: "branch_code"
+    format: "0,0"
+    comparison_label: "100% operational uptime"
+    sparkline: true
+
+  - id: kpi_customer_nps
+    title: "Branch Experience & NPS Score"
+    type: kpi_card
+    source: bq_cimb_bank
+    position: { x: 9, y: 0, w: 3, h: 2 }
+    value: "customer_nps"
+    format: "0.0"
+    comparison_label: "+4.2 pts branch satisfaction"
+    sparkline: true
+
+  # Row 2: Charts
+  - id: cimb_velocity_chart
+    title: "Branch Transaction Velocity & OTC Volume"
+    subtitle: "Showing {{active_grain}} stream for {{banking_product}} ({{time_range}})"
+    type: line_chart
+    source: bq_cimb_bank
+    position: { x: 0, y: 2, w: 8, h: 4 }
+    dimension: "transaction_date"
+    measures: ["transaction_volume_myr", "fee_income_myr"]
+    dual_axis: true
+
+  - id: cimb_product_mix
+    title: "Banking Product Portfolio Mix"
+    subtitle: "Asset & Deposit Distribution across {{region}}"
+    type: donut_chart
+    source: bq_cimb_bank
+    position: { x: 8, y: 2, w: 4, h: 4 }
+    dimension: "banking_product"
+    measures: ["transaction_volume_myr"]
+
+  # Row 3: Regional Performance vs Budget Target
+  - id: cimb_regional_bar
+    title: "Regional Branch Asset Growth vs Target Allocation"
+    subtitle: "Actual Volume vs Target for {{region}}"
+    type: bar_chart
+    source: bq_cimb_bank
+    position: { x: 0, y: 6, w: 12, h: 4 }
+    dimension: "region"
+    measures: ["transaction_volume_myr", "deposit_target_myr"]
+
+  # Row 4: Interactive Branch Network GIS Map
+  - id: cimb_branch_network_map
+    title: "CIMB Malaysia Commercial Branch Network & Deep-Dive"
+    subtitle: "Geospatial telemetry, ATM hubs, and manager performance for {{region}}"
+    type: google_map
+    source: bq_cimb_bank
+    position: { x: 0, y: 10, w: 12, h: 6 }
+    latitude_col: "latitude"
+    longitude_col: "longitude"
+    name_col: "branch_name"
+    value_col: "transaction_volume_myr"
+    map_config:
+      default_center: [4.2105, 101.9758]
+      default_zoom: 6
+      marker_style: "status_color"
+      show_table: true
+    drilldown:
+      enabled: true
+      target_dimension: "branch_name"
+      sub_widgets:
+        - id: branch_growth_stream
+          title: "Branch Transaction Velocity & OTC Footfall"
+          subtitle: "Showing {{active_grain}} volume stream for selected branch"
+          type: line_chart
+          position: { x: 0, y: 0, w: 6, h: 3 }
+        - id: branch_product_mix
+          title: "Branch Banking Product Distribution"
+          subtitle: "Portfolio breakdown for selected branch"
+          type: donut_chart
+          position: { x: 6, y: 0, w: 6, h: 3 }
+`;

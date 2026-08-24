@@ -5,7 +5,8 @@ describe('Dashboards Hub & Per-Dashboard Permissions', () => {
   it('should register initial production dashboards', () => {
     expect(INITIAL_DASHBOARDS.length).toBeGreaterThanOrEqual(1);
     const mainDash = INITIAL_DASHBOARDS[0];
-    expect(mainDash.id).toBe('seven-eleven-retail-intelligence');
+    expect(INITIAL_DASHBOARDS.some(d => d.id === 'cimb-bank-branch-intelligence')).toBe(true);
+    expect(INITIAL_DASHBOARDS.some(d => d.id === 'seven-eleven-retail-intelligence')).toBe(true);
     expect(mainDash.dataSource).toContain('the-eye-bi-platform');
   });
 
