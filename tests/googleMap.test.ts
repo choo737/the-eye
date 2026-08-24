@@ -130,7 +130,7 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
       position: { w: 12, h: 4 }
     };
 
-    const ytdRes = executeWidgetQuery(mapWidget, { time_range: '2026-YTD' });
+    const ytdRes = executeWidgetQuery(mapWidget, { time_range: 'ytd' });
     expect(ytdRes.mapPoints.length).toBeGreaterThan(0);
 
     const monthRes = executeWidgetQuery(mapWidget, { time_range: 'last_30_days' });
@@ -147,7 +147,7 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
       position: { w: 12, h: 4 }
     };
 
-    const ytdData = executeWidgetQuery(mapWidget, { time_range: '2026-YTD' });
+    const ytdData = executeWidgetQuery(mapWidget, { time_range: 'ytd' });
     const selectedStore = ytdData.mapPoints.find((p: any) => p.id === '7E-1082');
     expect(selectedStore).toBeDefined();
 

@@ -37,8 +37,8 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const rawTime = activeFilters['time_range'] || activeFilters['date_range'] || '2026-YTD';
   
   // Extract clean preset string & human label
-  let timePreset = '2026-YTD';
-  let timeLabel = '2026 YTD';
+  let timePreset = 'ytd';
+  let timeLabel = 'Year to Date (YTD)';
 
   if (typeof rawTime === 'object' && rawTime !== null) {
     timePreset = rawTime.preset || rawTime.id || 'custom';
@@ -56,7 +56,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       timePreset === 'last_month' ? 'Last Month (July 2026)' :
       timePreset === 'last_3_months' ? 'Last Quarter (90 Days)' :
       timePreset === 'last_6_months' ? 'Last 6 Months' :
-      timePreset === 'all_time' ? 'All-Time Historical' : '2026 YTD';
+      timePreset === 'all_time' ? 'All-Time Historical' : 'Year to Date (YTD)';
   }
 
   const timeRange = timePreset;

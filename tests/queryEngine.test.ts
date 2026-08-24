@@ -24,7 +24,7 @@ describe('Universal BI Query & Slicing Engine', () => {
       auto_grain: true
     };
 
-    const ytdRes = executeWidgetQuery(lineWidget, { time_range: '2026-YTD' });
+    const ytdRes = executeWidgetQuery(lineWidget, { time_range: 'ytd' });
     expect(ytdRes.grain).toBe('month');
     expect(ytdRes.activeGrain).toBe('Monthly');
 
@@ -127,7 +127,7 @@ describe('Universal BI Query & Slicing Engine', () => {
     expect(last7Res.categories).toContain('24 Aug');
 
     // 4. 2026-YTD -> Monthly Grain
-    const ytdRes = executeWidgetQuery(velocityWidget, { time_range: '2026-YTD' });
+    const ytdRes = executeWidgetQuery(velocityWidget, { time_range: 'ytd' });
     expect(ytdRes.grain).toBe('month');
     expect(ytdRes.activeGrain).toBe('Monthly');
     expect(ytdRes.categories).toContain('Jan 2026');

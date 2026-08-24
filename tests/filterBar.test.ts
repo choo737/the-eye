@@ -8,14 +8,14 @@ describe('Advanced Date Range & Filter Bar Specifications', () => {
       id: 'time_range',
       label: 'Time Horizon',
       type: 'daterange',
-      default: '2026-YTD',
+      default: 'ytd',
       min_date: '2025-01-01',
       max_date: '2026-12-31',
-      available_presets: ['today', 'last_7_days', 'last_30_days', '2026-YTD']
+      available_presets: ['today', 'last_7_days', 'last_30_days', 'ytd']
     };
 
     expect(dateFilter.type).toBe('daterange');
-    expect(dateFilter.default).toBe('2026-YTD');
+    expect(dateFilter.default).toBe('ytd');
     expect(dateFilter.min_date).toBe('2025-01-01');
     expect(dateFilter.max_date).toBe('2026-12-31');
     expect(dateFilter.available_presets).toHaveLength(4);
@@ -31,7 +31,7 @@ describe('Advanced Date Range & Filter Bar Specifications', () => {
           id: 'date_filter',
           label: 'Date Range',
           type: 'daterange',
-          default: '2026-YTD',
+          default: 'ytd',
           min_date: '2024-01-01',
           max_date: '2026-12-31'
         }

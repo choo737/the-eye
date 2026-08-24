@@ -82,7 +82,7 @@ filters:
   - id: time_range
     label: "POS Transaction Horizon"
     type: daterange
-    default: "2026-YTD"
+    default: "ytd"
 
 layout:
   columns: 12

@@ -30,10 +30,10 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Time Range Horizon Detection from Main Filter
-  const timeRangeFilter = activeFilters['time_range'] || '2026-YTD';
+  const timeRangeFilter = activeFilters['time_range'] || 'ytd';
   const timeLabel = typeof timeRangeFilter === 'object' && timeRangeFilter !== null
     ? (timeRangeFilter.label || `${timeRangeFilter.startDate} – ${timeRangeFilter.endDate}`)
-    : (timeRangeFilter === '2026-YTD' ? '2026 YTD' 
+    : ((timeRangeFilter === 'ytd' || timeRangeFilter === '2026-YTD') ? 'Year to Date (YTD)' 
     : timeRangeFilter === 'last_90_days' ? 'Last Quarter (90 Days)' 
     : timeRangeFilter === 'last_30_days' ? 'Last 30 Days' 
     : timeRangeFilter === 'today' ? 'Today' 
@@ -296,7 +296,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
     const t = String(timeRangeFilter);
 
-    if (t === '2026-YTD' || t.includes('YTD') || t === 'all_time') {
+    if (t === 'ytd' || t.includes('YTD') || t.includes('ytd') || t === '2026-YTD' || t === 'all_time') {
       // 8 Months YTD Grain
       xAxis = ['Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026'];
       salesMultipliers = [28, 29, 32, 34, 30, 29, 35, 38]; // in thousands per day avg

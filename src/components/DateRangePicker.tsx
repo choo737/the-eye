@@ -87,9 +87,12 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       getRange: () => ({ start: new Date(2026, 1, 1), end: new Date(2026, 7, 24) })
     },
     {
-      id: '2026-YTD',
-      label: '2026 YTD',
-      getRange: () => ({ start: new Date(2026, 0, 1), end: new Date(2026, 7, 24) })
+      id: 'ytd',
+      label: 'Year to Date (YTD)',
+      getRange: () => {
+        const currentYear = 2026; // Dataset reference year
+        return { start: new Date(currentYear, 0, 1), end: new Date(currentYear, 7, 24) };
+      }
     },
     {
       id: 'all_time',
@@ -104,7 +107,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return ALL_PRESETS.filter(p => availablePresets.includes(p.id));
   }, [availablePresets]);
 
-  const [selectedPreset, setSelectedPreset] = useState<string>('2026-YTD');
+  const [selectedPreset, setSelectedPreset] = useState<string>('ytd');
   const [startDate, setStartDate] = useState<Date>(new Date(2026, 0, 1));
   const [endDate, setEndDate] = useState<Date>(new Date(2026, 7, 24));
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
