@@ -100,6 +100,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
                   <GoogleMapWidget
                     widget={widget}
                     data={data}
+                    activeFilters={activeFilters}
                     onFilterChange={onFilterChange}
                   />
                 ) : (

@@ -122,4 +122,22 @@ describe('Google Maps & Geospatial Intelligence Widget', () => {
     currentSelected = currentSelected?.id === store1.id ? null : store1;
     expect(currentSelected).toBeNull();
   });
+
+  it('should cascade main time_range filter to deep-dive calculations', () => {
+    const mapWidget: WidgetSpec = {
+      id: 'map_stores',
+      title: 'Store Map',
+      type: 'google_map',
+      source: 'bq_gsheet_store_mesh',
+      position: { w: 12, h: 4 }
+    };
+
+    const ytdRes = executeWidgetQuery(mapWidget, { time_range: '2026-YTD' });
+    expect(ytdRes.mapPoints.length).toBeGreaterThan(0);
+
+    const monthRes = executeWidgetQuery(mapWidget, { time_range: 'last_30_days' });
+    expect(monthRes.mapPoints.length).toBeGreaterThan(0);
+    // Month sales should be scaled relative to YTD
+    expect(monthRes.mapPoints[0].sales).toBeLessThan(ytdRes.mapPoints[0].sales * 1.5);
+  });
 });

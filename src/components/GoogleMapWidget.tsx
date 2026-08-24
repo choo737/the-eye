@@ -6,20 +6,22 @@ import { formatValue } from '../utils/formatters';
 import { 
   Focus, Scan, MapPin, Store, DollarSign, User, ShieldCheck, 
   Globe, Satellite, Target, Plus, Minus, Compass, 
-  TrendingUp, PieChart, X, Sparkles, Layers, Table as TableIcon,
-  ChevronRight, ArrowUpDown
+  TrendingUp, PieChart, X, Layers, Table as TableIcon,
+  ChevronRight, ArrowUpDown, Calendar
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 
 interface GoogleMapWidgetProps {
   widget: WidgetSpec;
   data: any;
+  activeFilters?: Record<string, any>;
   onFilterChange?: (filterId: string, value: any) => void;
 }
 
 export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   widget,
   data,
+  activeFilters = {},
   onFilterChange
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -27,7 +29,19 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
-  // Fallback dataset if data.mapPoints is empty
+  // Time Range Horizon Detection from Main Filter
+  const timeRangeFilter = activeFilters['time_range'] || '2026-YTD';
+  const timeLabel = typeof timeRangeFilter === 'object' && timeRangeFilter !== null
+    ? (timeRangeFilter.label || `${timeRangeFilter.startDate} – ${timeRangeFilter.endDate}`)
+    : (timeRangeFilter === '2026-YTD' ? '2026 YTD' 
+    : timeRangeFilter === 'last_90_days' ? 'Last Quarter (90 Days)' 
+    : timeRangeFilter === 'last_30_days' ? 'Last 30 Days' 
+    : timeRangeFilter === 'today' ? 'Today' 
+    : timeRangeFilter === 'yesterday' ? 'Yesterday' 
+    : timeRangeFilter === 'last_7_days' ? 'Last 7 Days' 
+    : '2026 YTD');
+
+  // Fallback master stores dataset
   const defaultMasterStores = [
     { id: '7E-1082', store_id: '7E-1082', store_name: 'KLCC Twin Towers Concourse', name: 'KLCC Twin Towers Concourse', lat: 3.1578, lng: 101.7123, region: 'Klang Valley / Central', sales: 38400, target: 35000, manager: 'Ahmad Zaki', nps: 96, pos_count: 8 },
     { id: '7E-2041', store_id: '7E-2041', store_name: 'Mid Valley Megamall North Court', name: 'Mid Valley Megamall North Court', lat: 3.1189, lng: 101.6781, region: 'Klang Valley / Central', sales: 31200, target: 32000, manager: 'Michelle Tan', nps: 88, pos_count: 6 },
@@ -71,12 +85,12 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   }, [data?.mapPoints]);
 
   const [selectedPin, setSelectedPin] = useState<any | null>(null);
+  const [mapStyle, setMapStyle] = useState<'google_streets' | 'google_satellite' | 'google_terrain'>('google_streets');
+
   // Auto-reset deep-dive selection whenever the main filters or data change
   useEffect(() => {
     setSelectedPin(null);
-  }, [data]);
-
-  const [mapStyle, setMapStyle] = useState<'google_streets' | 'google_satellite' | 'google_terrain'>('google_streets');
+  }, [data, activeFilters]);
 
   const showTable = widget.map_config?.show_table !== false;
 
@@ -106,7 +120,8 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
       .replace(/\{\{\s*selected_store_name\s*\}\}/g, store.store_name || store.name || '')
       .replace(/\{\{\s*store_id\s*\}\}/g, store.id || store.store_id || '')
       .replace(/\{\{\s*manager\s*\}\}/g, store.manager || '')
-      .replace(/\{\{\s*region\s*\}\}/g, store.region || '');
+      .replace(/\{\{\s*region\s*\}\}/g, store.region || '')
+      .replace(/\{\{\s*time_range\s*\}\}/g, timeLabel);
   };
 
   const GOOGLE_MAP_TILES = {
@@ -167,7 +182,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     }
   }, [mapStyle]);
 
-  // 3. Render Markers with guaranteed non-undefined label
+  // 3. Render Markers
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
@@ -250,7 +265,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
   const handleSelectStore = (store: any) => {
     setSelectedPin((prev: any) => {
       if (prev?.id === store.id) {
-        return null; // Toggle unselect
+        return null;
       }
       mapInstanceRef.current?.setView([store.lat, store.lng], 9, { animate: true });
       return store;
@@ -261,18 +276,70 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
     setSelectedPin(null);
   };
 
-  const getHourlyChartOption = () => {
-    const hours = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
-    const scale = (selectedPin?.sales || 30000) / 30000;
-    const salesData = [850, 2400, 3100, 4800, 3600, 3200, 5600, 6200, 4900, 1800].map(v => Math.round(v * scale));
-    const txData = [45, 130, 175, 260, 195, 180, 295, 330, 260, 110].map(v => Math.round(v * scale));
+  // -------------------------------------------------------------
+  // GENERIC CASCADING CONTEXT INHERITANCE:
+  // Dynamically calculate time-grain series for selected store matching main filter horizon
+  // -------------------------------------------------------------
+  const { chartXAxis, chartSalesData, chartTxData, periodSales, periodTarget } = useMemo(() => {
+    const dailyBase = selectedPin?.sales || 30000;
+    const dailyTarget = selectedPin?.target || 30000;
 
+    let xAxis: string[] = [];
+    let salesMultipliers: number[] = [];
+    let txMultipliers: number[] = [];
+    let cumulativeFactor = 1.0;
+
+    const t = String(timeRangeFilter);
+
+    if (t === '2026-YTD' || t.includes('YTD') || t === 'all_time') {
+      // 8 Months YTD Grain
+      xAxis = ['Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026'];
+      salesMultipliers = [28, 29, 32, 34, 30, 29, 35, 38]; // in thousands per day avg
+      txMultipliers = [1400, 1450, 1600, 1720, 1500, 1480, 1750, 1920];
+      cumulativeFactor = 236; // ~236 days YTD
+    } else if (t === 'last_90_days' || t.includes('Quarter') || t.includes('3_months')) {
+      // 90 Days Weekly Grain
+      xAxis = ['W24 (Jun)', 'W26 (Jun)', 'W28 (Jul)', 'W30 (Jul)', 'W32 (Aug)', 'W34 (Aug)'];
+      salesMultipliers = [30, 31, 33, 35, 37, 39];
+      txMultipliers = [1500, 1550, 1650, 1750, 1850, 1950];
+      cumulativeFactor = 90;
+    } else if (t === 'last_30_days' || t.includes('Month')) {
+      // 30 Days 5-Day Interval Grain
+      xAxis = ['Day 1-5', 'Day 6-10', 'Day 11-15', 'Day 16-20', 'Day 21-25', 'Day 26-30'];
+      salesMultipliers = [32, 34, 31, 36, 38, 41];
+      txMultipliers = [1600, 1700, 1550, 1800, 1900, 2050];
+      cumulativeFactor = 30;
+    } else {
+      // Intraday Hourly Grain
+      xAxis = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
+      salesMultipliers = [0.85, 2.4, 3.1, 4.8, 3.6, 3.2, 5.6, 6.2, 4.9, 1.8];
+      txMultipliers = [45, 130, 175, 260, 195, 180, 295, 330, 260, 110];
+      cumulativeFactor = 1.0;
+    }
+
+    const scale = dailyBase / 30000;
+    const computedSales = salesMultipliers.map(v => Math.round(v * 1000 * scale));
+    const computedTx = txMultipliers.map(v => Math.round(v * scale));
+
+    const totalPeriodSales = Math.round(dailyBase * cumulativeFactor);
+    const totalPeriodTarget = Math.round(dailyTarget * cumulativeFactor);
+
+    return {
+      chartXAxis: xAxis,
+      chartSalesData: computedSales,
+      chartTxData: computedTx,
+      periodSales: totalPeriodSales,
+      periodTarget: totalPeriodTarget
+    };
+  }, [selectedPin, timeRangeFilter]);
+
+  const getHourlyChartOption = () => {
     return {
       backgroundColor: 'transparent',
       tooltip: { 
         trigger: 'axis',
         formatter: (params: any[]) => {
-          let res = `<div style="font-weight: bold; margin-bottom: 4px;">Time: ${params[0].name}</div>`;
+          let res = `<div style="font-weight: bold; margin-bottom: 4px;">Horizon: ${params[0].name}</div>`;
           params.forEach(p => {
             const isSales = p.seriesName.includes('Sales');
             const val = isSales ? formatValue(p.value, 'RM 0,0') : formatValue(p.value, '0,0');
@@ -288,25 +355,25 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
       grid: { top: 35, left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: {
         type: 'category',
-        data: hours,
+        data: chartXAxis,
         axisLine: { lineStyle: { color: '#334155' } },
         axisLabel: { color: '#94a3b8', fontSize: 10 }
       },
       yAxis: [
         {
           type: 'value',
-          name: 'Sales (RM)',
+          name: widget.drilldown?.sub_widgets?.[0]?.y?.[0] || 'Sales (RM)',
           nameTextStyle: { color: '#94a3b8', fontSize: 10 },
           splitLine: { lineStyle: { color: '#1e293b' } },
           axisLabel: { 
             color: '#94a3b8', 
             fontSize: 10, 
-            formatter: (v: number) => formatValue(v, 'RM 0,0') 
+            formatter: (v: number) => formatValue(v, 'RM 0.0a') 
           }
         },
         {
           type: 'value',
-          name: 'POS Tx',
+          name: widget.drilldown?.sub_widgets?.[0]?.y?.[1] || 'POS Tx',
           nameTextStyle: { color: '#94a3b8', fontSize: 10 },
           splitLine: { show: false },
           axisLabel: { 
@@ -321,7 +388,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           name: widget.drilldown?.sub_widgets?.[0]?.y?.[0] || 'POS Sales (RM)',
           type: 'line',
           smooth: true,
-          data: salesData,
+          data: chartSalesData,
           itemStyle: { color: '#38bdf8' },
           areaStyle: {
             color: {
@@ -339,7 +406,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           type: 'line',
           yAxisIndex: 1,
           smooth: true,
-          data: txData,
+          data: chartTxData,
           itemStyle: { color: '#34d399' }
         }
       ]
@@ -351,7 +418,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
       backgroundColor: 'transparent',
       tooltip: { 
         trigger: 'item', 
-        formatter: (p: any) => `${p.name}: <strong>${formatValue(p.value, 'RM 0,0')}</strong> (${p.percent}%)` 
+        formatter: (p: any) => `${p.name}: <strong>${formatValue(p.value, 'RM 0.0a')}</strong> (${p.percent}%)` 
       },
       legend: { show: false },
       series: [
@@ -364,10 +431,10 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
           itemStyle: { borderRadius: 6, borderColor: '#0f172a', borderWidth: 2 },
           label: { show: false },
           data: [
-            { value: Math.round((selectedPin?.sales || 30000) * 0.38), name: 'Ready-to-Eat (RTE)', itemStyle: { color: '#10b981' } },
-            { value: Math.round((selectedPin?.sales || 30000) * 0.28), name: 'Cold Beverages & Slurpee', itemStyle: { color: '#38bdf8' } },
-            { value: Math.round((selectedPin?.sales || 30000) * 0.18), name: 'Packaged Snacks', itemStyle: { color: '#fbbf24' } },
-            { value: Math.round((selectedPin?.sales || 30000) * 0.16), name: 'Tobacco & Convenience', itemStyle: { color: '#818cf8' } }
+            { value: Math.round(periodSales * 0.38), name: 'Ready-to-Eat (RTE)', itemStyle: { color: '#10b981' } },
+            { value: Math.round(periodSales * 0.28), name: 'Cold Beverages & Slurpee', itemStyle: { color: '#38bdf8' } },
+            { value: Math.round(periodSales * 0.18), name: 'Packaged Snacks', itemStyle: { color: '#fbbf24' } },
+            { value: Math.round(periodSales * 0.16), name: 'Tobacco & Convenience', itemStyle: { color: '#818cf8' } }
           ]
         }
       ]
@@ -380,7 +447,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
   const configuredSubtitle = widget.drilldown?.subtitle
     ? renderTemplateString(widget.drilldown.subtitle, selectedPin)
-    : `Hourly POS transaction velocity, category mix, and commercial budget attainment for ${selectedPin?.id || ''}`;
+    : `Cascading ${timeLabel} performance, category mix, and commercial budget attainment for ${selectedPin?.id || ''}`;
 
   return (
     <div className="flex flex-col w-full bg-slate-900/90 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
@@ -396,6 +463,9 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                 <h3 className="font-extrabold text-slate-100 text-sm tracking-tight">{data?.dynamicTitle || widget.title}</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
                   Google Maps Live ({storePoints.length} Stores Plotted)
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> {timeLabel}
                 </span>
               </div>
               {widget.subtitle && (
@@ -489,8 +559,8 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
 
         {!selectedPin && (
           <div className="absolute bottom-4 left-4 bg-slate-950/95 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-xl z-20 flex items-center gap-2.5 text-xs text-slate-300 pointer-events-auto animate-in fade-in">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span>Click any store pin on the map or select a store in the table below to dive into performance.</span>
+            <Focus className="w-4 h-4 text-cyan-400" />
+            <span>Click any store pin on the map or select a store in the table below to dive into {timeLabel} performance.</span>
           </div>
         )}
       </div>
@@ -502,7 +572,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             <div className="flex items-center gap-2">
               <TableIcon className="w-4 h-4 text-cyan-400" />
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
-                Store Outlets Target Attainment & Regional Performance Table
+                Store Outlets Target Attainment & Regional Performance Table ({timeLabel})
               </h4>
               <span className="text-[10px] text-slate-500 font-mono">({storePoints.length} Stores)</span>
             </div>
@@ -519,7 +589,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                   <th className="py-3 px-4">Store Outlet Location</th>
                   <th className="py-3 px-4">Region</th>
                   <th className="py-3 px-4">Store Manager</th>
-                  <th className="py-3 px-4 text-right">Actual POS Sales</th>
+                  <th className="py-3 px-4 text-right">POS Sales ({timeLabel})</th>
                   <th className="py-3 px-4 text-right">Budget Target (GSheet)</th>
                   <th className="py-3 px-4 text-right">Attainment %</th>
                   <th className="py-3 px-4 text-center">Status</th>
@@ -590,7 +660,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
                     {configuredTitle}
                   </h4>
                   <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
-                    Sub-Widget Active
+                    {timeLabel} Deep-Dive
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -608,16 +678,17 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             </button>
           </div>
 
+          {/* Sub-Widget KPI Scorecards dynamically cascading time range */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily POS Revenue</span>
-              <span className="text-xl font-black text-white mt-0.5 block">{formatValue(selectedPin.sales, 'RM 0,0')}</span>
-              <span className="text-[10px] text-emerald-400 font-semibold mt-0.5 block">+12.4% vs last week</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{timeLabel} Store Revenue</span>
+              <span className="text-xl font-black text-white mt-0.5 block">{formatValue(periodSales, 'RM 0.0a')}</span>
+              <span className="text-[10px] text-emerald-400 font-semibold mt-0.5 block">+12.4% vs benchmark</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">GSheet Budget Target</span>
-              <span className="text-xl font-black text-cyan-300 mt-0.5 block">{formatValue(selectedPin.target, 'RM 0,0')}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{timeLabel} Budget Target</span>
+              <span className="text-xl font-black text-cyan-300 mt-0.5 block">{formatValue(periodTarget, 'RM 0.0a')}</span>
               <span className="text-[10px] font-semibold mt-0.5 block" style={{ color: getAttainmentColor(selectedPin.target_achievement_pct).color }}>
                 {selectedPin.target_achievement_pct}% Attainment
               </span>
@@ -640,7 +711,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             <div className="lg:col-span-8 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> {widget.drilldown?.sub_widgets?.[0]?.title || 'Transaction Velocity & Customer Traffic'}
+                  <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> {widget.drilldown?.sub_widgets?.[0]?.title || 'Transaction Velocity & Customer Traffic'} ({timeLabel})
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">Live BigQuery Stream</span>
               </div>
@@ -652,7 +723,7 @@ export const GoogleMapWidget: React.FC<GoogleMapWidgetProps> = ({
             <div className="lg:col-span-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <PieChart className="w-3.5 h-3.5 text-indigo-400" /> {widget.drilldown?.sub_widgets?.[1]?.title || 'Product Division Share'}
+                  <PieChart className="w-3.5 h-3.5 text-indigo-400" /> {widget.drilldown?.sub_widgets?.[1]?.title || 'Product Division Share'} ({timeLabel})
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">Product Mix</span>
               </div>
