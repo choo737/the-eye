@@ -19,7 +19,7 @@ export function App() {
   const [viewMode, setViewMode] = useState<'viewer' | 'editor'>('viewer');
   
   // User Session & RBAC
-  const [currentUserEmail] = useState<string>('jackychoo@google.com');
+  const [currentUserEmail] = useState<string>('admin@jackychoo.altostrat.com');
   const [currentUserName] = useState<string>('Jacky Choo');
   const [globalRole, setGlobalRole] = useState<UserRole>('owner');
 

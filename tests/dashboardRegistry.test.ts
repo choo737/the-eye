@@ -6,7 +6,7 @@ describe('Dashboards Hub & Per-Dashboard Permissions', () => {
     expect(INITIAL_DASHBOARDS.length).toBeGreaterThanOrEqual(1);
     const mainDash = INITIAL_DASHBOARDS[0];
     expect(mainDash.id).toBe('seven-eleven-retail-intelligence');
-    expect(mainDash.dataSource).toContain('seven-eleven-qlik-bq');
+    expect(mainDash.dataSource).toContain('the-eye-bi-platform');
   });
 
   it('should enforce that the dashboard creator has Owner role', () => {
@@ -19,7 +19,7 @@ describe('Dashboards Hub & Per-Dashboard Permissions', () => {
       id: 'custom-dash-1',
       title: 'Custom Dashboard',
       description: 'Desc',
-      dataSource: 'seven-eleven-qlik-bq.retail',
+      dataSource: 'the-eye-bi-platform.retail',
       dataSourceType: 'bigquery',
       ownerEmail: 'creator@company.com',
       ownerName: 'Creator',
