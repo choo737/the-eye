@@ -18,7 +18,7 @@ data_sources:
   - id: gsheet_store_targets
     name: "Store Budget & Manager Quotas (Google Sheet)"
     type: google_sheet
-    sheet_id: "19hOqN4p7rW09_7eleven_q3_targets_live"
+    sheet_id: "1kxhTv9TKA1RJSJcV017xVq4jADPSZxx8bSuSWxgGii4"
     range: "Targets!A1:E20"
 
 # Multi-Source Declarative Data Mesh Join Model
