@@ -4,7 +4,7 @@ export interface FilterState {
   [filterId: string]: any;
 }
 
-export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState): any {
+export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterState, overrideGrain?: string): any {
   // Normalize filter inputs
   const rawRegion = activeFilters['store_region'] || activeFilters['region'] || 'All Regions';
   const selectedRegions = Array.isArray(rawRegion) ? rawRegion : [rawRegion];
@@ -24,10 +24,31 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   const isAllCategories = rawCategory === 'All Categories';
 
   const timeRange = activeFilters['time_range'] || '2026-YTD';
+  
+  // Adaptive time hierarchy / grain
+  let effectiveGrain = overrideGrain;
+  if (!effectiveGrain) {
+    if (timeRange === 'last_30_days') effectiveGrain = 'day';
+    else if (timeRange === 'last_90_days') effectiveGrain = 'week';
+    else if (timeRange === 'all_time') effectiveGrain = 'quarter';
+    else effectiveGrain = 'month'; // default 2026-YTD
+  }
+
   let timeMultiplier = 1.0;
-  if (timeRange === 'last_30_days') timeMultiplier = 0.28;
-  else if (timeRange === 'last_90_days') timeMultiplier = 0.65;
-  else if (timeRange === 'all_time') timeMultiplier = 1.45;
+  let dynamicComparison = '+14.2% vs last month';
+  if (timeRange === 'last_30_days') {
+    timeMultiplier = 0.28;
+    dynamicComparison = '+8.4% vs prev 30 days';
+  } else if (timeRange === 'last_90_days') {
+    timeMultiplier = 0.65;
+    dynamicComparison = '+16.2% vs Q1 2026';
+  } else if (timeRange === 'all_time') {
+    timeMultiplier = 1.45;
+    dynamicComparison = '+82.5% lifetime';
+  } else {
+    timeMultiplier = 1.0;
+    dynamicComparison = '+24.8% YoY';
+  }
 
   // Region multiplier
   let regionMultiplier = 1.0;
@@ -78,6 +99,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     return {
       value: 78450000 * compositeMultiplier,
       target: `$${(85.0 * compositeMultiplier).toFixed(1)}M`,
+      comparison_label: dynamicComparison,
       sparklineData: [58, 62, 65, 71, 74, 76.5, 78.45].map(v => +(v * compositeMultiplier).toFixed(2))
     };
   }
@@ -86,17 +108,17 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     const abv = 16.48 * (divisionMultiplier > 0.8 ? 1 : 1.15) * (isAllRegions ? 1 : 1.05);
     return {
       value: abv,
+      comparison_label: timeRange === 'last_30_days' ? '+$0.65 / basket' : '+$1.85 / basket',
       sparklineData: [13.2, 13.8, 14.5, 15.1, 15.8, +(abv).toFixed(2)]
     };
   }
 
   if (widget.id === 'kpi_store_count') {
     let count = 2580;
-    if (!isAllRegions) {
-      count = Math.round(2580 * regionMultiplier);
-    }
+    if (!isAllRegions) count = Math.round(2580 * regionMultiplier);
     return {
       value: count,
+      comparison_label: '+28 new store openings',
       sparklineData: [Math.round(count * 0.9), Math.round(count * 0.94), Math.round(count * 0.97), count]
     };
   }
@@ -105,18 +127,62 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     const rtePct = isAllDivisions ? 28.6 : (rawDivision.includes('Fresh') ? 100 : 8.4);
     return {
       value: rtePct,
+      comparison_label: '+3.8% mix shift',
       sparklineData: [21.0, 22.8, 24.5, 26.0, 27.4, rtePct]
     };
   }
 
+  // 🏪 Time-series chart with adaptive time grains (Day vs Week vs Month vs Hour)
   if (widget.id === 'hourly_pos_velocity') {
-    return {
-      categories: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'],
-      series: [
-        { name: 'Store Sales ($)', data: [42, 115, 168, 280, 210, 195, 310, 290, 185, 95].map(v => +(v * 1000 * compositeMultiplier).toFixed(0)) },
-        { name: 'Customer Count', data: [320, 890, 1250, 2100, 1650, 1540, 2450, 2200, 1400, 750].map(v => Math.round(v * compositeMultiplier)) }
-      ]
-    };
+    if (effectiveGrain === 'day') {
+      // 30 Daily data points
+      const days = ['Aug 01', 'Aug 04', 'Aug 07', 'Aug 10', 'Aug 13', 'Aug 16', 'Aug 19', 'Aug 22', 'Aug 24'];
+      return {
+        grain: 'day',
+        activeGrain: 'Daily',
+        categories: days,
+        series: [
+          { name: 'Store Sales ($)', data: [2100, 2450, 2300, 2850, 2650, 3100, 2950, 3400, 3650].map(v => +(v * 1000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
+          { name: 'Customer Count', data: [18000, 21000, 19500, 24000, 22500, 26000, 25000, 29000, 31500].map(v => Math.round(v * regionMultiplier)) }
+        ]
+      };
+    } else if (effectiveGrain === 'week') {
+      // 12 Weekly points
+      const weeks = ['W1 Jun', 'W2 Jun', 'W3 Jun', 'W4 Jun', 'W1 Jul', 'W2 Jul', 'W3 Jul', 'W4 Jul', 'W1 Aug', 'W2 Aug', 'W3 Aug', 'W4 Aug'];
+      return {
+        grain: 'week',
+        activeGrain: 'Weekly',
+        categories: weeks,
+        series: [
+          { name: 'Store Sales ($)', data: [14.2, 15.1, 14.8, 16.5, 17.2, 16.9, 18.4, 19.1, 18.8, 20.2, 21.5, 22.8].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier).toFixed(0)) },
+          { name: 'Customer Count', data: [120, 128, 124, 139, 145, 142, 155, 161, 158, 170, 181, 192].map(v => Math.round(v * 1000 * regionMultiplier)) }
+        ]
+      };
+    } else if (effectiveGrain === 'quarter' || effectiveGrain === 'month') {
+      // Monthly points
+      const months = ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26'];
+      return {
+        grain: 'month',
+        activeGrain: 'Monthly',
+        categories: months,
+        series: [
+          { name: 'Store Sales ($)', data: [58.2, 62.4, 65.1, 71.0, 74.3, 76.5, 78.45, 81.2].map(v => +(v * 1000000 * regionMultiplier * divisionMultiplier * timeMultiplier).toFixed(0)) },
+          { name: 'Customer Count', data: [480, 510, 535, 580, 610, 630, 645, 670].map(v => Math.round(v * 1000 * regionMultiplier)) }
+        ]
+      };
+    } else {
+      // Intraday Hourly
+      const hours = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00'];
+      return {
+        grain: 'hour',
+        activeGrain: 'Hourly',
+        categories: hours,
+        series: [
+          { name: 'Store Sales ($)', data: [42, 115, 168, 280, 210, 195, 310, 290, 185, 95].map(v => +(v * 1000 * compositeMultiplier).toFixed(0)) },
+          { name: 'Customer Count', data: [320, 890, 1250, 2100, 1650, 1540, 2450, 2200, 1400, 750].map(v => Math.round(v * compositeMultiplier)) }
+        ]
+      };
+    }
   }
 
   if (widget.id === 'division_share_donut') {
@@ -203,6 +269,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     return {
       value: 48200000 * compositeMultiplier,
       target: `$${(52.0 * compositeMultiplier).toFixed(1)}M`,
+      comparison_label: dynamicComparison,
       sparklineData: [32, 35, 38, 41, 44, 46.5, 48.2].map(v => +(v * compositeMultiplier).toFixed(1))
     };
   }
@@ -211,6 +278,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     return {
       value: +(124.5 * (tierMultiplier > 0.8 ? 1 : 0.95)).toFixed(1),
       target: '120.0%',
+      comparison_label: '+3.2% vs target',
       sparklineData: [118, 119.5, 121, 122, 123.8, 124.5]
     };
   }
@@ -219,6 +287,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
     return {
       value: 11.4,
       target: '12.0 mos',
+      comparison_label: '-2.1 mos QoQ',
       sparklineData: [15.2, 14.1, 13.5, 12.8, 12.0, 11.4]
     };
   }
@@ -226,19 +295,47 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
   if (widget.id === 'kpi_active_accounts') {
     return {
       value: Math.round(1480 * compositeMultiplier),
+      comparison_label: '+142 new logos',
       sparklineData: [920, 1040, 1180, 1290, 1390, 1480].map(v => Math.round(v * compositeMultiplier))
     };
   }
 
   if (widget.id === 'arr_trend_chart') {
-    return {
-      categories: ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26 (F)', 'Sep 26 (F)'],
-      series: [
-        { name: 'Actual ARR', data: [34, 36, 38.5, 41.2, 44.0, 46.8, 48.2, null, null].map(v => v ? +(v * compositeMultiplier).toFixed(1) : null) },
-        { name: 'Forecast ARR', data: [null, null, null, null, null, null, 48.2, 50.8, 53.5].map(v => v ? +(v * compositeMultiplier).toFixed(1) : null) },
-        { name: 'Target', data: [35, 37, 39, 41.5, 44, 46.5, 49, 51.5, 54].map(v => +(v * compositeMultiplier).toFixed(1)) }
-      ]
-    };
+    if (effectiveGrain === 'day') {
+      const days = ['Aug 01', 'Aug 05', 'Aug 10', 'Aug 15', 'Aug 20', 'Aug 24'];
+      return {
+        grain: 'day',
+        activeGrain: 'Daily',
+        categories: days,
+        series: [
+          { name: 'Actual ARR', data: [45.2, 46.1, 46.8, 47.4, 47.9, 48.2].map(v => +(v * compositeMultiplier).toFixed(1)) },
+          { name: 'Target', data: [46.0, 46.5, 47.0, 47.5, 48.0, 48.5].map(v => +(v * compositeMultiplier).toFixed(1)) }
+        ]
+      };
+    } else if (effectiveGrain === 'week') {
+      const weeks = ['W1 Jun', 'W2 Jun', 'W3 Jun', 'W4 Jun', 'W1 Jul', 'W2 Jul', 'W3 Jul', 'W4 Jul', 'W1 Aug', 'W2 Aug', 'W3 Aug', 'W4 Aug'];
+      return {
+        grain: 'week',
+        activeGrain: 'Weekly',
+        categories: weeks,
+        series: [
+          { name: 'Actual ARR', data: [38.2, 39.5, 40.8, 41.6, 42.8, 44.0, 45.2, 46.1, 46.8, 47.2, 47.8, 48.2].map(v => +(v * compositeMultiplier).toFixed(1)) },
+          { name: 'Target', data: [39.0, 40.0, 41.0, 42.0, 43.0, 44.0, 45.0, 46.0, 47.0, 48.0, 49.0, 50.0].map(v => +(v * compositeMultiplier).toFixed(1)) }
+        ]
+      };
+    } else {
+      const months = ['Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26', 'Jul 26', 'Aug 26 (F)', 'Sep 26 (F)'];
+      return {
+        grain: 'month',
+        activeGrain: 'Monthly',
+        categories: months,
+        series: [
+          { name: 'Actual ARR', data: [34, 36, 38.5, 41.2, 44.0, 46.8, 48.2, null, null].map(v => v ? +(v * compositeMultiplier).toFixed(1) : null) },
+          { name: 'Forecast ARR', data: [null, null, null, null, null, null, 48.2, 50.8, 53.5].map(v => v ? +(v * compositeMultiplier).toFixed(1) : null) },
+          { name: 'Target', data: [35, 37, 39, 41.5, 44, 46.5, 49, 51.5, 54].map(v => +(v * compositeMultiplier).toFixed(1)) }
+        ]
+      };
+    }
   }
 
   if (widget.id === 'tier_donut') {
@@ -291,8 +388,7 @@ export function executeWidgetQuery(widget: WidgetSpec, activeFilters: FilterStat
       { account_name: 'Nexis Financial Group', region: 'EMEA', tier: 'Enterprise', arr: Math.round(980000 * timeMultiplier), nrr: 128.0, health_score: 'Good', renewal_date: '2026-12-01' },
       { account_name: 'Starlight Retail Inc', region: 'North America', tier: 'Enterprise', arr: Math.round(840000 * timeMultiplier), nrr: 142.5, health_score: 'Excellent', renewal_date: '2027-01-20' },
       { account_name: 'Vertex Cloud Tech', region: 'APAC', tier: 'Enterprise', arr: Math.round(650000 * timeMultiplier), nrr: 118.4, health_score: 'Good', renewal_date: '2026-10-10' },
-      { account_name: 'Apex Mobility', region: 'EMEA', tier: 'Mid-Market', arr: Math.round(320000 * timeMultiplier), nrr: 112.0, health_score: 'Warning', renewal_date: '2026-09-30' },
-      { account_name: 'Zenith Logistics', region: 'LATAM', tier: 'Mid-Market', arr: Math.round(290000 * timeMultiplier), nrr: 122.8, health_score: 'Good', renewal_date: '2027-02-14' }
+      { account_name: 'Apex Mobility', region: 'EMEA', tier: 'Mid-Market', arr: Math.round(320000 * timeMultiplier), nrr: 112.0, health_score: 'Warning', renewal_date: '2026-09-30' }
     ];
 
     let filtered = allAccounts;

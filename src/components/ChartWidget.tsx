@@ -1,20 +1,32 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { WidgetSpec } from '../core/types';
+import { BarChart2, TrendingUp, Layers, ZoomIn } from 'lucide-react';
 
 interface ChartWidgetProps {
   widget: WidgetSpec;
   data: any;
   onChartClick?: (params: any) => void;
+  onGrainChange?: (grain: string) => void;
 }
 
-export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartClick }) => {
+export const ChartWidget: React.FC<ChartWidgetProps> = ({ 
+  widget, 
+  data, 
+  onChartClick,
+  onGrainChange 
+}) => {
+  const [chartTypeOverride, setChartTypeOverride] = useState<string | null>(null);
+  const [activeGrain, setActiveGrain] = useState<string | null>(data?.activeGrain || null);
+
+  const effectiveType = chartTypeOverride || widget.type;
+
   const option = useMemo(() => {
     const textColor = '#94a3b8';
     const gridLineColor = 'rgba(255, 255, 255, 0.06)';
     const cyanPalette = ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#fbbf24', '#a78bfa'];
 
-    if (widget.type === 'donut_chart' || widget.type === 'pie_chart') {
+    if (effectiveType === 'donut_chart' || effectiveType === 'pie_chart') {
       const pieData = data?.data || [];
       return {
         tooltip: {
@@ -35,7 +47,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
           {
             name: widget.title,
             type: 'pie',
-            radius: widget.type === 'donut_chart' ? ['50%', '75%'] : '70%',
+            radius: effectiveType === 'donut_chart' ? ['45%', '72%'] : '68%',
             avoidLabelOverlap: false,
             itemStyle: {
               borderRadius: 6,
@@ -49,7 +61,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
             emphasis: {
               label: {
                 show: true,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: 'bold',
                 color: '#f8fafc'
               }
@@ -60,7 +72,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
       };
     }
 
-    if (widget.type === 'funnel') {
+    if (effectiveType === 'funnel') {
       const funnelData = data?.data || [];
       return {
         tooltip: {
@@ -97,7 +109,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
       };
     }
 
-    if (widget.type === 'radar') {
+    if (effectiveType === 'radar') {
       const indicators = data?.indicators || [];
       const series = data?.series || [];
       return {
@@ -149,14 +161,14 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
     // Default Cartesian charts (Line, Area, Bar, Stacked Bar)
     const categories = data?.categories || [];
     const seriesList = (data?.series || []).map((s: any, idx: number) => {
-      const isArea = widget.type === 'area_chart';
-      const isBar = widget.type === 'bar_chart' || widget.type === 'stacked_bar';
+      const isArea = effectiveType === 'area_chart';
+      const isBar = effectiveType === 'bar_chart' || effectiveType === 'stacked_bar';
       const color = cyanPalette[idx % cyanPalette.length];
 
       return {
         name: s.name,
         type: isBar ? 'bar' : 'line',
-        stack: widget.type === 'stacked_bar' ? 'total' : undefined,
+        stack: effectiveType === 'stacked_bar' ? 'total' : undefined,
         smooth: widget.smooth ?? true,
         data: s.data,
         itemStyle: {
@@ -183,6 +195,10 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
     return {
       tooltip: {
         trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+          crossStyle: { color: '#64748b' }
+        },
         backgroundColor: '#0f172a',
         borderColor: '#334155',
         textStyle: { color: '#f8fafc' }
@@ -204,7 +220,11 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
         type: 'category',
         data: categories,
         axisLine: { lineStyle: { color: gridLineColor } },
-        axisLabel: { color: textColor, fontSize: 11 },
+        axisLabel: { 
+          color: textColor, 
+          fontSize: 11,
+          rotate: categories.length > 8 ? 20 : 0
+        },
         axisTick: { show: false }
       },
       yAxis: {
@@ -222,7 +242,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
       },
       series: seriesList
     };
-  }, [widget, data]);
+  }, [widget, data, effectiveType]);
 
   const onEvents = useMemo(() => ({
     click: (params: any) => {
@@ -230,11 +250,57 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, data, onChartC
     }
   }), [onChartClick]);
 
+  const isCartesian = ['line_chart', 'area_chart', 'bar_chart', 'stacked_bar'].includes(widget.type);
+  const showGranularityToggles = data?.categories && (data?.grain || widget.id.includes('trend') || widget.id.includes('velocity') || widget.id.includes('sales'));
+
   return (
-    <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-sm h-full">
-      <div className="mb-2">
-        <h3 className="text-sm font-bold text-slate-100 tracking-tight">{widget.title}</h3>
-        {widget.subtitle && <p className="text-xs text-slate-400 mt-0.5">{widget.subtitle}</p>}
+    <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-sm h-full group">
+      {/* Header Bar with Tableau/Power BI style Granularity & Chart Morphing */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-100 tracking-tight">{widget.title}</h3>
+            {data?.activeGrain && (
+              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                {data.activeGrain} Grain
+              </span>
+            )}
+          </div>
+          {widget.subtitle && <p className="text-xs text-slate-400 mt-0.5">{widget.subtitle}</p>}
+        </div>
+
+        {/* Quick Granularity Switcher (Hourly / Daily / Weekly / Monthly) */}
+        {isCartesian && (
+          <div className="flex items-center gap-1 self-end sm:self-auto bg-slate-950/80 border border-slate-800 rounded-lg p-0.5">
+            <button
+              onClick={() => {
+                setChartTypeOverride('line_chart');
+              }}
+              title="Line Chart"
+              className={`p-1 rounded text-xs transition ${effectiveType === 'line_chart' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                setChartTypeOverride('bar_chart');
+              }}
+              title="Bar Chart"
+              className={`p-1 rounded text-xs transition ${effectiveType === 'bar_chart' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                setChartTypeOverride('area_chart');
+              }}
+              title="Area Chart"
+              className={`p-1 rounded text-xs transition ${effectiveType === 'area_chart' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 w-full min-h-[220px]">

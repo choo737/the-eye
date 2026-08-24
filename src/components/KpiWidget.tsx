@@ -33,8 +33,9 @@ export const KpiWidget: React.FC<KpiWidgetProps> = ({ widget, data }) => {
     formattedValue = String(rawValue);
   }
 
-  const isPositive = widget.comparison_label?.includes('+') || widget.comparison_label?.includes('uplift');
-  const isNegative = widget.comparison_label?.includes('-');
+  const comparisonText = data?.comparison_label || widget.comparison_label;
+  const isPositive = comparisonText?.includes('+') || comparisonText?.includes('uplift');
+  const isNegative = comparisonText?.includes('-');
 
   return (
     <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-sm group">
@@ -59,7 +60,7 @@ export const KpiWidget: React.FC<KpiWidgetProps> = ({ widget, data }) => {
       </div>
 
       <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between">
-        {widget.comparison_label ? (
+        {comparisonText ? (
           <div className={`flex items-center gap-1 text-xs font-semibold ${
             isPositive ? 'text-emerald-400' : isNegative ? 'text-cyan-400' : 'text-slate-400'
           }`}>
@@ -70,7 +71,7 @@ export const KpiWidget: React.FC<KpiWidgetProps> = ({ widget, data }) => {
             ) : (
               <Minus className="w-3.5 h-3.5" />
             )}
-            <span>{widget.comparison_label}</span>
+            <span>{comparisonText}</span>
           </div>
         ) : (
           <span className="text-[11px] text-slate-500">Live Telemetry</span>
