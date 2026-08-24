@@ -1,13 +1,55 @@
-import * as XLSX from 'xlsx';
 import { DashboardSpec } from '../core/types';
 import { executeWidgetQuery } from '../engine/queryEngine';
 
-export function exportDashboardToExcel(spec: DashboardSpec, activeFilters: Record<string, any> = {}) {
-  const wb = XLSX.utils.book_new();
+function escapeXml(unsafe: any): string {
+  if (unsafe === undefined || unsafe === null) return '';
+  const str = String(unsafe);
+  return str.replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case "'": return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
 
+function createWorksheetXml(name: string, rows: Record<string, any>[]): string {
+  if (rows.length === 0) return '';
+  const headers = Object.keys(rows[0]);
+
+  let xml = `  <Worksheet ss:Name="${escapeXml(name)}">\n`;
+  xml += `    <Table>\n`;
+
+  // Header Row
+  xml += `      <Row ss:StyleID="Header">\n`;
+  headers.forEach(h => {
+    xml += `        <Cell><Data ss:Type="String">${escapeXml(h)}</Data></Cell>\n`;
+  });
+  xml += `      </Row>\n`;
+
+  // Data Rows
+  rows.forEach(r => {
+    xml += `      <Row>\n`;
+    headers.forEach(h => {
+      const val = r[h];
+      const isNum = typeof val === 'number';
+      xml += `        <Cell><Data ss:Type="${isNum ? 'Number' : 'String'}">${escapeXml(val)}</Data></Cell>\n`;
+    });
+    xml += `      </Row>\n`;
+  });
+
+  xml += `    </Table>\n`;
+  xml += `  </Worksheet>\n`;
+  return xml;
+}
+
+export function exportDashboardToExcel(spec: DashboardSpec, activeFilters: Record<string, any> = {}) {
   // Tab 1: KPI Overview
   const kpis = spec.widgets.filter(w => w.type === 'kpi_card');
-  const kpiData = kpis.map(w => {
+  const kpiRows = kpis.map(w => {
     const q = executeWidgetQuery(w, activeFilters);
     return {
       'Metric Name': w.title,
@@ -16,17 +58,17 @@ export function exportDashboardToExcel(spec: DashboardSpec, activeFilters: Recor
       'Comparison Delta': w.comparison_label ?? ''
     };
   });
-  const kpiSheet = XLSX.utils.json_to_sheet(kpiData);
-  XLSX.utils.book_append_sheet(wb, kpiSheet, 'Executive KPIs');
 
   // Tab 2: Tables & Detailed Rows
+  const tableRowsList: { name: string; rows: any[] }[] = [];
   const tableWidgets = spec.widgets.filter(w => w.type === 'table');
   tableWidgets.forEach((tw, idx) => {
     const q = executeWidgetQuery(tw, activeFilters);
     if (q?.rows && Array.isArray(q.rows)) {
-      const sheet = XLSX.utils.json_to_sheet(q.rows);
-      const sheetName = tw.title.slice(0, 28) || `Table ${idx + 1}`;
-      XLSX.utils.book_append_sheet(wb, sheet, sheetName);
+      tableRowsList.push({
+        name: tw.title.slice(0, 28) || `Table ${idx + 1}`,
+        rows: q.rows
+      });
     }
   });
 
@@ -50,12 +92,37 @@ export function exportDashboardToExcel(spec: DashboardSpec, activeFilters: Recor
     }
   });
 
-  if (chartDataRows.length > 0) {
-    const chartSheet = XLSX.utils.json_to_sheet(chartDataRows);
-    XLSX.utils.book_append_sheet(wb, chartSheet, 'Visualizations Data');
-  }
+  let xmlDoc = `<?xml version="1.0"?>\n`;
+  xmlDoc += `<?mso-application progid="Excel.Sheet"?>\n`;
+  xmlDoc += `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n`;
+  xmlDoc += ` xmlns:o="urn:schemas-microsoft-com:office:office"\n`;
+  xmlDoc += ` xmlns:x="urn:schemas-microsoft-com:office:excel"\n`;
+  xmlDoc += ` xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n`;
+  xmlDoc += ` xmlns:html="http://www.w3.org/TR/REC-html40">\n`;
+  xmlDoc += `  <Styles>\n`;
+  xmlDoc += `    <Style ss:ID="Header">\n`;
+  xmlDoc += `      <Font ss:Bold="1" ss:Color="#FFFFFF" />\n`;
+  xmlDoc += `      <Interior ss:Color="#0F172A" ss:Pattern="Solid" />\n`;
+  xmlDoc += `    </Style>\n`;
+  xmlDoc += `  </Styles>\n`;
 
-  const fileName = `${spec.id || 'the-eye-dashboard'}_workbook.xlsx`;
-  XLSX.writeFile(wb, fileName);
+  if (kpiRows.length > 0) xmlDoc += createWorksheetXml('Executive KPIs', kpiRows);
+  tableRowsList.forEach(t => {
+    if (t.rows.length > 0) xmlDoc += createWorksheetXml(t.name, t.rows);
+  });
+  if (chartDataRows.length > 0) xmlDoc += createWorksheetXml('Visualizations Data', chartDataRows);
+
+  xmlDoc += `</Workbook>`;
+
+  const blob = new Blob([xmlDoc], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fileName = `${spec.id || 'the-eye-dashboard'}_workbook.xls`;
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
   return fileName;
 }

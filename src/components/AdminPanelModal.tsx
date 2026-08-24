@@ -28,8 +28,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, curre
   // SSO Settings State
   const [ssoConfig, setSsoConfig] = useState<SsoConfig>({
     provider: 'google',
-    clientId: '849201948201-abc123googleusercontent.apps.googleusercontent.com',
-    clientSecret: 'GOCSPX-****************************',
+    clientId: '',
+    clientSecret: '',
     allowedDomains: ['jackychoo.altostrat.com', 'google.com', '7-eleven.com.my'],
     enforceHostedDomain: true,
     defaultRole: 'viewer',
