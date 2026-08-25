@@ -274,7 +274,7 @@ export const CIMB_BANK_BQ_YAML = `version: "1.0"
 id: "cimb-bank-branch-intelligence"
 title: "CIMB Bank Malaysia — Omnichannel Branch & Wealth Intelligence (the-eye-bi-platform)"
 description: "Live BigQuery analytics for CIMB Malaysia branch banking, CASA deposits, mortgage disbursements, and OTC transaction velocity"
-theme: "corporate-blue"
+theme: "corporate-navy"
 refresh_interval: "30s"
 
 cache:
